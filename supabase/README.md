@@ -9,6 +9,7 @@ No painel do Supabase: **SQL Editor** (ícone `>_` no menu da esquerda) → **Ne
 3. `migrations/0003_admin.sql` — funções do painel (lista de alunos, métricas), coluna de imagem nas questões e bucket público `imagens` no Storage
 4. `migrations/0004_admins.sql` — botão "Tornar admin" na aba Alunos do painel (função `definir_admin`)
 5. `migrations/0005_conteudo.sql` — conteúdo inicial: 112 questões (Matemática, Português, Biologia, História) com trilhas, lições e explicações. Depois de rodar, abra o painel: ele publica a versão nova sozinho.
+6. `migrations/0006_conteudo_mais_materias.sql` — mais 108 questões em 6 matérias novas (Geografia, Física, Química, Redação, Inglês, Filosofia e Sociologia).
 
 As duas podem ser rodadas de novo sem estragar nada. Se aparecer erro, copie a mensagem inteira (ela diz a linha) e mande para o Claude.
 
