@@ -721,13 +721,14 @@ function viewAlunos() {
   return topbar('Alunos', 'Quem usa o app, progresso e ativação manual do Findout+') + `<div class="content">
     <form class="toolbar" id="f-alunos"><input class="inp sm" placeholder="Nome ou e-mail" value="${esc(A.busca)}" data-f="alunos.busca" aria-label="Buscar aluno" style="min-width:260px"><button type="button" class="btn btn-primary btn-sm" data-a="buscar-alunos">Buscar</button><span style="color:var(--muted);font-size:13px">${A.lista ? A.lista.length + ' aluno' + (A.lista.length === 1 ? '' : 's') : ''}</span></form>
     ${A.erro ? `<div class="warnbox">${I.warn}<span>${esc(A.erro)}</span></div>` : ''}
-    <div class="card tbl-wrap"><table><thead><tr><th>Aluno</th><th>XP</th><th>Moedas</th><th>Lições</th><th>Ofensiva</th><th>Findout+</th><th>Último acesso</th><th>Cadastro</th><th></th></tr></thead><tbody>
-      ${A.carregando ? '<tr><td colspan="9" class="empty">Carregando…</td></tr>' : (A.lista || []).map(a => `<tr><td><b>${esc(a.nome)}</b><br><span style="font-size:12px;color:var(--muted)">${esc(a.email)}</span></td><td class="num">${a.xp}</td><td class="num">${a.moedas}</td><td class="num">${a.licoes}</td><td class="num">${a.ofensiva} dias</td>
+    <div class="card tbl-wrap"><table><thead><tr><th>Aluno</th><th>XP</th><th>Moedas</th><th>Lições</th><th>Ofensiva</th><th>Findout+</th><th>Último acesso</th><th>Cadastro</th><th>Painel</th><th></th></tr></thead><tbody>
+      ${A.carregando ? '<tr><td colspan="10" class="empty">Carregando…</td></tr>' : (A.lista || []).map(a => `<tr><td><b>${esc(a.nome)}</b>${a.admin ? ' <span class="pill type">admin</span>' : ''}<br><span style="font-size:12px;color:var(--muted)">${esc(a.email)}</span></td><td class="num">${a.xp}</td><td class="num">${a.moedas}</td><td class="num">${a.licoes}</td><td class="num">${a.ofensiva} dias</td>
         <td>${plus(a) ? `<span class="pill on">até ${fmtDia(a.findout_plus_ate)}</span>` : '<span class="pill off">não</span>'}</td><td style="font-size:12px">${fmtData(a.visto_em)}</td><td style="font-size:12px">${fmtDia(a.criado_em)}</td>
+        <td style="white-space:nowrap">${a.admin ? (a.user_id === sessao.user.id ? '<span style="font-size:12px;color:var(--muted)">você</span>' : `<button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="admin:${a.user_id}:0">Tirar acesso</button>`) : `<button class="btn btn-ghost btn-sm" data-a="admin:${a.user_id}:1">Tornar admin</button>`}</td>
         <td style="white-space:nowrap">${plus(a) ? `<button class="btn btn-ghost btn-sm" data-a="plus:${a.user_id}:30">+30 dias</button> <button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="plus:${a.user_id}:0">Remover</button>` : `<button class="btn btn-outline btn-sm" data-a="plus:${a.user_id}:30">Ativar 30 dias</button>`}</td></tr>`).join('')}
-      ${!A.carregando && A.lista && !A.lista.length ? '<tr><td colspan="9" class="empty">Nenhum aluno encontrado.</td></tr>' : ''}
+      ${!A.carregando && A.lista && !A.lista.length ? '<tr><td colspan="10" class="empty">Nenhum aluno encontrado.</td></tr>' : ''}
     </tbody></table></div>
-    <p style="margin:0;font-size:12px;color:var(--muted)">O Findout+ dá corações ilimitados. A ativação aqui é manual (pagamento por Pix combinado com o aluno). Para somar mais dias a um aluno que já tem, use "+30 dias" (reinicia a contagem a partir de hoje).</p>
+    <p style="margin:0;font-size:12px;color:var(--muted)">O Findout+ dá corações ilimitados. A ativação aqui é manual (pagamento por Pix combinado com o aluno). Para somar mais dias a um aluno que já tem, use "+30 dias" (reinicia a contagem a partir de hoje).<br>"Tornar admin" dá acesso a este painel: a pessoa cria conta no app e entra aqui com o mesmo login.</p>
   </div>`;
 }
 async function buscarAlunos() {
@@ -1010,6 +1011,11 @@ async function act(a, el) {
     /* alunos */
     case 'buscar-alunos': return buscarAlunos();
     case 'plus': { await db(sb.rpc('ativar_plus', {p_user: x, p_dias: +y})); toast(+y > 0 ? `Findout+ ativado por ${y} dias.` : 'Findout+ removido.'); return buscarAlunos(); }
+    case 'admin': {
+      const a = (V.alunos.lista || []).find(t => t.user_id === x); const nome = a ? a.nome : 'esta pessoa';
+      if (y === '1') return confirmar(`Tornar ${nome} administrador?`, 'Ela poderá editar todo o conteúdo, publicar e gerenciar alunos neste painel.', async () => { await db(sb.rpc('definir_admin', {p_user: x, p_admin: true})); toast('Agora é administrador.'); await buscarAlunos(); }, 'Tornar admin');
+      return confirmar(`Tirar o acesso de ${nome}?`, 'Ela continua como aluna no app, mas não entra mais no painel.', async () => { await db(sb.rpc('definir_admin', {p_user: x, p_admin: false})); toast('Acesso ao painel removido.'); await buscarAlunos(); }, 'Tirar acesso');
+    }
 
     /* publicar */
     case 'publicar': {

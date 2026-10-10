@@ -7,6 +7,7 @@ No painel do Supabase: **SQL Editor** (ícone `>_` no menu da esquerda) → **Ne
 1. `migrations/0001_esquema.sql` — tabelas, segurança (RLS), gatilho de novo usuário, parâmetros iniciais
 2. `migrations/0002_funcoes.sql` — regras do jogo (`estado_aluno`, `concluir_licao`, corações, baús, loja)
 3. `migrations/0003_admin.sql` — funções do painel (lista de alunos, métricas), coluna de imagem nas questões e bucket público `imagens` no Storage
+4. `migrations/0004_admins.sql` — botão "Tornar admin" na aba Alunos do painel (função `definir_admin`)
 
 As duas podem ser rodadas de novo sem estragar nada. Se aparecer erro, copie a mensagem inteira (ela diz a linha) e mande para o Claude.
 
