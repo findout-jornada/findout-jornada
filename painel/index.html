@@ -3,106 +3,1061 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#010F2E">
 <title>Painel · Findout Jornada</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Press+Start+2P&display=swap">
 <style>
-:root{--bg:#F4F4FE;--surface:#fff;--line:#E4DFF7;--line2:#C5C9E3;--fg:#010F2E;--fg2:#444D69;--muted:#6F7172;--primary:#503C9D;--primary-d:#3A2A72;--primary-l:#EAEDFF;--teal:#4CC3C1;--teal-d:#0B6E6C;--red-d:#B8313F;--red-l:#FBE4E6;--green-l:#EAF3DF;--green-d:#2F5A14}
+:root{
+  --bg:#F4F4FE;--surface:#FFFFFF;--surface2:#EAEDFF;--line:#E4DFF7;--line2:#C5C9E3;
+  --fg:#010F2E;--fg2:#444D69;--muted:#6F7172;
+  --primary:#503C9D;--primary-d:#3A2A72;--primary-l:#EAEDFF;--navy:#010F2E;
+  --teal:#4CC3C1;--teal-d:#0B6E6C;--teal-l:#DDF3F3;--green:#8FB569;--green-d:#2F5A14;--green-l:#EAF3DF;
+  --gold:#FFD36A;--gold-d:#8A6207;--gold-l:#FFF8E1;--red:#E0475B;--red-d:#B8313F;--red-l:#FBE4E6;--orange:#F08A24;--orange-d:#C8571D;
+  --side:#010F2E;--side-fg:#C5C9E3;--side-active:#503C9D;
+  --f-display:'Jost',system-ui,sans-serif;--f-body:'Roboto',system-ui,sans-serif;--f-pixel:'Press Start 2P',monospace;
+  --radius:12px;
+}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;background:var(--bg);color:var(--fg);font-family:Roboto,system-ui,sans-serif;font-size:14px;display:flex;align-items:center;justify-content:center;padding:24px 16px}
-h1{font-family:Jost,sans-serif;font-size:22px;margin:0}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:28px;width:100%;max-width:400px;display:flex;flex-direction:column;gap:16px}
-.brand{display:flex;align-items:center;gap:10px}
-.brand .mark{width:40px;height:40px;border-radius:10px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',Jost,monospace;font-weight:700;font-size:13px}
-.brand small{display:block;color:var(--muted);font-size:12px}
-label{font-size:12px;font-weight:600;color:var(--fg2);display:block;margin-bottom:5px}
-input{width:100%;height:42px;padding:0 12px;border:1.5px solid var(--line2);border-radius:10px;font:inherit}
-input:focus{outline:0;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-l)}
-button{font:inherit;cursor:pointer}
-.btn{height:44px;border-radius:10px;border:1.5px solid transparent;font-weight:600;width:100%;display:flex;align-items:center;justify-content:center;gap:8px}
-.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-d)}
-.btn-outline{background:#fff;border-color:var(--line2);color:var(--fg)}
-.btn:disabled{opacity:.6;cursor:default}
-.msg{padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.4}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.45}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+button:disabled{cursor:default;opacity:.55}
+a{color:var(--primary)}
+code{font-size:12px;background:var(--surface2);padding:2px 5px;border-radius:5px}
+:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-display);margin:0}
+h1{font-size:24px;font-weight:700}
+h2{font-size:17px;font-weight:700}
+h3{font-size:14px;font-weight:600}
+.num{font-family:var(--f-display);font-variant-numeric:tabular-nums}
+.px{font-family:var(--f-pixel);font-size:8px;letter-spacing:.02em}
+[hidden]{display:none!important}
+
+#shell{display:grid;grid-template-columns:240px 1fr;min-height:100%}
+#shell.auth{display:flex;align-items:center;justify-content:center;padding:24px 16px}
+.login{width:100%;max-width:400px;padding:28px;display:flex;flex-direction:column;gap:16px}
+.login .brand{color:var(--fg);padding:0 0 4px}
+.login .brand small{color:var(--muted)}
+.login h1{font-size:22px}
+aside{background:var(--side);color:var(--side-fg);padding:20px 14px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 10px 18px;color:#fff}
+.brand b{font-family:var(--f-display);font-size:18px;font-weight:700}
+.brand small{display:block;font-size:11px;color:var(--side-fg)}
+.navbtn{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:var(--side-fg);width:100%;text-align:left;font-weight:500}
+.navbtn:hover{background:rgba(255,255,255,.06);color:#fff}
+.navbtn[aria-current="page"]{background:var(--side-active);color:#fff;font-weight:600}
+.navbtn .cnt{margin-left:auto;font-size:11px;background:rgba(255,255,255,.12);padding:2px 7px;border-radius:10px}
+.sidefoot{margin-top:auto;font-size:12px;color:var(--side-fg);padding:10px 12px;border-top:1px solid rgba(255,255,255,.1);display:flex;flex-direction:column;gap:6px}
+.sidefoot button{color:var(--side-fg);text-align:left;text-decoration:underline}
+main{min-width:0;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;gap:14px;padding:16px 28px;border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+.topbar .sub{color:var(--muted);font-size:13px}
+.topbar .actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.content{padding:24px 28px 48px;display:flex;flex-direction:column;gap:20px;max-width:1280px;width:100%}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:38px;padding:0 14px;border-radius:10px;font-weight:600;font-size:13px;white-space:nowrap;border:1.5px solid transparent}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-d)}
+.btn-outline{border-color:var(--primary);color:var(--primary);background:var(--surface)}
+.btn-ghost{color:var(--fg2)}
+.btn-ghost:hover{background:var(--surface2)}
+.btn-danger{color:var(--red-d);border-color:var(--red-d)}
+.btn-sm{height:30px;padding:0 10px;font-size:12px;border-radius:8px}
+.btn-xs{height:24px;padding:0 6px;font-size:11px;border-radius:6px}
+.btn-teal{background:var(--teal);color:var(--navy)}
+.btn.full{width:100%}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius)}
+.card-h{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.card-h .right{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.card-b{padding:18px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.tile .lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.tile .val{font-family:var(--f-display);font-size:28px;font-weight:700;line-height:1.1}
+.tile .hint{font-size:12px;color:var(--fg2)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.grid3{display:grid;grid-template-columns:260px 1fr;gap:16px}
+@media (max-width:900px){.grid3{grid-template-columns:1fr}}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:600;color:var(--muted);font-size:12px;padding:10px 12px;border-bottom:1px solid var(--line);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tr.rowbtn{cursor:pointer}
+tr.rowbtn:hover td{background:var(--surface2)}
+.tbl-wrap{overflow-x:auto}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+.pill.pub{background:var(--green-l);color:var(--green-d)}
+.pill.draft{background:var(--gold-l);color:var(--gold-d)}
+.pill.off{background:var(--surface2);color:var(--muted)}
+.pill.type{background:var(--primary-l);color:var(--primary)}
+.pill.on{background:var(--teal-l);color:var(--teal-d)}
+.abbr{width:32px;height:32px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-family:var(--f-pixel);font-size:8px;color:#fff;flex-shrink:0}
+.thumb{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:#fff}
+
+.field{display:flex;flex-direction:column;gap:5px}
+.field label,.field .lab{font-size:12px;font-weight:600;color:var(--fg2)}
+.inp{height:38px;padding:0 11px;border:1.5px solid var(--line2);border-radius:9px;background:var(--surface);width:100%;min-width:0}
+textarea.inp{height:auto;min-height:72px;padding:9px 11px;resize:vertical;line-height:1.4}
+.inp:focus{border-color:var(--primary);outline:0;box-shadow:0 0 0 3px var(--primary-l)}
+.inp.sm{height:32px;font-size:13px}
+input[type=color].inp{padding:2px 4px;width:48px}
+.form{display:flex;flex-direction:column;gap:14px}
+.frow{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.toggle{position:relative;width:42px;height:24px;border-radius:12px;background:var(--line2);flex-shrink:0;transition:background .15s}
+.toggle::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s}
+.toggle[aria-checked="true"]{background:var(--teal)}
+.toggle[aria-checked="true"]::after{left:21px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.toolbar .inp{width:auto}
+.empty{padding:28px;text-align:center;color:var(--muted);font-size:13px}
+.list{display:flex;flex-direction:column}
+.list>button,.list>div.item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;width:100%}
+.list>button:hover{background:var(--surface2)}
+.list>button[aria-current="true"]{background:var(--primary-l);font-weight:600}
+.list>:last-child{border-bottom:0}
+.tree{display:flex;flex-direction:column;gap:10px}
+.sec{border:1.5px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.sec-h{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface2);flex-wrap:wrap}
+.unit{padding:8px 14px 10px 28px;border-top:1px solid var(--line)}
+.unit-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 0}
+.lesson{display:flex;align-items:center;gap:8px;padding:6px 0 6px 22px;font-size:13px;flex-wrap:wrap}
+.lesson .qn{font-size:11px;color:var(--muted)}
+.lesson .qn.warn{color:var(--orange-d);font-weight:600}
+.inline-edit{border:0;border-bottom:1.5px dashed var(--line2);background:transparent;padding:2px 4px;min-width:120px;flex:1}
+.inline-edit:focus{border-bottom-color:var(--primary);outline:0}
+.mv{display:inline-flex;gap:2px}
+.mv button{width:22px;height:22px;border-radius:6px;color:var(--muted);display:inline-flex;align-items:center;justify-content:center;font-size:12px}
+.mv button:hover{background:var(--surface2);color:var(--fg)}
+
+.drawer-bg{position:fixed;inset:0;background:rgba(1,15,46,.45);z-index:20}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(980px,100%);background:var(--bg);z-index:21;display:grid;grid-template-columns:1fr 360px;overflow:hidden;box-shadow:-8px 0 30px rgba(1,15,46,.25)}
+@media (max-width:860px){.drawer{grid-template-columns:1fr}.drawer .prevcol{display:none}}
+.drawer .formcol{overflow-y:auto;padding:22px 24px 40px;display:flex;flex-direction:column;gap:16px}
+.drawer .prevcol{background:var(--surface2);border-left:1px solid var(--line);padding:22px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;align-items:center}
+.drawer-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.drawer-h .right{margin-left:auto;display:flex;gap:8px}
+.optrow{display:flex;align-items:center;gap:8px}
+.optrow input[type=radio]{width:18px;height:18px;accent-color:var(--primary);flex-shrink:0}
+.typegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.typebtn{border:1.5px solid var(--line2);border-radius:10px;padding:10px;text-align:left;display:flex;flex-direction:column;gap:3px;background:var(--surface)}
+.typebtn b{font-size:13px}.typebtn span{font-size:11px;color:var(--muted)}
+.typebtn[aria-pressed="true"]{border-color:var(--primary);background:var(--primary-l)}
+.imgbox{border:1.5px dashed var(--line2);border-radius:10px;padding:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--surface)}
+.imgbox img{max-width:180px;max-height:120px;border-radius:8px;border:1px solid var(--line)}
+.imgbox .hint{font-size:12px;color:var(--muted)}
+
+.phone{width:300px;background:#F4F4FE;color:#010F2E;border:8px solid #010F2E;border-radius:30px;overflow:hidden;font-family:var(--f-body);display:flex;flex-direction:column;min-height:520px;flex-shrink:0}
+.phone .ph{padding:12px 12px 8px;background:#fff;border-bottom:1px solid #E4DFF7;display:flex;align-items:center;gap:8px}
+.phone .pb{flex:1;height:10px;background:#E4DFF7}.phone .pb i{display:block;width:45%;height:100%;background:#503C9D}
+.phone .pm{padding:14px 16px;display:flex;flex-direction:column;gap:10px;flex:1}
+.phone .tag{font-family:var(--f-pixel);font-size:7px;border:1px solid #503C9D;border-radius:2px;padding:3px 5px;align-self:flex-start}
+.phone .q{font-size:15px;font-weight:700;line-height:1.3}
+.phone .qimg{width:100%;max-height:150px;object-fit:contain;border-radius:10px;background:#fff;border:1px solid #E4DFF7}
+.phone .opt{min-height:40px;border-radius:10px;padding:6px 10px;display:flex;align-items:center;gap:8px;background:#fff;border:2px solid #E4DFF7;border-bottom-width:4px;font-size:13px}
+.phone .opt.ok{border-color:#5E8A3B;background:#EAF3DF}
+.phone .opt .lt{width:22px;height:22px;border-radius:6px;border:1.5px solid #503C9D;display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-weight:700;font-size:11px;flex-shrink:0}
+.phone .chip{display:inline-flex;align-items:center;min-height:32px;padding:4px 10px;border-radius:8px;border:2px solid #E4DFF7;border-bottom-width:3px;background:#fff;font-family:var(--f-display);font-weight:600;font-size:13px}
+.phone .chips{display:flex;flex-wrap:wrap;gap:6px}
+.phone .stmt{background:#fff;border:1px solid #E4DFF7;border-radius:12px;padding:14px;text-align:center;font-family:var(--f-display);font-weight:700;font-size:18px}
+.phone .foot{padding:10px 14px;border-top:2px solid #E4DFF7;display:grid;grid-template-columns:1fr 2fr;gap:8px}
+.phone .foot span{height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.phone .mg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.phone .slot{display:inline-block;min-width:70px;border-bottom:2px solid #503C9D;background:#EAEDFF;border-radius:6px;padding:0 6px;font-weight:600;text-align:center}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 18px;border-radius:12px;font-size:14px;z-index:60;box-shadow:4px 4px 0 var(--teal);max-width:calc(100% - 32px)}
+.bars{display:flex;flex-direction:column;gap:8px}
+.barrow{display:grid;grid-template-columns:150px 1fr 40px;gap:10px;align-items:center;font-size:13px}
+.barrow .bar{height:12px;background:var(--surface2);border-radius:6px;overflow:hidden}
+.barrow .bar i{display:block;height:100%;background:var(--primary);border-radius:6px}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:13px}
+.kv b{font-family:var(--f-display)}
+pre.json{margin:0;background:var(--navy);color:#C5C9E3;padding:14px;border-radius:10px;font-size:11.5px;line-height:1.45;overflow:auto;max-height:420px}
+.checklist{display:flex;flex-direction:column;gap:4px;max-height:280px;overflow-y:auto;border:1.5px solid var(--line);border-radius:10px;padding:8px}
+.checklist label{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;font-size:13px;cursor:pointer}
+.checklist label:hover{background:var(--surface2)}
+.checklist input{accent-color:var(--primary);width:16px;height:16px}
+.warnbox{background:var(--gold-l);color:var(--gold-d);border-radius:10px;padding:10px 14px;font-size:13px;display:flex;gap:8px;align-items:flex-start}
+.okbox{background:var(--teal-l);color:var(--teal-d)}
+.msg{padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.4;background:var(--surface2)}
 .msg.err{background:var(--red-l);color:var(--red-d)}.msg.ok{background:var(--green-l);color:var(--green-d)}
 .sep{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px}.sep::before,.sep::after{content:"";flex:1;height:1px;background:var(--line)}
-.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px}.kv b{color:var(--muted);font-weight:500}
 .link{background:none;border:0;color:var(--primary);text-decoration:underline;padding:0;font-size:13px}
-[hidden]{display:none!important}
+.modal{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 32px));z-index:30;padding:20px;display:flex;flex-direction:column;gap:14px}
+
+@media (max-width:760px){
+  #shell{grid-template-columns:1fr}
+  aside{position:static;height:auto;flex-direction:row;flex-wrap:wrap;padding:12px 16px;gap:4px}
+  .brand{width:100%;padding-bottom:8px}
+  .navbtn{width:auto;padding:8px 10px;font-size:13px}.navbtn .cnt{display:none}
+  .sidefoot{display:none}
+  .topbar,.content{padding-left:16px;padding-right:16px}
+  .barrow{grid-template-columns:100px 1fr 36px}
+}
 </style>
 </head>
 <body>
-<main class="card" id="app">
-  <div class="brand"><span class="mark">FJ</span><div><h1>Painel Findout</h1><small>Jornada · gestão de conteúdo</small></div></div>
-  <div id="view"></div>
-</main>
+<div id="shell" class="auth"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
+<script src="seed.js"></script>
 <script>
 (() => {
 'use strict';
 const sb = supabase.createClient(FJ_CONFIG.supabaseUrl, FJ_CONFIG.supabaseAnonKey);
-const view = document.getElementById('view');
+const shell = document.getElementById('shell');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtData = iso => { if (!iso) return '—'; const d = new Date(iso); return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}); };
+const fmtDia = iso => iso ? new Date(iso).toLocaleDateString('pt-BR') : '—';
+const agora = () => new Date().toISOString();
+const TIPOS = {mc: 'Múltipla escolha', tf: 'Verdadeiro ou falso', bank: 'Completar a frase', order: 'Ordenar', match: 'Associar pares'};
+const TIPO_DESC = {mc: '4 alternativas, 1 correta', tf: 'Afirmação para julgar', bank: '2 lacunas + banco de palavras', order: 'Itens na ordem certa', match: '4 pares para ligar'};
+const TIPOS_MISSAO = {xp: 'Ganhar XP', combo: 'Acertos seguidos', materias: 'Matérias diferentes', licoes: 'Lições concluídas', perfeita: 'Lições perfeitas', revisao: 'Revisão diária', minutos: 'Minutos praticando'};
+const DIFICULDADES = {1: 'Fácil', 2: 'Média', 3: 'Difícil'};
+const PADRAO = {
+  economia: {coracoes: 5, horasCoracao: 5, custoRecarga: 350, custoCongelador: 200, maxCongeladores: 2, xpLicao: 15, xpPratica: 5, xpExercicio: 10, comboAPartirDe: 3, bonusCombo: 5, bonusPerfeita: 5, moedasLicao: 10, moedasBau: 25, xpLendaria: 40, moedasLendaria: 100, xpPular: 20, moedasPular: 20, acertosPular: 4, questoesPular: 5, tamanhoLicao: 5, segundosRelampago: 120, multiplicadorRelampago: 2, xpRevisao: 20, moedasRevisao: 10, tamanhoRevisao: 8, xpErros: 10, moedasIniciais: 100},
+  ligas: {tamanho: 15, sobem: 7, caem: 5, moedasTop3: 200, niveis: ['Bronze', 'Prata', 'Ouro', 'Safira', 'Rubi', 'Esmeralda', 'Diamante']},
+  missoes: {porDia: 3, moedasBauDiario: 50, mensal: {titulo: 'Desafio do mês', metaXp: 1500, moedas: 150, distintivo: 'Mensal', ativo: true}, dupla: {ativo: false, licoes: 20, dias: 5, moedas: 100}, revisao: {ativo: true, tamanho: 8, xp: 20}}
+};
 
+const I = {
+  home: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21H3z"/><path d="M9 21v-6h6v6"/></svg>',
+  path: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M6 7.5v3a3 3 0 0 0 3 3h6a3 3 0 0 1 3 3"/></svg>',
+  q: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
+  target: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>',
+  coin: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></svg>',
+  shield: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5z"/></svg>',
+  users: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5a5 5 0 0 1 6 5"/></svg>',
+  up: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>',
+  plus: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  trash: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>',
+  edit: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  close: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  check: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  warn: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20z"/><path d="M12 9v5M12 17h.01"/></svg>',
+  copy: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+  google: '<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.4z"/><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"/><path fill="#FBBC05" d="M6.4 14a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9z"/><path fill="#EA4335" d="M12 6c1.5 0 2.8.5 3.8 1.5l2.8-2.8A10 10 0 0 0 3.1 7.5L6.4 10c.8-2.3 3-4 5.6-4z"/></svg>'
+};
+
+/* =====================================================================
+   Estado
+   ===================================================================== */
+let sessao = null, admin = false, D = null, mostrando = '';
+let V = {view: 'inicio', qf: {materia: '', unidade: '', tipo: '', status: '', busca: ''}, materia: null, rascunho: null, licaoAtribuir: null, confirmar: null, modal: null, alunos: {busca: '', lista: null, carregando: false, erro: null}, metricas: null, metricasErro: null, salvando: 0, notaPub: '', jsonVersao: null, jsonTexto: ''};
+let toastTimer;
+function toast(m) {
+  let t = document.getElementById('toast');
+  if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+  t.textContent = m; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3200);
+}
+function traduzErro(m) {
+  m = String(m || '');
+  if (/jwt expired/i.test(m)) return 'Sua sessão expirou. Saia e entre de novo.';
+  if (/row-level security|permission denied|42501/i.test(m)) return 'Sem permissão. Este usuário é administrador?';
+  if (/function .* does not exist|schema cache/i.test(m)) return 'Função não existe no banco. Rode a migration 0003 no SQL Editor.';
+  if (/column .* does not exist/i.test(m)) return 'Coluna não existe no banco. Rode a migration 0003 no SQL Editor.';
+  if (/bucket not found/i.test(m)) return 'Bucket de imagens não existe. Rode a migration 0003 no SQL Editor.';
+  if (/invalid login/i.test(m)) return 'E-mail ou senha incorretos.';
+  if (/email not confirmed/i.test(m)) return 'Confirme seu e-mail antes de entrar.';
+  if (/rate limit/i.test(m)) return 'Muitas tentativas. Espere um minuto.';
+  if (/failed to fetch|networkerror/i.test(m)) return 'Sem conexão com o servidor.';
+  return m;
+}
+function statusHtml() {
+  if (V.salvando > 0) return '<span style="color:var(--gold)">● Salvando…</span>';
+  return alteracoesPendentes() ? '<span style="color:var(--gold)">● Alterações não publicadas</span>' : '<span style="color:var(--teal)">● Tudo publicado</span>';
+}
+function renderStatus() { const el = document.getElementById('status'); if (el) el.innerHTML = statusHtml(); }
+async function db(consulta) {
+  V.salvando++; renderStatus();
+  const {data, error} = await consulta;
+  V.salvando--; renderStatus();
+  if (error) { console.error(error); toast('Erro: ' + traduzErro(error.message)); throw error; }
+  return data;
+}
+const pendentes = new Map();
+function agendar(chave, fn) { clearTimeout(pendentes.get(chave)); pendentes.set(chave, setTimeout(() => { pendentes.delete(chave); fn().catch(() => {}); }, 600)); }
+function ordenar(arr) { arr.sort((a, b) => (a.ordem - b.ordem) || String(a.titulo || a.nome || a.texto || '').localeCompare(String(b.titulo || b.nome || b.texto || ''), 'pt-BR')); return arr; }
+function canon(v) { if (Array.isArray(v)) return '[' + v.map(canon).join(',') + ']'; if (v && typeof v === 'object') return '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}'; return JSON.stringify(v); }
+function setIn(obj, p, value) { let o = obj; for (let i = 0; i < p.length - 1; i++) { if (o[p[i]] == null) o[p[i]] = {}; o = o[p[i]]; } const k = p[p.length - 1]; o[k] = typeof o[k] === 'number' ? +value : (typeof o[k] === 'boolean' ? value === '1' || value === true : value); }
+function slug(s) { return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+
+/* =====================================================================
+   Carregamento
+   ===================================================================== */
+async function carregar() {
+  const r = await Promise.all([
+    sb.from('materias').select('*').order('ordem').order('nome'),
+    sb.from('secoes').select('*').order('ordem'),
+    sb.from('unidades').select('*').order('ordem'),
+    sb.from('licoes').select('*').order('ordem'),
+    sb.from('questoes').select('*').order('criada_em', {ascending: false}),
+    sb.from('licao_questoes').select('*').order('ordem'),
+    sb.from('missoes').select('*').order('ordem'),
+    sb.from('itens_loja').select('*').order('ordem'),
+    sb.from('parametros').select('*'),
+    sb.from('publicacoes').select('versao, nota, criada_em').order('versao', {ascending: false}).limit(30),
+    sb.from('publicacoes').select('versao, pacote').order('versao', {ascending: false}).limit(1).maybeSingle()
+  ]);
+  const erro = r.find(x => x.error); if (erro) throw erro.error;
+  const [m, s, u, l, q, lq, mi, lo, pa, pu, ult] = r.map(x => x.data);
+  const param = {};
+  pa.forEach(p => { param[p.chave] = p.valor; });
+  ['economia', 'ligas', 'missoes'].forEach(k => { param[k] = Object.assign(JSON.parse(JSON.stringify(PADRAO[k])), param[k] || {}); });
+  D = {materias: m, secoes: s, unidades: u, licoes: l, questoes: q, licaoQuestoes: lq, missoes: mi, loja: lo, param, publicacoes: pu, ultimoPacote: ult ? ult.pacote : null};
+  if (!V.materia || !D.materias.some(x => x.id === V.materia)) V.materia = D.materias[0] ? D.materias[0].id : null;
+}
+async function carregarMetricas() {
+  const {data, error} = await sb.rpc('metricas_admin');
+  V.metricas = error ? null : data; V.metricasErro = error ? traduzErro(error.message) : null;
+  if (V.view === 'inicio') render();
+}
+
+/* helpers de árvore */
+const materiaPorId = id => D.materias.find(m => m.id === id);
+const secoesDe = mid => D.secoes.filter(s => s.materia_id === mid);
+const unidadesDe = sid => D.unidades.filter(u => u.secao_id === sid);
+const licoesDe = uid => D.licoes.filter(l => l.unidade_id === uid);
+const questoesDaLicao = lid => D.licaoQuestoes.filter(x => x.licao_id === lid).sort((a, b) => a.ordem - b.ordem).map(x => x.questao_id);
+function unidadeInfo(uid) { const u = D.unidades.find(x => x.id === uid); if (!u) return null; const s = D.secoes.find(x => x.id === u.secao_id); const m = s && materiaPorId(s.materia_id); return m ? {m, s, u} : null; }
+const todasUnidades = () => D.materias.flatMap(m => secoesDe(m.id).flatMap(s => unidadesDe(s.id).map(u => ({m, s, u}))));
+function licaoInfo(lid) { const l = D.licoes.find(x => x.id === lid); const x = l && unidadeInfo(l.unidade_id); return x ? {...x, l} : null; }
+const todasLicoes = () => todasUnidades().flatMap(x => licoesDe(x.u.id).map(l => ({...x, l})));
+const tamLicao = () => Math.max(1, +D.param.economia.tamanhoLicao || 5);
+const proximaOrdem = arr => arr.reduce((n, x) => Math.max(n, (x.ordem ?? -1) + 1), 0);
+
+/* =====================================================================
+   Pacote publicado (contrato lido pelo app)
+   ===================================================================== */
+function montarPacote() {
+  const pub = D.questoes.filter(q => q.status === 'publicada');
+  const ids = new Set(pub.map(q => q.id));
+  return {
+    materias: D.materias.filter(m => m.ativa).map(m => ({id: m.id, nome: m.nome, sigla: m.sigla, cor: m.cor,
+      secoes: secoesDe(m.id).map(s => ({id: s.id, titulo: s.titulo,
+        unidades: unidadesDe(s.id).map(u => ({id: u.id, titulo: u.titulo,
+          licoes: licoesDe(u.id).map(l => ({id: l.id, titulo: l.titulo, descricao: l.descricao || '', questoes: questoesDaLicao(l.id).filter(id => ids.has(id))}))}))}))})),
+    questoes: pub.map(q => ({id: q.id, materia: q.materia_id, unidade: q.unidade_id, tipo: q.tipo, enunciado: q.enunciado, imagem: q.imagem_url || null, dados: q.dados, explicacao: q.explicacao})),
+    missoes: {diarias: D.missoes.filter(x => x.ativa).map(x => ({id: x.id, texto: x.texto, tipo: x.tipo, meta: x.meta})), ...D.param.missoes},
+    economia: D.param.economia,
+    ligas: D.param.ligas,
+    loja: D.loja.filter(i => i.ativo).map(i => ({codigo: i.codigo, nome: i.nome, tipo: i.tipo, preco: i.preco, rotulo: i.rotulo_preco || null}))
+  };
+}
+function alteracoesPendentes() {
+  if (!D) return false;
+  if (!D.ultimoPacote) return D.materias.length > 0;
+  const limpo = p => { const {geradoEm, versao, ...resto} = p; return resto; };
+  return canon(limpo(montarPacote())) !== canon(limpo(D.ultimoPacote));
+}
+
+/* =====================================================================
+   Telas de autenticação
+   ===================================================================== */
+function telaAuth(conteudo) {
+  shell.className = 'auth';
+  shell.innerHTML = `<main class="card login"><div class="brand"><span class="abbr" style="background:var(--primary);width:40px;height:40px;font-size:10px">FJ</span><div><h1>Painel Findout</h1><small>Jornada · gestão de conteúdo</small></div></div>${conteudo}</main>`;
+}
 function telaLogin(msg = '') {
-  view.innerHTML = `
-    ${msg}
-    <form id="f" style="display:flex;flex-direction:column;gap:12px">
-      <div><label for="email">E-mail</label><input id="email" type="email" autocomplete="username" required></div>
-      <div><label for="senha">Senha</label><input id="senha" type="password" autocomplete="current-password" required minlength="6"></div>
-      <button class="btn btn-primary" id="entrar">Entrar</button>
+  telaAuth(`${msg}
+    <form id="f" class="form" style="gap:12px">
+      <div class="field"><label for="email">E-mail</label><input id="email" class="inp" type="email" autocomplete="username" required></div>
+      <div class="field"><label for="senha">Senha</label><input id="senha" class="inp" type="password" autocomplete="current-password" required minlength="6"></div>
+      <button class="btn btn-primary full" id="entrar">Entrar</button>
       <div class="sep">ou</div>
-      <button type="button" class="btn btn-outline" id="google"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.4z"/><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"/><path fill="#FBBC05" d="M6.4 14a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9z"/><path fill="#EA4335" d="M12 6c1.5 0 2.8.5 3.8 1.5l2.8-2.8A10 10 0 0 0 3.1 7.5L6.4 10c.8-2.3 3-4 5.6-4z"/></svg>Entrar com Google</button>
+      <button type="button" class="btn btn-outline full" id="google" style="border-color:var(--line2);color:var(--fg)">${I.google}Entrar com Google</button>
       <button type="button" class="link" id="esqueci">Esqueci a senha</button>
-    </form>`;
+    </form>`);
+  const email = document.getElementById('email'), senha = document.getElementById('senha');
   document.getElementById('f').onsubmit = async ev => {
     ev.preventDefault();
     const b = document.getElementById('entrar'); b.disabled = true; b.textContent = 'Entrando…';
     const {error} = await sb.auth.signInWithPassword({email: email.value.trim(), password: senha.value});
-    if (error) { telaLogin(`<div class="msg err">${esc(traduz(error.message))}</div>`); document.getElementById('email').value = email.value; }
+    if (error) { const v = email.value; telaLogin(`<div class="msg err">${esc(traduzErro(error.message))}</div>`); document.getElementById('email').value = v; }
   };
   document.getElementById('google').onclick = () => sb.auth.signInWithOAuth({provider: 'google', options: {redirectTo: location.origin + location.pathname}});
   document.getElementById('esqueci').onclick = async () => {
-    const em = document.getElementById('email').value.trim();
+    const em = email.value.trim();
     if (!em) return telaLogin('<div class="msg err">Digite o e-mail primeiro e clique de novo em "Esqueci a senha".</div>');
     const {error} = await sb.auth.resetPasswordForEmail(em, {redirectTo: location.origin + location.pathname});
-    telaLogin(error ? `<div class="msg err">${esc(traduz(error.message))}</div>` : '<div class="msg ok">Enviamos um link para redefinir a senha. Confira seu e-mail.</div>');
+    telaLogin(error ? `<div class="msg err">${esc(traduzErro(error.message))}</div>` : '<div class="msg ok">Enviamos um link para redefinir a senha. Confira seu e-mail.</div>');
   };
 }
-function traduz(m) {
-  if (/invalid login/i.test(m)) return 'E-mail ou senha incorretos.';
-  if (/email not confirmed/i.test(m)) return 'Confirme seu e-mail antes de entrar.';
-  if (/rate limit/i.test(m)) return 'Muitas tentativas. Espere um minuto.';
-  return m;
+function telaNovaSenha(msg = '') {
+  telaAuth(`${msg}<form id="f" class="form" style="gap:12px"><div class="field"><label for="ns">Nova senha</label><input id="ns" class="inp" type="password" autocomplete="new-password" required minlength="6"></div><button class="btn btn-primary full" id="ok">Salvar nova senha</button></form>`);
+  document.getElementById('f').onsubmit = async ev => {
+    ev.preventDefault();
+    const {error} = await sb.auth.updateUser({password: document.getElementById('ns').value});
+    if (error) return telaNovaSenha(`<div class="msg err">${esc(traduzErro(error.message))}</div>`);
+    toast('Senha alterada.'); mostrando = ''; const {data} = await sb.auth.getSession(); rota(data.session);
+  };
+}
+async function rota(s) {
+  const alvo = s ? 'in:' + s.user.id : 'out';
+  if (alvo === mostrando) return; mostrando = alvo;
+  if (!s) { sessao = null; D = null; admin = false; return telaLogin(); }
+  sessao = s;
+  telaAuth('<div class="msg">Verificando permissões…</div>');
+  const {data: a, error} = await sb.from('admins').select('user_id').eq('user_id', s.user.id).maybeSingle();
+  admin = !!a && !error;
+  if (!admin) {
+    telaAuth(`<div class="msg err">Login ok, mas <b>${esc(s.user.email)}</b> não é administrador.<br><br>No SQL Editor do Supabase, rode:<br><code>insert into public.admins (user_id) select id from auth.users where email = '${esc(s.user.email)}' on conflict do nothing;</code></div><button class="btn btn-outline full" id="sair">Sair</button>`);
+    document.getElementById('sair').onclick = () => sb.auth.signOut();
+    return;
+  }
+  telaAuth('<div class="msg">Carregando conteúdo…</div>');
+  try { await carregar(); }
+  catch (e) {
+    telaAuth(`<div class="msg err">Erro ao carregar: ${esc(traduzErro(e.message))}</div><button class="btn btn-primary full" id="denovo">Tentar de novo</button><button class="btn btn-outline full" id="sair">Sair</button>`);
+    document.getElementById('denovo').onclick = () => { mostrando = ''; rota(s); };
+    document.getElementById('sair').onclick = () => sb.auth.signOut();
+    return;
+  }
+  shell.className = ''; render(); carregarMetricas();
 }
 
-async function telaLogado(session) {
-  view.innerHTML = '<div class="msg">Verificando permissões…</div>';
-  const {data: admin} = await sb.from('admins').select('user_id').eq('user_id', session.user.id).maybeSingle();
-  const [{count: nq}, {count: nm}, {data: pub}] = await Promise.all([
-    sb.from('questoes').select('*', {count: 'exact', head: true}),
-    sb.from('materias').select('*', {count: 'exact', head: true}),
-    sb.from('publicacoes').select('versao, criada_em').order('versao', {ascending: false}).limit(1).maybeSingle()
-  ]);
-  view.innerHTML = `
-    <div class="msg ${admin ? 'ok' : 'err'}">${admin ? 'Você é administrador. Login e banco funcionando.' : 'Login ok, mas este usuário não é administrador. Rode o INSERT em public.admins para o e-mail ' + esc(session.user.email) + '.'}</div>
-    <div class="kv">
-      <b>Usuário</b><span>${esc(session.user.email)}</span>
-      <b>Matérias</b><span>${nm ?? '—'}</span>
-      <b>Questões</b><span>${nq ?? '—'}</span>
-      <b>Conteúdo publicado</b><span>${pub ? 'v' + pub.versao : 'nenhuma versão ainda'}</span>
+/* =====================================================================
+   Layout
+   ===================================================================== */
+const NAV = [['inicio', 'Visão geral', I.home], ['trilhas', 'Matérias e trilhas', I.path], ['questoes', 'Questões', I.q], ['missoes', 'Missões', I.target], ['economia', 'Economia e loja', I.coin], ['ligas', 'Ligas', I.shield], ['alunos', 'Alunos', I.users], ['publicar', 'Publicar', I.up]];
+function sidebar() {
+  const counts = {questoes: D.questoes.length, missoes: D.missoes.filter(m => m.ativa).length, trilhas: D.materias.filter(m => m.ativa).length};
+  const ult = D.publicacoes[0];
+  return `<aside><div class="brand"><span class="abbr" style="background:var(--primary);width:36px;height:36px;font-size:9px">FJ</span><div><b>Findout</b><small>Painel · Jornada</small></div></div>
+    ${NAV.map(([id, l, ic]) => `<button class="navbtn" data-a="view:${id}" ${V.view === id ? 'aria-current="page"' : ''}>${ic}${l}${counts[id] != null ? `<span class="cnt num">${counts[id]}</span>` : ''}</button>`).join('')}
+    <div class="sidefoot"><span>Versão publicada: <b class="num">${ult ? 'v' + ult.versao : 'nenhuma'}</b></span><span id="status">${statusHtml()}</span><span style="overflow:hidden;text-overflow:ellipsis">${esc(sessao.user.email)}</span><button data-a="sair">Sair</button></div></aside>`;
+}
+function topbar(titulo, sub, acoes = '') { return `<div class="topbar"><div><h1>${titulo}</h1>${sub ? `<div class="sub">${sub}</div>` : ''}</div><div class="actions">${acoes}</div></div>`; }
+const toggle = (on, a, label) => `<button class="toggle" role="switch" aria-checked="${!!on}" aria-label="${esc(label || 'Ativar')}" data-a="${a}"></button>`;
+const siglaMat = m => `<span class="abbr" style="background:${esc(m.cor || '#503C9D')}">${esc(m.sigla)}</span>`;
+const mover = (tabela, id) => `<span class="mv"><button data-a="mover:${tabela}:${id}:-1" aria-label="Subir">▲</button><button data-a="mover:${tabela}:${id}:1" aria-label="Descer">▼</button></span>`;
+function numField(label, path, val, hint) { const id = 'e-' + path.replace(/\W/g, ''); return `<div class="field"><label for="${id}">${label}</label><input id="${id}" type="number" class="inp" value="${val ?? ''}" data-f="${path}">${hint ? `<span style="font-size:11px;color:var(--muted)">${hint}</span>` : ''}</div>`; }
+
+/* =====================================================================
+   Visão geral
+   ===================================================================== */
+function viewInicio() {
+  const qs = D.questoes, pub = qs.filter(q => q.status === 'publicada').length;
+  const porTipo = Object.keys(TIPOS).map(t => [TIPOS[t], qs.filter(q => q.tipo === t).length]);
+  const max = Math.max(1, ...porTipo.map(b => b[1]));
+  const faltam = todasLicoes().filter(x => questoesDaLicao(x.l.id).length < tamLicao());
+  const rasc = qs.filter(q => q.status === 'rascunho');
+  const ult = D.publicacoes[0];
+  const M = V.metricas;
+  const vazio = !D.materias.length;
+  return topbar('Visão geral', 'O que está no ar no app e o que precisa de atenção', `<button class="btn btn-primary" data-a="nova-q">${I.plus}Nova questão</button><button class="btn btn-outline" data-a="view:publicar">${I.up}Publicar</button>`) + `<div class="content">
+  ${vazio ? `<div class="card"><div class="card-b" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:240px"><h2>Banco de conteúdo vazio</h2><p style="margin:6px 0 0;color:var(--fg2);font-size:13px">Importe as matérias, trilhas e questões do protótipo (Matemática, Português e Biologia) para começar a editar.</p></div><button class="btn btn-primary" data-a="importar-seed">Importar conteúdo inicial</button></div></div>` : ''}
+  ${V.metricasErro ? `<div class="warnbox">${I.warn}<span>Métricas de alunos indisponíveis: ${esc(V.metricasErro)}</span></div>` : ''}
+  <div class="tiles">
+    <div class="tile"><span class="lbl">Questões</span><span class="val num">${qs.length}</span><span class="hint">${pub} publicadas · ${qs.length - pub} em rascunho</span></div>
+    <div class="tile"><span class="lbl">Matérias ativas</span><span class="val num">${D.materias.filter(m => m.ativa).length}<span style="font-size:16px;color:var(--muted)"> / ${D.materias.length}</span></span><span class="hint">${D.unidades.length} unidades · ${D.licoes.length} lições</span></div>
+    <div class="tile"><span class="lbl">Alunos</span><span class="val num">${M ? M.alunos : '—'}</span><span class="hint">${M ? `${M.ativos7d} ativos na semana · ${M.plus} Findout+` : 'carregando…'}</span></div>
+    <div class="tile"><span class="lbl">Lições feitas</span><span class="val num">${M ? M.licoesHoje : '—'}</span><span class="hint">${M ? `hoje · ${M.licoes7d} nos últimos 7 dias` : ''}</span></div>
+    <div class="tile"><span class="lbl">Última publicação</span><span class="val num">${ult ? 'v' + ult.versao : '—'}</span><span class="hint">${ult ? fmtData(ult.criada_em) : 'nada publicado ainda'}</span></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="card-h"><h2>Questões por tipo</h2></div><div class="card-b bars">${porTipo.map(([l, n]) => `<div class="barrow"><span>${l}</span><span class="bar"><i style="width:${Math.round(n / max * 100)}%"></i></span><b class="num" style="text-align:right">${n}</b></div>`).join('')}</div></div>
+    <div class="card"><div class="card-h"><h2>Pendências</h2><span class="right"><span class="pill ${faltam.length + rasc.length ? 'draft' : 'pub'}">${faltam.length + rasc.length} itens</span></span></div>
+      <div class="list">
+        ${faltam.slice(0, 6).map(x => `<button data-a="atribuir:${x.l.id}">${I.warn}<span style="flex:1"><b>${esc(x.l.titulo)}</b> <span style="color:var(--muted)">· ${esc(x.m.nome)} · ${esc(x.u.titulo)}</span></span><span class="pill draft">${questoesDaLicao(x.l.id).length}/${tamLicao()} questões</span></button>`).join('')}
+        ${rasc.slice(0, 4).map(q => `<button data-a="editar-q:${q.id}">${I.edit}<span style="flex:1">${esc(q.enunciado)}</span><span class="pill draft">rascunho</span></button>`).join('')}
+        ${faltam.length > 6 ? `<div class="item" style="color:var(--muted);font-size:12px">+ ${faltam.length - 6} lições com poucas questões</div>` : ''}
+        ${!faltam.length && !rasc.length ? '<div class="empty">Nada pendente. Tudo pronto para publicar.</div>' : ''}
+      </div></div>
+  </div></div>`;
+}
+
+/* =====================================================================
+   Matérias e trilhas
+   ===================================================================== */
+function viewTrilhas() {
+  const m = materiaPorId(V.materia);
+  if (!m) return topbar('Matérias e trilhas', 'Seções → unidades → lições.', `<button class="btn btn-primary" data-a="nova-materia">${I.plus}Nova matéria</button>`) + '<div class="content"><div class="empty">Nenhuma matéria ainda. Crie a primeira ou importe o conteúdo inicial na Visão geral.</div></div>';
+  const qCount = u => D.questoes.filter(q => q.unidade_id === u.id).length;
+  return topbar('Matérias e trilhas', 'Seções → unidades → lições. Cada lição recebe as questões que o app vai usar.', `<button class="btn btn-outline" data-a="nova-materia">${I.plus}Nova matéria</button>`) + `<div class="content"><div class="grid3">
+    <div class="card"><div class="card-h"><h2>Matérias</h2></div><div class="list">
+      ${D.materias.map(x => `<button data-a="trilha:${x.id}" aria-current="${x.id === m.id}">${siglaMat(x)}<span style="flex:1;min-width:0"><span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.nome)}</span><span style="font-size:11px;color:var(--muted)">${secoesDe(x.id).reduce((n, s) => n + unidadesDe(s.id).length, 0)} unidades · ${D.questoes.filter(q => q.materia_id === x.id).length} questões</span></span>${x.ativa ? '' : '<span class="pill off">inativa</span>'}</button>`).join('')}
+    </div></div>
+    <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+      <div class="card"><div class="card-b" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        ${siglaMat(m)}<div class="field" style="flex:1;min-width:160px"><label for="mnome">Nome da matéria</label><input id="mnome" class="inp sm" value="${esc(m.nome)}" data-f="materia.nome"></div>
+        <div class="field" style="width:80px"><label for="msigla">Sigla</label><input id="msigla" class="inp sm" maxlength="2" value="${esc(m.sigla)}" data-f="materia.sigla"></div>
+        <div class="field"><label for="mcor">Cor</label><input id="mcor" type="color" class="inp sm" value="${esc(m.cor || '#503C9D')}" data-f="materia.cor"></div>
+        <div class="field"><span class="lab">Visível no app</span>${toggle(m.ativa, 'toggle-materia', 'Matéria visível no app')}</div>
+        ${mover('materias', m.id)}
+        <button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="excluir-materia">${I.trash}Excluir matéria</button>
+      </div></div>
+      <div class="tree">
+        ${secoesDe(m.id).map((sec, si) => `<div class="sec"><div class="sec-h"><span class="px" style="color:var(--primary)">SEÇÃO ${si + 1}</span><input class="inline-edit" value="${esc(sec.titulo)}" data-f="secao.${sec.id}.titulo" aria-label="Título da seção"><span style="font-size:12px;color:var(--muted)">${unidadesDe(sec.id).length} unidades</span>${mover('secoes', sec.id)}<button class="btn btn-ghost btn-sm" data-a="nova-unidade:${sec.id}">${I.plus}Unidade</button><button class="btn btn-ghost btn-sm" data-a="excluir-secao:${sec.id}" aria-label="Excluir seção">${I.trash}</button></div>
+          ${unidadesDe(sec.id).map((u, ui) => `<div class="unit"><div class="unit-h"><b class="num" style="color:var(--muted)">U${ui + 1}</b><input class="inline-edit" style="font-weight:600" value="${esc(u.titulo)}" data-f="unidade.${u.id}.titulo" aria-label="Título da unidade"><span class="pill type">${qCount(u)} questões na unidade</span>${mover('unidades', u.id)}<button class="btn btn-ghost btn-sm" data-a="nova-licao:${u.id}">${I.plus}Lição</button><button class="btn btn-ghost btn-sm" data-a="nova-q-unidade:${u.id}">${I.plus}Questão</button><button class="btn btn-ghost btn-sm" data-a="excluir-unidade:${u.id}" aria-label="Excluir unidade">${I.trash}</button></div>
+            ${licoesDe(u.id).map((l, li) => { const n = questoesDaLicao(l.id).length; return `<div class="lesson"><span class="num" style="color:var(--muted);width:18px">${li + 1}</span><input class="inline-edit" value="${esc(l.titulo)}" data-f="licao.${l.id}.titulo" aria-label="Título da lição"><span class="qn ${n < tamLicao() ? 'warn' : ''}">${n} questões</span>${mover('licoes', l.id)}<button class="btn btn-outline btn-sm" data-a="atribuir:${l.id}">Escolher questões</button><button class="btn btn-ghost btn-sm" data-a="excluir-licao:${l.id}" aria-label="Excluir lição">${I.trash}</button></div>`; }).join('')}
+            ${licoesDe(u.id).length ? '' : '<div class="lesson" style="color:var(--muted)">Sem lições. Adicione a primeira.</div>'}
+            <div class="lesson" style="padding-left:40px;color:var(--muted);font-size:12px">Depois da última lição: baú da unidade e prova lendária (regras em Economia).</div>
+          </div>`).join('')}
+          ${unidadesDe(sec.id).length ? '' : '<div class="unit" style="color:var(--muted);font-size:13px">Seção sem unidades.</div>'}
+        </div>`).join('')}
+        <button class="btn btn-outline" style="align-self:flex-start" data-a="nova-secao">${I.plus}Nova seção</button>
+      </div>
+    </div></div></div>`;
+}
+
+/* =====================================================================
+   Questões
+   ===================================================================== */
+function resumoQ(q) {
+  const x = q.dados || {};
+  if (q.tipo === 'tf') return esc(x.stmt);
+  if (q.tipo === 'mc') return 'Correta: ' + esc((x.opts || [])[x.a || 0]);
+  if (q.tipo === 'bank') return 'Lacunas: ' + esc((x.a || []).join(', '));
+  if (q.tipo === 'order') return esc((x.items || []).join(' → '));
+  if (q.tipo === 'match') return esc((x.pairs || []).map(p => p[0] + ' ↔ ' + p[1]).join(' · '));
+  return '';
+}
+function viewQuestoes() {
+  const f = V.qf;
+  const unidadesFiltro = f.materia ? todasUnidades().filter(x => x.m.id === f.materia) : [];
+  const lista = D.questoes.filter(q => (!f.materia || q.materia_id === f.materia) && (!f.unidade || q.unidade_id === f.unidade) && (!f.tipo || q.tipo === f.tipo) && (!f.status || q.status === f.status) && (!f.busca || (q.enunciado + ' ' + JSON.stringify(q.dados) + ' ' + (q.explicacao || '')).toLowerCase().includes(f.busca.toLowerCase())));
+  const usadaEm = qid => D.licaoQuestoes.filter(x => x.questao_id === qid).length;
+  return topbar('Questões', `${D.questoes.length} cadastradas · ${D.questoes.filter(q => q.status === 'publicada').length} publicadas`, `<button class="btn btn-primary" data-a="nova-q">${I.plus}Nova questão</button>`) + `<div class="content">
+    <div class="toolbar">
+      <input class="inp sm" placeholder="Buscar no enunciado, alternativas ou explicação…" value="${esc(f.busca)}" data-f="qf.busca" aria-label="Buscar" style="min-width:260px">
+      <select class="inp sm" data-f="qf.materia" aria-label="Matéria"><option value="">Todas as matérias</option>${D.materias.map(m => `<option value="${m.id}" ${f.materia === m.id ? 'selected' : ''}>${esc(m.nome)}</option>`).join('')}</select>
+      ${f.materia ? `<select class="inp sm" data-f="qf.unidade" aria-label="Unidade"><option value="">Todas as unidades</option>${unidadesFiltro.map(x => `<option value="${x.u.id}" ${f.unidade === x.u.id ? 'selected' : ''}>${esc(x.s.titulo)} · ${esc(x.u.titulo)}</option>`).join('')}</select>` : ''}
+      <select class="inp sm" data-f="qf.tipo" aria-label="Tipo"><option value="">Todos os tipos</option>${Object.entries(TIPOS).map(([k, v]) => `<option value="${k}" ${f.tipo === k ? 'selected' : ''}>${v}</option>`).join('')}</select>
+      <select class="inp sm" data-f="qf.status" aria-label="Status"><option value="">Todos os status</option><option value="publicada" ${f.status === 'publicada' ? 'selected' : ''}>Publicadas</option><option value="rascunho" ${f.status === 'rascunho' ? 'selected' : ''}>Rascunhos</option></select>
+      <span style="color:var(--muted);font-size:13px">${lista.length} resultado${lista.length === 1 ? '' : 's'}</span>
     </div>
-    <p style="margin:0;color:var(--muted);font-size:13px">O painel completo (trilhas, questões, missões, publicar) entra nas semanas 2 e 3.</p>
-    <button class="btn btn-outline" id="sair">Sair</button>`;
-  document.getElementById('sair').onclick = () => sb.auth.signOut();
+    <div class="card tbl-wrap"><table><thead><tr><th></th><th>Enunciado</th><th>Tipo</th><th>Matéria · unidade</th><th>Usada em</th><th>Status</th><th></th></tr></thead><tbody>
+      ${lista.map(q => { const u = unidadeInfo(q.unidade_id); const m = materiaPorId(q.materia_id); const used = usadaEm(q.id); const x = q.dados || {};
+        return `<tr class="rowbtn" data-a="editar-q:${q.id}"><td style="width:52px">${q.imagem_url ? `<img class="thumb" src="${esc(q.imagem_url)}" alt="">` : ''}</td><td style="max-width:420px"><b>${esc(q.enunciado)}</b><div style="color:var(--muted);font-size:12px">${resumoQ(q)}${x.fonte ? ' · <i>' + esc(x.fonte) + '</i>' : ''}${x.dificuldade ? ' · ' + DIFICULDADES[x.dificuldade] : ''}</div></td>
+        <td><span class="pill type">${TIPOS[q.tipo] || q.tipo}</span></td><td style="font-size:12px"><b>${m ? esc(m.nome) : '<span style="color:var(--red-d)">matéria removida</span>'}</b><br><span style="color:var(--muted)">${u ? esc(u.u.titulo) : '<span style="color:var(--orange-d)">sem unidade</span>'}</span></td>
+        <td class="num">${used} ${used === 1 ? 'lição' : 'lições'}</td><td><span class="pill ${q.status === 'publicada' ? 'pub' : 'draft'}">${q.status === 'publicada' ? 'publicada' : 'rascunho'}</span></td>
+        <td><button class="btn btn-ghost btn-sm" data-a="editar-q:${q.id}">${I.edit}Editar</button></td></tr>`; }).join('')}
+      ${lista.length ? '' : '<tr><td colspan="7" class="empty">Nenhuma questão com esses filtros.</td></tr>'}
+    </tbody></table></div></div>`;
+}
+function novoRascunho(tipo = 'mc', materia_id = null, unidade_id = null) {
+  return {id: null, tipo, materia_id, unidade_id, status: 'rascunho', enunciado: '', explicacao: '', imagem_url: null, fonte: '', dificuldade: 2, opts: ['', '', '', ''], a: 0, stmt: '', parts: ['', '', ''], ans: ['', ''], extra: ['', ''], items: ['', '', '', ''], pairs: [['', ''], ['', ''], ['', ''], ['', '']], enviando: false};
+}
+function rascunhoDe(q) {
+  const d = novoRascunho(q.tipo, q.materia_id, q.unidade_id); const x = q.dados || {};
+  d.id = q.id; d.status = q.status; d.enunciado = q.enunciado || ''; d.explicacao = q.explicacao || ''; d.imagem_url = q.imagem_url || null; d.fonte = x.fonte || ''; d.dificuldade = x.dificuldade || 2;
+  const completa = (arr, min, vazio) => { const a = (arr || []).map(v => Array.isArray(v) ? v.slice() : v); while (a.length < min) a.push(Array.isArray(vazio) ? vazio.slice() : vazio); return a; };
+  if (q.tipo === 'mc') { d.opts = completa(x.opts, 4, ''); d.a = +x.a || 0; }
+  if (q.tipo === 'tf') { d.stmt = x.stmt || ''; d.a = !!x.a; }
+  if (q.tipo === 'bank') { d.parts = completa(x.parts, 3, ''); d.ans = completa(x.a, 2, ''); d.extra = completa(x.extra, 2, ''); }
+  if (q.tipo === 'order') d.items = completa(x.items, 4, '');
+  if (q.tipo === 'match') d.pairs = completa(x.pairs, 4, ['', '']);
+  return d;
+}
+function rascunhoParaLinha(d, status) {
+  const t = s => String(s || '').trim();
+  let dados;
+  if (d.tipo === 'mc') dados = {opts: d.opts.map(t), a: +d.a || 0};
+  else if (d.tipo === 'tf') dados = {stmt: t(d.stmt), a: !!d.a};
+  else if (d.tipo === 'bank') dados = {parts: d.parts.map(p => String(p || '')), a: d.ans.map(t), extra: d.extra.map(t).filter(Boolean)};
+  else if (d.tipo === 'order') dados = {items: d.items.map(t).filter(Boolean)};
+  else dados = {pairs: d.pairs.map(p => [t(p[0]), t(p[1])]).filter(p => p[0] && p[1])};
+  if (t(d.fonte)) dados.fonte = t(d.fonte);
+  if (+d.dificuldade) dados.dificuldade = +d.dificuldade;
+  return {materia_id: d.materia_id, unidade_id: d.unidade_id || null, tipo: d.tipo, enunciado: t(d.enunciado), explicacao: t(d.explicacao), imagem_url: d.imagem_url || null, dados, status, atualizada_em: agora()};
+}
+function validar(d) {
+  const e = []; const t = s => String(s || '').trim();
+  if (!t(d.enunciado)) e.push('Escreva o enunciado.');
+  if (!d.materia_id) e.push('Escolha a matéria.');
+  if (!d.unidade_id) e.push('Escolha a unidade.');
+  if (d.tipo === 'mc' && d.opts.some(o => !t(o))) e.push('Preencha as 4 alternativas.');
+  if (d.tipo === 'tf' && !t(d.stmt)) e.push('Escreva a afirmação a ser julgada.');
+  if (d.tipo === 'bank' && (d.ans.some(x => !t(x)) || !t(d.parts[0]))) e.push('Preencha o texto e as duas respostas das lacunas.');
+  if (d.tipo === 'order' && d.items.filter(x => t(x)).length < 3) e.push('Ordenar precisa de pelo menos 3 itens.');
+  if (d.tipo === 'match' && d.pairs.filter(p => t(p[0]) && t(p[1])).length < 3) e.push('Associar precisa de pelo menos 3 pares.');
+  if (!t(d.explicacao)) e.push('Escreva a explicação que aparece quando o aluno erra.');
+  return e;
+}
+function previaCelular(d) {
+  let corpo = '';
+  if (d.tipo === 'mc') corpo = d.opts.map((o, i) => `<div class="opt ${i === +d.a ? 'ok' : ''}"><span class="lt">${'ABCD'[i]}</span>${esc(o) || '<i style="color:#9AA0BC">alternativa ' + (i + 1) + '</i>'}</div>`).join('');
+  if (d.tipo === 'tf') corpo = `<div class="stmt">${esc(d.stmt) || '<i style="color:#9AA0BC">afirmação</i>'}</div><div class="mg"><span class="chip" style="justify-content:center;${d.a ? 'border-color:#5E8A3B;background:#EAF3DF' : ''}">Verdadeiro</span><span class="chip" style="justify-content:center;${!d.a ? 'border-color:#5E8A3B;background:#EAF3DF' : ''}">Falso</span></div>`;
+  if (d.tipo === 'bank') corpo = `<p style="margin:0;font-size:14px;line-height:2;font-family:var(--f-display)">${esc(d.parts[0])}<span class="slot">${esc(d.ans[0]) || '&nbsp;'}</span>${esc(d.parts[1])}<span class="slot">${esc(d.ans[1]) || '&nbsp;'}</span>${esc(d.parts[2])}</p><div class="chips" style="justify-content:center;border-top:2px solid #E4DFF7;padding-top:8px">${[...d.ans, ...d.extra].filter(Boolean).map(w => `<span class="chip">${esc(w)}</span>`).join('')}</div>`;
+  if (d.tipo === 'order') corpo = `<div style="min-height:44px;border:2px dashed #C5C9E3;border-radius:10px;padding:6px;font-size:11px;color:#6F7172">Toque nos itens na ordem certa</div><div class="chips" style="justify-content:center">${d.items.filter(Boolean).map(w => `<span class="chip">${esc(w)}</span>`).join('')}</div>`;
+  if (d.tipo === 'match') corpo = `<div class="mg"><div class="chips" style="flex-direction:column">${d.pairs.map(p => `<span class="chip" style="justify-content:center">${esc(p[0]) || '…'}</span>`).join('')}</div><div class="chips" style="flex-direction:column">${d.pairs.map(p => `<span class="chip" style="justify-content:center">${esc(p[1]) || '…'}</span>`).join('')}</div></div>`;
+  return `<div class="phone"><div class="ph"><span>✕</span><span class="pb"><i></i></span><span style="color:#B8313F;font-weight:700;font-family:var(--f-display)">♥ 4</span></div>
+    <div class="pm"><span class="tag">${TIPOS[d.tipo].toUpperCase()}</span><span class="q">${esc(d.enunciado) || '<i style="color:#9AA0BC">Enunciado da questão</i>'}</span>${d.imagem_url ? `<img class="qimg" src="${esc(d.imagem_url)}" alt="">` : ''}${corpo}</div>
+    <div class="foot"><span style="border:2px solid #C5C9E3;color:#6F7172">Pular</span><span style="background:#503C9D;color:#fff">Verificar</span></div></div>`;
+}
+function atualizarPrevia() {
+  const pv = document.getElementById('qprev'); if (pv) pv.innerHTML = previaCelular(V.rascunho);
+  const errs = validar(V.rascunho); const btn = shell.querySelector('[data-a="salvar-q:publicada"]'); if (btn) btn.disabled = errs.length > 0;
+  const box = document.getElementById('qerros'); if (box) { box.hidden = !errs.length; box.querySelector('span').textContent = errs.join(' '); }
+}
+function drawerQuestao() {
+  const d = V.rascunho, errs = validar(d);
+  const unidades = todasUnidades().filter(x => x.m.id === d.materia_id);
+  let formTipo = '';
+  if (d.tipo === 'mc') formTipo = `<div class="field"><span class="lab">Alternativas (marque a correta)</span>${d.opts.map((o, i) => `<div class="optrow"><input type="radio" name="corr" ${+d.a === i ? 'checked' : ''} data-f="rascunho.a" value="${i}" aria-label="Alternativa ${'ABCD'[i]} é a correta"><b style="width:16px">${'ABCD'[i]}</b><input class="inp sm" value="${esc(o)}" data-f="rascunho.opts.${i}" placeholder="Alternativa ${'ABCD'[i]}"></div>`).join('')}</div>`;
+  if (d.tipo === 'tf') formTipo = `<div class="field"><label for="f-stmt">Afirmação exibida em destaque</label><input id="f-stmt" class="inp" value="${esc(d.stmt)}" data-f="rascunho.stmt" placeholder="Ex.: 0,8 > 4/5"></div><div class="field"><span class="lab">Resposta correta</span><div class="optrow"><label><input type="radio" name="tfa" value="1" ${d.a ? 'checked' : ''} data-f="rascunho.a"> Verdadeiro</label><label style="margin-left:14px"><input type="radio" name="tfa" value="0" ${!d.a ? 'checked' : ''} data-f="rascunho.a"> Falso</label></div></div>`;
+  if (d.tipo === 'bank') formTipo = `<div class="field"><span class="lab">Frase com duas lacunas</span><div class="frow" style="grid-template-columns:1fr"><input class="inp sm" value="${esc(d.parts[0])}" data-f="rascunho.parts.0" placeholder="Texto antes da 1ª lacuna"><input class="inp sm" value="${esc(d.ans[0])}" data-f="rascunho.ans.0" placeholder="Resposta da 1ª lacuna" style="border-color:var(--primary)"><input class="inp sm" value="${esc(d.parts[1])}" data-f="rascunho.parts.1" placeholder="Texto entre as lacunas"><input class="inp sm" value="${esc(d.ans[1])}" data-f="rascunho.ans.1" placeholder="Resposta da 2ª lacuna" style="border-color:var(--primary)"><input class="inp sm" value="${esc(d.parts[2])}" data-f="rascunho.parts.2" placeholder="Texto depois da 2ª lacuna"></div></div>
+    <div class="field"><span class="lab">Palavras extras no banco (distratores)</span><div class="frow">${d.extra.map((x, i) => `<input class="inp sm" value="${esc(x)}" data-f="rascunho.extra.${i}" placeholder="Distrator ${i + 1}">`).join('')}</div></div>`;
+  if (d.tipo === 'order') formTipo = `<div class="field"><span class="lab">Itens na ordem correta (o app embaralha)</span>${d.items.map((x, i) => `<div class="optrow"><b class="num" style="width:16px;color:var(--muted)">${i + 1}</b><input class="inp sm" value="${esc(x)}" data-f="rascunho.items.${i}" placeholder="Item ${i + 1}"></div>`).join('')}<div><button class="btn btn-ghost btn-sm" data-a="rascunho-mais-item">${I.plus}Mais um item</button></div></div>`;
+  if (d.tipo === 'match') formTipo = `<div class="field"><span class="lab">Pares (esquerda ↔ direita)</span>${d.pairs.map((p, i) => `<div class="optrow"><input class="inp sm" value="${esc(p[0])}" data-f="rascunho.pairs.${i}.0" placeholder="Esquerda ${i + 1}"><span style="color:var(--muted)">↔</span><input class="inp sm" value="${esc(p[1])}" data-f="rascunho.pairs.${i}.1" placeholder="Direita ${i + 1}"></div>`).join('')}</div>`;
+  return `<div class="drawer-bg" data-a="fechar"></div><div class="drawer" role="dialog" aria-modal="true" aria-labelledby="dq-t">
+    <div class="formcol">
+      <div class="drawer-h"><h2 id="dq-t">${d.id ? 'Editar questão' : 'Nova questão'}</h2><span class="pill ${d.status === 'publicada' ? 'pub' : 'draft'}">${d.status === 'publicada' ? 'publicada' : 'rascunho'}</span><span class="right"><button class="btn btn-ghost" data-a="fechar" aria-label="Fechar">${I.close}</button></span></div>
+      <div class="field"><span class="lab">Tipo de exercício</span><div class="typegrid">${Object.keys(TIPOS).map(t => `<button class="typebtn" aria-pressed="${d.tipo === t}" data-a="rascunho-tipo:${t}"><b>${TIPOS[t]}</b><span>${TIPO_DESC[t]}</span></button>`).join('')}</div></div>
+      <div class="frow"><div class="field"><label for="f-mat">Matéria</label><select id="f-mat" class="inp" data-f="rascunho.materia_id">${D.materias.map(m => `<option value="${m.id}" ${d.materia_id === m.id ? 'selected' : ''}>${esc(m.nome)}</option>`).join('')}</select></div>
+        <div class="field"><label for="f-uni">Unidade</label><select id="f-uni" class="inp" data-f="rascunho.unidade_id">${unidades.map(x => `<option value="${x.u.id}" ${d.unidade_id === x.u.id ? 'selected' : ''}>${esc(x.s.titulo)} · ${esc(x.u.titulo)}</option>`).join('')}${unidades.length ? '' : '<option value="">Esta matéria não tem unidades</option>'}</select></div></div>
+      <div class="field"><label for="f-q">Enunciado</label><textarea id="f-q" class="inp" data-f="rascunho.enunciado" placeholder="Pergunta que o aluno vê">${esc(d.enunciado)}</textarea></div>
+      <div class="field"><span class="lab">Imagem (opcional: gráfico, tabela, figura)</span><div class="imgbox">
+        ${d.imagem_url ? `<img src="${esc(d.imagem_url)}" alt="Imagem da questão"><div style="display:flex;flex-direction:column;gap:6px"><button class="btn btn-outline btn-sm" data-a="trocar-imagem">Trocar imagem</button><button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="remover-imagem">${I.trash}Remover</button></div>` : `<button class="btn btn-outline btn-sm" data-a="trocar-imagem" ${d.enviando ? 'disabled' : ''}>${d.enviando ? 'Enviando…' : 'Enviar imagem'}</button><span class="hint">PNG, JPG ou WebP até 3 MB. Imagens grandes são reduzidas automaticamente.</span>`}
+        <input type="file" id="f-img" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+      </div></div>
+      ${formTipo}
+      <div class="field"><label for="f-why">Explicação quando erra</label><textarea id="f-why" class="inp" data-f="rascunho.explicacao" placeholder="Resposta correta e o porquê, em uma ou duas frases">${esc(d.explicacao)}</textarea></div>
+      <div class="frow"><div class="field"><label for="f-fonte">Fonte (opcional)</label><input id="f-fonte" class="inp sm" value="${esc(d.fonte)}" data-f="rascunho.fonte" placeholder="Ex.: ENEM 2019, adaptada"></div>
+        <div class="field"><label for="f-dif">Dificuldade</label><select id="f-dif" class="inp sm" data-f="rascunho.dificuldade">${Object.entries(DIFICULDADES).map(([k, v]) => `<option value="${k}" ${+d.dificuldade === +k ? 'selected' : ''}>${v}</option>`).join('')}</select></div></div>
+      <div class="warnbox" id="qerros" ${errs.length ? '' : 'hidden'}>${I.warn}<span>${errs.join(' ')}</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-primary" data-a="salvar-q:publicada" ${errs.length ? 'disabled' : ''}>${I.check}Salvar e publicar</button>
+        <button class="btn btn-outline" data-a="salvar-q:rascunho">Salvar como rascunho</button>
+        ${d.id ? `<button class="btn btn-ghost btn-danger" style="margin-left:auto" data-a="excluir-q">${I.trash}Excluir</button>` : ''}
+      </div>
+      <p style="margin:0;font-size:12px;color:var(--muted)">Questões publicadas entram no pacote na próxima vez que você clicar em Publicar. Rascunhos ficam só no painel.</p>
+    </div>
+    <div class="prevcol"><span class="lab" style="font-size:12px;font-weight:600;color:var(--fg2);align-self:flex-start">Prévia no celular</span><div id="qprev">${previaCelular(d)}</div><span style="font-size:12px;color:var(--muted);text-align:center">A alternativa verde é a correta. O app embaralha alternativas, itens e pares.</span></div>
+  </div>`;
+}
+function drawerAtribuir() {
+  const x = licaoInfo(V.licaoAtribuir); if (!x) return '';
+  const atuais = questoesDaLicao(x.l.id);
+  const pool = D.questoes.filter(q => q.unidade_id === x.u.id);
+  const outras = D.questoes.filter(q => q.materia_id === x.m.id && q.unidade_id !== x.u.id);
+  const linha = q => `<label><input type="checkbox" ${atuais.includes(q.id) ? 'checked' : ''} data-a="atribuir-toggle:${q.id}"><span class="pill type" style="font-size:10px">${TIPOS[q.tipo] || q.tipo}</span><span style="flex:1">${esc(q.enunciado)}${q.tipo === 'tf' ? ' · ' + esc((q.dados || {}).stmt) : ''}</span>${q.status === 'rascunho' ? '<span class="pill draft">rascunho</span>' : ''}</label>`;
+  return `<div class="drawer-bg" data-a="fechar"></div><div class="drawer" role="dialog" aria-modal="true" style="grid-template-columns:1fr;width:min(640px,100%)"><div class="formcol">
+    <div class="drawer-h"><div><h2>Questões da lição</h2><div style="font-size:13px;color:var(--muted)">${esc(x.m.nome)} · ${esc(x.u.titulo)} · <b>${esc(x.l.titulo)}</b></div></div><span class="right"><button class="btn btn-ghost" data-a="fechar" aria-label="Fechar">${I.close}</button></span></div>
+    <div class="field"><label for="f-ldesc">Descrição curta da lição (aparece no app)</label><input id="f-ldesc" class="inp sm" value="${esc(x.l.descricao || '')}" data-f="licao.${x.l.id}.descricao" placeholder="Ex.: Aprenda a somar frações com denominadores diferentes"></div>
+    <div class="kv" style="background:var(--surface2);padding:10px 14px;border-radius:10px"><span>Selecionadas</span><b class="num">${atuais.length}</b><span>Tamanho da lição no app</span><b class="num">${tamLicao()}</b></div>
+    ${atuais.length < tamLicao() ? `<div class="warnbox">${I.warn}<span>Com menos de ${tamLicao()} questões, o app completa a lição com outras questões publicadas da mesma unidade.</span></div>` : ''}
+    <div class="field"><span class="lab">Desta unidade (${pool.length})</span><div class="checklist">${pool.map(linha).join('') || '<div class="empty">Nenhuma questão nesta unidade ainda.</div>'}</div></div>
+    <div class="field"><span class="lab">Outras unidades de ${esc(x.m.nome)} (${outras.length})</span><div class="checklist">${outras.map(linha).join('') || '<div class="empty">Nenhuma.</div>'}</div></div>
+    <div style="display:flex;gap:8px"><button class="btn btn-primary" data-a="fechar">${I.check}Concluir</button><button class="btn btn-outline" data-a="nova-q-unidade:${x.u.id}">${I.plus}Nova questão nesta unidade</button></div>
+  </div></div>`;
 }
 
-let mostrando = '';
-function rota(session) { const alvo = session ? 'inicio:' + session.user.id : 'login'; if (alvo === mostrando) return; mostrando = alvo; if (session) telaLogado(session); else telaLogin(); }
-rota(null);
-sb.auth.getSession().then(({data}) => rota(data.session)).catch(() => {});
-sb.auth.onAuthStateChange((ev, session) => { if (ev === 'SIGNED_IN' || ev === 'SIGNED_OUT' || ev === 'INITIAL_SESSION') rota(session); });
+/* =====================================================================
+   Missões
+   ===================================================================== */
+function viewMissoes() {
+  const P = D.param.missoes, ativas = D.missoes.filter(m => m.ativa).length;
+  return topbar('Missões', 'O que o app propõe ao aluno a cada dia e a cada mês', `<button class="btn btn-primary" data-a="nova-missao">${I.plus}Nova missão diária</button>`) + `<div class="content">
+    ${ativas < P.porDia ? `<div class="warnbox">${I.warn}<span>Só ${ativas} missões ativas, mas o app sorteia ${P.porDia} por dia. Ative mais missões ou reduza o sorteio.</span></div>` : ''}
+    <div class="card"><div class="card-h"><h2>Banco de missões diárias</h2><span class="right"><span class="field" style="flex-direction:row;align-items:center;gap:8px"><label for="dcount">Sorteadas por dia</label><input id="dcount" type="number" min="1" max="5" class="inp sm" style="width:64px" value="${P.porDia}" data-f="param.missoes.porDia"></span><span class="field" style="flex-direction:row;align-items:center;gap:8px"><label for="dchest">Baú diário (moedas)</label><input id="dchest" type="number" min="0" class="inp sm" style="width:80px" value="${P.moedasBauDiario}" data-f="param.missoes.moedasBauDiario"></span></span></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Ativa</th><th>Texto no app</th><th>Conta o quê</th><th>Meta</th><th></th></tr></thead><tbody>
+        ${D.missoes.map(m => `<tr><td>${toggle(m.ativa, 'toggle-missao:' + m.id, 'Missão ativa')}</td><td><input class="inline-edit" style="min-width:220px" value="${esc(m.texto)}" data-f="missao.${m.id}.texto" aria-label="Texto da missão"></td>
+          <td><select class="inp sm" data-f="missao.${m.id}.tipo" aria-label="Tipo">${Object.entries(TIPOS_MISSAO).map(([k, v]) => `<option value="${k}" ${m.tipo === k ? 'selected' : ''}>${v}</option>`).join('')}</select></td>
+          <td><input type="number" min="1" class="inp sm" style="width:70px" value="${m.meta}" data-f="missao.${m.id}.meta" aria-label="Meta"></td>
+          <td style="white-space:nowrap">${mover('missoes', m.id)} <button class="btn btn-ghost btn-sm" data-a="excluir-missao:${m.id}" aria-label="Excluir missão">${I.trash}</button></td></tr>`).join('')}
+        ${D.missoes.length ? '' : '<tr><td colspan="5" class="empty">Nenhuma missão. Crie a primeira.</td></tr>'}
+      </tbody></table></div>
+      <div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">Toda missão concluída conta para o baú do dia. Quando o aluno completa as ${P.porDia} sorteadas, ganha ${P.moedasBauDiario} moedas.</div></div>
+    <div class="grid2">
+      <div class="card"><div class="card-h"><h2>Desafio do mês</h2><span class="right">${toggle(P.mensal.ativo, 'toggle-param:missoes:mensal.ativo', 'Desafio do mês ativo')}</span></div><div class="card-b form">
+        <div class="field"><label for="mo-t">Título</label><input id="mo-t" class="inp" value="${esc(P.mensal.titulo)}" data-f="param.missoes.mensal.titulo"></div>
+        <div class="frow">${numField('Meta de XP no mês', 'param.missoes.mensal.metaXp', P.mensal.metaXp)}${numField('Moedas ao concluir', 'param.missoes.mensal.moedas', P.mensal.moedas)}<div class="field"><label for="mo-b">Nome do distintivo</label><input id="mo-b" class="inp" value="${esc(P.mensal.distintivo)}" data-f="param.missoes.mensal.distintivo"></div></div>
+      </div></div>
+      <div class="card"><div class="card-h"><h2>Revisão diária</h2><span class="right">${toggle(P.revisao.ativo, 'toggle-param:missoes:revisao.ativo', 'Revisão diária ativa')}</span></div><div class="card-b form">
+        <div class="frow">${numField('Exercícios por revisão', 'param.missoes.revisao.tamanho', P.revisao.tamanho)}${numField('XP ao concluir', 'param.missoes.revisao.xp', P.revisao.xp)}</div>
+        <p style="margin:0;font-size:12px;color:var(--muted)">Mistura questões publicadas de todas as matérias ativas, priorizando erros recentes do aluno.</p>
+      </div></div>
+      <div class="card"><div class="card-h"><h2>Missão em dupla</h2><span class="right"><span class="pill off">depois do lançamento</span>${toggle(P.dupla.ativo, 'toggle-param:missoes:dupla.ativo', 'Missão em dupla ativa')}</span></div><div class="card-b form">
+        <div class="frow">${numField('Lições em dupla', 'param.missoes.dupla.licoes', P.dupla.licoes)}${numField('Prazo (dias)', 'param.missoes.dupla.dias', P.dupla.dias)}${numField('Moedas para cada', 'param.missoes.dupla.moedas', P.dupla.moedas)}</div>
+        <p style="margin:0;font-size:12px;color:var(--muted)">O app ainda não tem esta função. Deixe desligada até janeiro.</p>
+      </div></div>
+    </div></div>`;
+}
+
+/* =====================================================================
+   Economia e loja
+   ===================================================================== */
+function viewEconomia() {
+  const E = D.param.economia;
+  const n = (l, k, h) => numField(l, 'param.economia.' + k, E[k], h);
+  return topbar('Economia e loja', 'Regras de corações, XP, moedas, tempos e os itens à venda', `<button class="btn btn-outline" data-a="novo-item">${I.plus}Item na loja</button>`) + `<div class="content"><div class="grid2">
+    <div class="card"><div class="card-h"><h2>Corações</h2></div><div class="card-b frow">${n('Máximo de corações', 'coracoes')}${n('Horas para recuperar 1', 'horasCoracao')}${n('Recarga total (moedas)', 'custoRecarga')}${n('Moedas iniciais do aluno', 'moedasIniciais')}</div></div>
+    <div class="card"><div class="card-h"><h2>Lição</h2></div><div class="card-b frow">${n('Exercícios por lição', 'tamanhoLicao')}${n('XP por lição nova', 'xpLicao')}${n('XP por lição repetida', 'xpPratica')}${n('XP por exercício (relâmpago)', 'xpExercicio')}${n('Moedas por lição', 'moedasLicao')}${n('Combo a partir de', 'comboAPartirDe', 'acertos seguidos')}${n('Bônus de combo (XP)', 'bonusCombo')}${n('Bônus lição perfeita (XP)', 'bonusPerfeita')}</div></div>
+    <div class="card"><div class="card-h"><h2>Trilha</h2></div><div class="card-b frow">${n('Baú da unidade (moedas)', 'moedasBau')}${n('Prova lendária (XP)', 'xpLendaria')}${n('Prova lendária (moedas)', 'moedasLendaria')}${n('Teste de pular: acertos', 'acertosPular', 'de ' + E.questoesPular + ' questões')}${n('Teste de pular: questões', 'questoesPular')}${n('Teste de pular (XP)', 'xpPular')}${n('Teste de pular (moedas)', 'moedasPular')}</div></div>
+    <div class="card"><div class="card-h"><h2>Ofensiva e turbos</h2></div><div class="card-b frow">${n('Congelador (moedas)', 'custoCongelador')}${n('Congeladores no máximo', 'maxCongeladores')}${n('Relâmpago (segundos)', 'segundosRelampago')}${n('Multiplicador do relâmpago', 'multiplicadorRelampago')}</div></div>
+    <div class="card"><div class="card-h"><h2>Revisão e erros</h2></div><div class="card-b frow">${n('Revisão diária (XP)', 'xpRevisao')}${n('Revisão diária (moedas)', 'moedasRevisao')}${n('Exercícios na revisão', 'tamanhoRevisao')}${n('Praticar erros (XP)', 'xpErros')}</div></div>
+  </div>
+  <div class="card"><div class="card-h"><h2>Loja</h2><span class="right" style="font-size:12px;color:var(--muted)">Itens com efeito no app: <code>congelador</code>, <code>recarga</code>, <code>plus</code></span></div><div class="tbl-wrap"><table><thead><tr><th>À venda</th><th>Código</th><th>Item</th><th>Tipo</th><th>Preço</th><th></th></tr></thead><tbody>
+    ${D.loja.map(it => `<tr><td>${toggle(it.ativo, 'toggle-item:' + it.id, 'Item à venda')}</td><td><code>${esc(it.codigo)}</code></td><td><input class="inline-edit" style="min-width:200px" value="${esc(it.nome)}" data-f="loja.${it.id}.nome" aria-label="Nome do item"></td>
+      <td><select class="inp sm" data-f="loja.${it.id}.tipo" aria-label="Tipo"><option value="moedas" ${it.tipo === 'moedas' ? 'selected' : ''}>Moedas</option><option value="assinatura" ${it.tipo === 'assinatura' ? 'selected' : ''}>Assinatura</option></select></td>
+      <td>${it.tipo === 'assinatura' ? `<input class="inline-edit" value="${esc(it.rotulo_preco || '')}" data-f="loja.${it.id}.rotulo_preco" aria-label="Rótulo do preço" placeholder="Ex.: R$ 19,90/mês · Pix">` : `<input type="number" class="inp sm" style="width:90px" value="${it.preco}" data-f="loja.${it.id}.preco" aria-label="Preço em moedas">`}</td>
+      <td style="white-space:nowrap">${mover('loja', it.id)} <button class="btn btn-ghost btn-sm" data-a="excluir-item:${it.id}" aria-label="Excluir item">${I.trash}</button></td></tr>`).join('')}
+    ${D.loja.length ? '' : '<tr><td colspan="6" class="empty">Nenhum item.</td></tr>'}
+  </tbody></table></div></div></div>`;
+}
+
+/* =====================================================================
+   Ligas
+   ===================================================================== */
+function viewLigas() {
+  const L = D.param.ligas;
+  return topbar('Ligas semanais', 'Grupos de alunos que competem por XP durante a semana. A liga fecha no domingo à noite.') + `<div class="content"><div class="grid2">
+    <div class="card"><div class="card-h"><h2>Regras</h2></div><div class="card-b frow">${numField('Alunos por grupo', 'param.ligas.tamanho', L.tamanho)}${numField('Sobem (top N)', 'param.ligas.sobem', L.sobem)}${numField('Caem (últimos N)', 'param.ligas.caem', L.caem)}${numField('Moedas para o top 3', 'param.ligas.moedasTop3', L.moedasTop3)}</div></div>
+    <div class="card"><div class="card-h"><h2>Níveis (do mais baixo ao mais alto)</h2></div><div class="card-b form">${L.niveis.map((t, i) => `<div class="optrow"><b class="num" style="width:20px;color:var(--muted)">${i + 1}</b><input class="inp sm" value="${esc(t)}" data-f="param.ligas.niveis.${i}" aria-label="Nome do nível ${i + 1}"></div>`).join('')}
+      <p style="margin:0;font-size:12px;color:var(--muted)">Na ${esc(L.niveis[0])}, ninguém cai. Na ${esc(L.niveis[L.niveis.length - 1])}, ninguém sobe.</p></div></div>
+  </div></div>`;
+}
+
+/* =====================================================================
+   Alunos
+   ===================================================================== */
+function viewAlunos() {
+  const A = V.alunos;
+  const plus = a => a.findout_plus_ate && new Date(a.findout_plus_ate) > new Date();
+  return topbar('Alunos', 'Quem usa o app, progresso e ativação manual do Findout+') + `<div class="content">
+    <form class="toolbar" id="f-alunos"><input class="inp sm" placeholder="Nome ou e-mail" value="${esc(A.busca)}" data-f="alunos.busca" aria-label="Buscar aluno" style="min-width:260px"><button type="button" class="btn btn-primary btn-sm" data-a="buscar-alunos">Buscar</button><span style="color:var(--muted);font-size:13px">${A.lista ? A.lista.length + ' aluno' + (A.lista.length === 1 ? '' : 's') : ''}</span></form>
+    ${A.erro ? `<div class="warnbox">${I.warn}<span>${esc(A.erro)}</span></div>` : ''}
+    <div class="card tbl-wrap"><table><thead><tr><th>Aluno</th><th>XP</th><th>Moedas</th><th>Lições</th><th>Ofensiva</th><th>Findout+</th><th>Último acesso</th><th>Cadastro</th><th></th></tr></thead><tbody>
+      ${A.carregando ? '<tr><td colspan="9" class="empty">Carregando…</td></tr>' : (A.lista || []).map(a => `<tr><td><b>${esc(a.nome)}</b><br><span style="font-size:12px;color:var(--muted)">${esc(a.email)}</span></td><td class="num">${a.xp}</td><td class="num">${a.moedas}</td><td class="num">${a.licoes}</td><td class="num">${a.ofensiva} dias</td>
+        <td>${plus(a) ? `<span class="pill on">até ${fmtDia(a.findout_plus_ate)}</span>` : '<span class="pill off">não</span>'}</td><td style="font-size:12px">${fmtData(a.visto_em)}</td><td style="font-size:12px">${fmtDia(a.criado_em)}</td>
+        <td style="white-space:nowrap">${plus(a) ? `<button class="btn btn-ghost btn-sm" data-a="plus:${a.user_id}:30">+30 dias</button> <button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="plus:${a.user_id}:0">Remover</button>` : `<button class="btn btn-outline btn-sm" data-a="plus:${a.user_id}:30">Ativar 30 dias</button>`}</td></tr>`).join('')}
+      ${!A.carregando && A.lista && !A.lista.length ? '<tr><td colspan="9" class="empty">Nenhum aluno encontrado.</td></tr>' : ''}
+    </tbody></table></div>
+    <p style="margin:0;font-size:12px;color:var(--muted)">O Findout+ dá corações ilimitados. A ativação aqui é manual (pagamento por Pix combinado com o aluno). Para somar mais dias a um aluno que já tem, use "+30 dias" (reinicia a contagem a partir de hoje).</p>
+  </div>`;
+}
+async function buscarAlunos() {
+  V.alunos.carregando = true; V.alunos.erro = null; render();
+  const {data, error} = await sb.rpc('alunos_admin', {p_busca: V.alunos.busca.trim(), p_limite: 100});
+  V.alunos.carregando = false;
+  if (error) { V.alunos.erro = traduzErro(error.message); V.alunos.lista = []; } else V.alunos.lista = data || [];
+  render();
+}
+
+/* =====================================================================
+   Publicar
+   ===================================================================== */
+function viewPublicar() {
+  const pkg = montarPacote(), json = JSON.stringify(pkg, null, 2), sujo = alteracoesPendentes();
+  const problemas = [];
+  const ativas = D.missoes.filter(m => m.ativa).length; if (ativas < D.param.missoes.porDia) problemas.push(`Só ${ativas} missões diárias ativas para um sorteio de ${D.param.missoes.porDia}.`);
+  const vazias = pkg.materias.flatMap(m => m.secoes.flatMap(s => s.unidades.flatMap(u => u.licoes.filter(l => !l.questoes.length).map(l => `${m.nome} · ${l.titulo}`))));
+  if (vazias.length) problemas.push(`${vazias.length} lições sem questão publicada: ${vazias.slice(0, 3).join(', ')}${vazias.length > 3 ? '…' : ''}.`);
+  const semUnidade = pkg.questoes.filter(q => !q.unidade).length; if (semUnidade) problemas.push(`${semUnidade} questões publicadas sem unidade (não aparecem em nenhuma lição).`);
+  const nLicoes = pkg.materias.reduce((n, m) => n + m.secoes.reduce((k, s) => k + s.unidades.reduce((j, u) => j + u.licoes.length, 0), 0), 0);
+  const prox = D.publicacoes[0] ? D.publicacoes[0].versao + 1 : 1;
+  return topbar('Publicar', 'Gera o pacote de conteúdo que o app lê. Só o que está publicado aqui chega ao aluno.', `<button class="btn btn-primary" data-a="publicar" ${sujo ? '' : 'disabled'}>${I.up}Publicar versão ${prox}</button>`) + `<div class="content">
+    ${sujo ? '' : `<div class="warnbox okbox">${I.check}<span>Não há alterações desde a última publicação.</span></div>`}
+    ${problemas.map(p => `<div class="warnbox">${I.warn}<span>${esc(p)} Você ainda pode publicar.</span></div>`).join('')}
+    <div class="tiles">
+      <div class="tile"><span class="lbl">Matérias</span><span class="val num">${pkg.materias.length}</span><span class="hint">só as visíveis no app</span></div>
+      <div class="tile"><span class="lbl">Lições</span><span class="val num">${nLicoes}</span></div>
+      <div class="tile"><span class="lbl">Questões publicadas</span><span class="val num">${pkg.questoes.length}</span><span class="hint">${D.questoes.length - pkg.questoes.length} rascunhos ficam de fora</span></div>
+      <div class="tile"><span class="lbl">Tamanho do pacote</span><span class="val num">${(json.length / 1024).toFixed(1)}<span style="font-size:16px"> KB</span></span></div>
+    </div>
+    <div class="card"><div class="card-b" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap"><div class="field" style="flex:1;min-width:240px"><label for="nota">Nota desta versão (o que mudou)</label><input id="nota" class="inp" value="${esc(V.notaPub)}" data-f="notaPub" placeholder="Ex.: 20 questões novas de porcentagem"></div><button class="btn btn-primary" data-a="publicar" ${sujo ? '' : 'disabled'}>${I.up}Publicar versão ${prox}</button></div></div>
+    <div class="grid2">
+      <div class="card"><div class="card-h"><h2>Histórico</h2></div><div class="list">${D.publicacoes.map((p, i) => `<div class="item"><span class="pill ${i === 0 ? 'pub' : 'off'}">v${p.versao}</span><span style="flex:1"><b>${esc(p.nota || 'Sem nota')}</b><br><span style="font-size:12px;color:var(--muted)">${fmtData(p.criada_em)}</span></span><button class="btn btn-ghost btn-sm" data-a="ver-json:${p.versao}">Ver</button>${i === 0 ? '' : `<button class="btn btn-outline btn-sm" data-a="restaurar:${p.versao}">Voltar a esta</button>`}</div>`).join('') || '<div class="empty">Nada publicado ainda.</div>'}</div>
+        <div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">"Voltar a esta" cria uma nova versão igual à escolhida. O app passa a ler esse conteúdo; o que você edita no painel continua como está.</div></div>
+      <div class="card"><div class="card-h"><h2>${V.jsonVersao ? 'Pacote da v' + V.jsonVersao : 'Pacote que será publicado'}</h2><span class="right">${V.jsonVersao ? `<button class="btn btn-ghost btn-sm" data-a="ver-json:atual">Ver o atual</button>` : ''}<button class="btn btn-outline btn-sm" data-a="copiar-json">${I.copy}Copiar</button></span></div><div class="card-b"><pre class="json" id="jsonout">${esc(V.jsonVersao ? V.jsonTexto : json)}</pre></div></div>
+    </div></div>`;
+}
+
+/* =====================================================================
+   Modais
+   ===================================================================== */
+function modalHtml() {
+  const M = V.modal;
+  return `<div class="drawer-bg" data-a="modal-cancelar"></div><form class="card modal" id="f-modal" role="dialog" aria-modal="true"><h2>${esc(M.titulo)}</h2>${M.texto ? `<p style="margin:0;color:var(--fg2);font-size:13px">${M.texto}</p>` : ''}
+    ${M.campos.map(c => `<div class="field"><label for="md-${c.k}">${esc(c.label)}</label><input id="md-${c.k}" class="inp" type="${c.tipo || 'text'}" value="${esc(c.valor ?? '')}" placeholder="${esc(c.placeholder || '')}" ${c.maxlength ? `maxlength="${c.maxlength}"` : ''} ${c.obrigatorio ? 'required' : ''}></div>`).join('')}
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn btn-ghost" data-a="modal-cancelar">Cancelar</button><button type="submit" class="btn btn-primary" data-a="modal-ok">${esc(M.ok || 'Criar')}</button></div></form>`;
+}
+function confirmHtml() {
+  const C = V.confirmar;
+  return `<div class="drawer-bg"></div><div class="card modal" role="dialog" aria-modal="true"><h2>${esc(C.titulo)}</h2><p style="margin:0;color:var(--fg2)">${esc(C.corpo)}</p><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" data-a="confirmar-nao">Cancelar</button><button class="btn btn-primary" style="background:var(--red-d)" data-a="confirmar-sim">${esc(C.sim || 'Excluir')}</button></div></div>`;
+}
+
+/* =====================================================================
+   Render
+   ===================================================================== */
+const VIEWS = {inicio: viewInicio, trilhas: viewTrilhas, questoes: viewQuestoes, missoes: viewMissoes, economia: viewEconomia, ligas: viewLigas, alunos: viewAlunos, publicar: viewPublicar};
+function render() {
+  if (!D) return;
+  const focado = document.activeElement, fkey = focado && focado.dataset ? focado.dataset.f : null, sel = focado && focado.selectionStart;
+  const scroll = window.scrollY;
+  shell.className = '';
+  shell.innerHTML = sidebar() + `<main>${VIEWS[V.view]()}</main>` + (V.rascunho ? drawerQuestao() : '') + (V.licaoAtribuir ? drawerAtribuir() : '') + (V.modal ? modalHtml() : '') + (V.confirmar ? confirmHtml() : '');
+  window.scrollTo(0, scroll);
+  if (fkey) { const el = shell.querySelector(`[data-f="${fkey}"]`); if (el && el.tagName !== 'SELECT' && el.type !== 'radio' && el.type !== 'color') { el.focus(); try { el.setSelectionRange(sel, sel); } catch (e) {} } }
+  if (V.modal) { const first = shell.querySelector('#f-modal input'); if (first) first.focus(); }
+}
+
+/* =====================================================================
+   Campos (data-f): atualiza memória e agenda gravação
+   ===================================================================== */
+function setCampo(path, value) {
+  const p = path.split('.');
+  switch (p[0]) {
+    case 'qf': V.qf[p[1]] = value; if (p[1] === 'materia') V.qf.unidade = ''; return 'ui';
+    case 'alunos': V.alunos.busca = value; return 'nada';
+    case 'notaPub': V.notaPub = value; return 'nada';
+    case 'rascunho': setIn(V.rascunho, p.slice(1), value); return 'rascunho';
+    case 'materia': { const m = materiaPorId(V.materia); if (!m) return 'nada'; m[p[1]] = value; agendar(path, () => db(sb.from('materias').update({[p[1]]: value}).eq('id', m.id))); return 'dados'; }
+    case 'secao': case 'unidade': case 'licao': {
+      const tabela = {secao: 'secoes', unidade: 'unidades', licao: 'licoes'}[p[0]]; const r = D[tabela].find(x => x.id === p[1]); if (!r) return 'nada';
+      r[p[2]] = value; agendar(path, () => db(sb.from(tabela).update({[p[2]]: value}).eq('id', p[1]))); return 'dados';
+    }
+    case 'missao': { const r = D.missoes.find(x => x.id === p[1]); if (!r) return 'nada'; const v = p[2] === 'meta' ? Math.max(1, +value || 1) : value; r[p[2]] = v; agendar(path, () => db(sb.from('missoes').update({[p[2]]: v}).eq('id', r.id))); return 'dados'; }
+    case 'loja': { const r = D.loja.find(x => x.id === p[1]); if (!r) return 'nada'; const v = p[2] === 'preco' ? Math.max(0, +value || 0) : value; r[p[2]] = v; agendar(path, () => db(sb.from('itens_loja').update({[p[2]]: v}).eq('id', r.id))); return 'dados'; }
+    case 'param': { const g = p[1]; setIn(D.param[g], p.slice(2), value); agendar('param.' + g, () => salvarParam(g)); return 'dados'; }
+  }
+  return 'nada';
+}
+const salvarParam = g => db(sb.from('parametros').upsert({chave: g, valor: D.param[g], atualizado_em: agora()}));
+shell.addEventListener('input', ev => {
+  const el = ev.target; if (!el.dataset || !el.dataset.f || el.type === 'radio') return;
+  const tipo = setCampo(el.dataset.f, el.value);
+  if (tipo === 'rascunho') return atualizarPrevia();
+  if (tipo === 'ui') return render();
+  if (tipo === 'dados') renderStatus();
+});
+shell.addEventListener('change', ev => {
+  const el = ev.target; if (!el.dataset || !el.dataset.f) return;
+  const f = el.dataset.f;
+  if (el.type === 'radio') { if (f === 'rascunho.a') { V.rascunho.a = V.rascunho.tipo === 'tf' ? el.value === '1' : +el.value; atualizarPrevia(); } return; }
+  if (f === 'rascunho.materia_id') { const u = todasUnidades().find(x => x.m.id === V.rascunho.materia_id); V.rascunho.unidade_id = u ? u.u.id : null; return render(); }
+  if (f.startsWith('rascunho.')) { if (el.tagName === 'SELECT') atualizarPrevia(); return; }
+  if (f.startsWith('qf.') || f === 'notaPub' || f.startsWith('alunos.')) return;
+  if (el.tagName === 'SELECT' || el.type === 'number' || el.type === 'color' || f.startsWith('param.')) render();
+});
+shell.addEventListener('submit', ev => {
+  if (ev.target.id === 'f-alunos') { ev.preventDefault(); buscarAlunos(); }
+  if (ev.target.id === 'f-modal') { ev.preventDefault(); act('modal-ok').catch(() => {}); }
+});
+
+/* =====================================================================
+   Imagens
+   ===================================================================== */
+function reduzirImagem(file) {
+  return new Promise(resolve => {
+    if (file.type === 'image/gif' || file.size < 400 * 1024) return resolve(file);
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const max = 1400, k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      const png = file.type === 'image/png';
+      c.toBlob(b => { URL.revokeObjectURL(url); resolve(b ? new File([b], file.name, {type: png ? 'image/png' : 'image/jpeg'}) : file); }, png ? 'image/png' : 'image/jpeg', 0.86);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+async function enviarImagem(file) {
+  if (!V.rascunho) return;
+  if (file.size > 3 * 1024 * 1024) return toast('Imagem acima de 3 MB. Reduza antes de enviar.');
+  V.rascunho.enviando = true; render();
+  try {
+    const f = await reduzirImagem(file);
+    const ext = f.type === 'image/png' ? 'png' : f.type === 'image/webp' ? 'webp' : f.type === 'image/gif' ? 'gif' : 'jpg';
+    const caminho = `questoes/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const {error} = await sb.storage.from('imagens').upload(caminho, f, {contentType: f.type, cacheControl: '31536000', upsert: false});
+    if (error) throw error;
+    const {data} = sb.storage.from('imagens').getPublicUrl(caminho);
+    V.rascunho.imagem_url = data.publicUrl; toast('Imagem enviada.');
+  } catch (e) { toast('Erro ao enviar imagem: ' + traduzErro(e.message)); }
+  V.rascunho.enviando = false; render();
+}
+shell.addEventListener('change', ev => { if (ev.target.id === 'f-img' && ev.target.files && ev.target.files[0]) enviarImagem(ev.target.files[0]); });
+
+/* =====================================================================
+   Importação do conteúdo inicial
+   ===================================================================== */
+async function importarSeed() {
+  const S = window.FJ_SEED; if (!S) return toast('Arquivo seed.js não carregou.');
+  if (D.materias.length) return toast('O banco já tem matérias. A importação só funciona com o banco vazio.');
+  toast('Importando… isso leva alguns segundos.');
+  const chaves = {};
+  await db(sb.from('materias').insert(S.materias.map(({id, nome, sigla, cor, ativa, ordem}) => ({id, nome, sigla, cor, ativa, ordem}))));
+  const unidadesCriadas = [];
+  for (const m of S.materias) for (const [si, sec] of m.secoes.entries()) {
+    const s = await db(sb.from('secoes').insert({materia_id: m.id, titulo: sec.titulo, ordem: si}).select().single());
+    for (const [ui, un] of sec.unidades.entries()) {
+      const u = await db(sb.from('unidades').insert({secao_id: s.id, titulo: un.titulo, ordem: ui}).select().single());
+      if (un.chave) chaves[un.chave] = u.id;
+      let licoes = [];
+      if (un.licoes.length) licoes = ordenar(await db(sb.from('licoes').insert(un.licoes.map((t, i) => ({unidade_id: u.id, titulo: t, ordem: i}))).select()));
+      unidadesCriadas.push({id: u.id, licoes});
+    }
+  }
+  const qs = await db(sb.from('questoes').insert(S.questoes.map(q => ({materia_id: q.materia, unidade_id: chaves[q.unidade] || null, tipo: q.tipo, enunciado: q.enunciado, dados: q.dados, explicacao: q.explicacao, status: q.status || 'publicada'}))).select());
+  const lq = [];
+  for (const un of unidadesCriadas) {
+    const pool = qs.filter(q => q.unidade_id === un.id && q.status === 'publicada');
+    if (!pool.length || !un.licoes.length) continue;
+    un.licoes.forEach((l, i) => {
+      const minhas = pool.length <= 8 ? pool : pool.filter((_, k) => k % un.licoes.length === i);
+      minhas.forEach((q, j) => lq.push({licao_id: l.id, questao_id: q.id, ordem: j}));
+    });
+  }
+  if (lq.length) await db(sb.from('licao_questoes').insert(lq));
+  await carregar(); toast('Conteúdo inicial importado.'); render();
+}
+
+/* =====================================================================
+   Ações (data-a)
+   ===================================================================== */
+async function moverItem(tabela, id, dir) {
+  const arr = D[tabela]; const r = arr.find(x => x.id === id); if (!r) return;
+  const pai = {secoes: 'materia_id', unidades: 'secao_id', licoes: 'unidade_id'}[tabela];
+  const irmaos = arr.filter(x => !pai || x[pai] === r[pai]);
+  const i = irmaos.indexOf(r), j = i + dir; if (j < 0 || j >= irmaos.length) return;
+  const antes = new Map(irmaos.map(x => [x.id, x.ordem]));
+  irmaos.forEach((x, k) => { x.ordem = k; }); r.ordem = j; irmaos[j].ordem = i;
+  ordenar(arr); render();
+  const nome = tabela === 'loja' ? 'itens_loja' : tabela;
+  const mudados = irmaos.filter(x => antes.get(x.id) !== x.ordem);
+  await Promise.all(mudados.map(x => db(sb.from(nome).update({ordem: x.ordem}).eq('id', x.id))));
+}
+function confirmar(titulo, corpo, fn, sim) { V.confirmar = {titulo, corpo, fn, sim}; render(); }
+async function act(a, el) {
+  const [k, x, y, z] = a.split(':');
+  const M = materiaPorId(V.materia);
+  switch (k) {
+    case 'view': V.view = x; V.rascunho = null; V.licaoAtribuir = null; V.jsonVersao = null; window.scrollTo(0, 0); render(); if (x === 'alunos' && !V.alunos.lista) buscarAlunos(); if (x === 'inicio') carregarMetricas(); return;
+    case 'sair': return sb.auth.signOut();
+    case 'importar-seed': return importarSeed();
+
+    /* questões */
+    case 'nova-q': { if (!D.materias.length) return toast('Crie uma matéria primeiro.'); const u = todasUnidades().find(t => t.m.id === (V.qf.materia || D.materias[0].id)) || todasUnidades()[0]; V.rascunho = novoRascunho('mc', u ? u.m.id : D.materias[0].id, u ? u.u.id : null); return render(); }
+    case 'nova-q-unidade': { const u = unidadeInfo(x); V.licaoAtribuir = null; V.rascunho = novoRascunho('mc', u ? u.m.id : null, x); return render(); }
+    case 'editar-q': { const q = D.questoes.find(q => q.id === x); if (q) V.rascunho = rascunhoDe(q); return render(); }
+    case 'rascunho-tipo': { const d = V.rascunho; d.tipo = x; if (x === 'tf') d.a = !!d.a; else if (typeof d.a === 'boolean') d.a = 0; return render(); }
+    case 'rascunho-mais-item': V.rascunho.items.push(''); return render();
+    case 'trocar-imagem': { const inp = document.getElementById('f-img'); if (inp) inp.click(); return; }
+    case 'remover-imagem': V.rascunho.imagem_url = null; return render();
+    case 'salvar-q': {
+      const d = V.rascunho; if (x === 'publicada' && validar(d).length) return;
+      if (!d.unidade_id) return toast('Escolha uma unidade (a matéria precisa ter unidades).');
+      const linha = rascunhoParaLinha(d, x);
+      if (d.id) {
+        const row = await db(sb.from('questoes').update(linha).eq('id', d.id).select().single());
+        const i = D.questoes.findIndex(q => q.id === d.id); if (i >= 0) D.questoes[i] = row;
+      } else {
+        const row = await db(sb.from('questoes').insert(linha).select().single());
+        D.questoes.unshift(row);
+        if (row.status === 'publicada') {
+          const l = licoesDe(row.unidade_id).find(l => questoesDaLicao(l.id).length < tamLicao());
+          if (l) { const lq = {licao_id: l.id, questao_id: row.id, ordem: questoesDaLicao(l.id).length}; await db(sb.from('licao_questoes').insert(lq)); D.licaoQuestoes.push(lq); }
+        }
+      }
+      V.rascunho = null; toast(x === 'publicada' ? 'Questão salva. Lembre de Publicar para chegar ao app.' : 'Rascunho salvo.'); return render();
+    }
+    case 'excluir-q': return confirmar('Excluir questão?', 'Ela sai de todas as lições em que está e dos erros dos alunos. Não dá para desfazer.', async () => {
+      const id = V.rascunho.id; await db(sb.from('questoes').delete().eq('id', id));
+      D.questoes = D.questoes.filter(q => q.id !== id); D.licaoQuestoes = D.licaoQuestoes.filter(q => q.questao_id !== id); V.rascunho = null; toast('Questão excluída.');
+    });
+    case 'fechar': V.rascunho = null; V.licaoAtribuir = null; return render();
+    case 'atribuir': V.licaoAtribuir = x; V.rascunho = null; return render();
+    case 'atribuir-toggle': {
+      const lid = V.licaoAtribuir;
+      if (el.checked) { const lq = {licao_id: lid, questao_id: x, ordem: questoesDaLicao(lid).length}; D.licaoQuestoes.push(lq); render(); await db(sb.from('licao_questoes').insert(lq)); }
+      else { D.licaoQuestoes = D.licaoQuestoes.filter(q => !(q.licao_id === lid && q.questao_id === x)); render(); await db(sb.from('licao_questoes').delete().eq('licao_id', lid).eq('questao_id', x)); }
+      return;
+    }
+
+    /* trilhas */
+    case 'trilha': V.materia = x; return render();
+    case 'toggle-materia': if (!M) return; M.ativa = !M.ativa; render(); return db(sb.from('materias').update({ativa: M.ativa}).eq('id', M.id));
+    case 'nova-materia': V.modal = {titulo: 'Nova matéria', campos: [{k: 'nome', label: 'Nome', placeholder: 'Ex.: História', obrigatorio: true}, {k: 'sigla', label: 'Sigla (2 letras)', placeholder: 'HI', maxlength: 2, obrigatorio: true}, {k: 'cor', label: 'Cor', tipo: 'color', valor: '#503C9D'}], ok: 'Criar', fn: async v => {
+      let id = slug(v.nome).slice(0, 3) || 'mat'; let n = 1; const base = id; while (materiaPorId(id)) id = base + (++n);
+      const row = await db(sb.from('materias').insert({id, nome: v.nome.trim(), sigla: v.sigla.trim().toUpperCase(), cor: v.cor, ativa: false, ordem: proximaOrdem(D.materias)}).select().single());
+      D.materias.push(row); V.materia = row.id; V.view = 'trilhas';
+      const sec = await db(sb.from('secoes').insert({materia_id: row.id, titulo: 'Seção 1', ordem: 0}).select().single()); D.secoes.push(sec);
+      toast('Matéria criada (invisível no app até você ativar).');
+    }}; return render();
+    case 'excluir-materia': if (!M) return; return confirmar(`Excluir ${M.nome}?`, 'As seções, unidades, lições e questões desta matéria também serão excluídas.', async () => {
+      await db(sb.from('materias').delete().eq('id', M.id)); await carregar(); toast('Matéria excluída.');
+    });
+    case 'nova-secao': { if (!M) return; const row = await db(sb.from('secoes').insert({materia_id: M.id, titulo: 'Nova seção', ordem: proximaOrdem(secoesDe(M.id))}).select().single()); D.secoes.push(row); return render(); }
+    case 'excluir-secao': return confirmar('Excluir seção?', 'As unidades e lições dentro dela também somem. As questões ficam no banco sem unidade.', async () => { await db(sb.from('secoes').delete().eq('id', x)); await carregar(); });
+    case 'nova-unidade': { const row = await db(sb.from('unidades').insert({secao_id: x, titulo: 'Nova unidade', ordem: proximaOrdem(unidadesDe(x))}).select().single()); D.unidades.push(row); const l = await db(sb.from('licoes').insert({unidade_id: row.id, titulo: 'Lição 1', ordem: 0}).select().single()); D.licoes.push(l); return render(); }
+    case 'excluir-unidade': return confirmar('Excluir unidade?', 'As lições somem; as questões ficam no banco sem unidade.', async () => { await db(sb.from('unidades').delete().eq('id', x)); await carregar(); });
+    case 'nova-licao': { const row = await db(sb.from('licoes').insert({unidade_id: x, titulo: 'Lição ' + (licoesDe(x).length + 1), ordem: proximaOrdem(licoesDe(x))}).select().single()); D.licoes.push(row); return render(); }
+    case 'excluir-licao': return confirmar('Excluir lição?', 'O progresso dos alunos nesta lição também é apagado.', async () => { await db(sb.from('licoes').delete().eq('id', x)); D.licoes = D.licoes.filter(l => l.id !== x); D.licaoQuestoes = D.licaoQuestoes.filter(q => q.licao_id !== x); });
+    case 'mover': return moverItem(x, y, +z);
+
+    /* missões */
+    case 'nova-missao': { const row = await db(sb.from('missoes').insert({texto: 'Nova missão', tipo: 'xp', meta: 20, ativa: false, ordem: proximaOrdem(D.missoes)}).select().single()); D.missoes.push(row); return render(); }
+    case 'toggle-missao': { const m = D.missoes.find(m => m.id === x); m.ativa = !m.ativa; render(); return db(sb.from('missoes').update({ativa: m.ativa}).eq('id', m.id)); }
+    case 'excluir-missao': return confirmar('Excluir missão?', 'Ela deixa de ser sorteada a partir de amanhã.', async () => { await db(sb.from('missoes').delete().eq('id', x)); D.missoes = D.missoes.filter(m => m.id !== x); });
+    case 'toggle-param': { const p = y.split('.'); let o = D.param[x]; for (let i = 0; i < p.length - 1; i++) o = o[p[i]]; o[p[p.length - 1]] = !o[p[p.length - 1]]; render(); return salvarParam(x); }
+
+    /* loja */
+    case 'novo-item': V.modal = {titulo: 'Novo item da loja', texto: 'O código identifica o item no app. Só <code>congelador</code>, <code>recarga</code> e <code>plus</code> têm efeito hoje; outros códigos precisam de programação.', campos: [{k: 'codigo', label: 'Código (sem espaços)', placeholder: 'ex.: relampago_extra', obrigatorio: true}, {k: 'nome', label: 'Nome que o aluno vê', obrigatorio: true}], ok: 'Criar', fn: async v => {
+      const codigo = v.codigo.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'item';
+      if (D.loja.some(i => i.codigo === codigo)) return toast('Já existe um item com esse código.');
+      const row = await db(sb.from('itens_loja').insert({codigo, nome: v.nome.trim(), tipo: 'moedas', preco: 100, ativo: false, ordem: proximaOrdem(D.loja)}).select().single());
+      D.loja.push(row); toast('Item criado (fora da loja até você ativar).');
+    }}; return render();
+    case 'toggle-item': { const it = D.loja.find(i => i.id === x); it.ativo = !it.ativo; render(); return db(sb.from('itens_loja').update({ativo: it.ativo}).eq('id', it.id)); }
+    case 'excluir-item': return confirmar('Excluir item da loja?', 'Se o app usa esse código, a compra deixa de funcionar.', async () => { await db(sb.from('itens_loja').delete().eq('id', x)); D.loja = D.loja.filter(i => i.id !== x); });
+
+    /* alunos */
+    case 'buscar-alunos': return buscarAlunos();
+    case 'plus': { await db(sb.rpc('ativar_plus', {p_user: x, p_dias: +y})); toast(+y > 0 ? `Findout+ ativado por ${y} dias.` : 'Findout+ removido.'); return buscarAlunos(); }
+
+    /* publicar */
+    case 'publicar': {
+      if (!alteracoesPendentes()) return;
+      const pacote = {...montarPacote(), geradoEm: agora()};
+      const row = await db(sb.from('publicacoes').insert({pacote, nota: V.notaPub.trim() || 'Publicado pelo painel', criada_por: sessao.user.id}).select('versao, nota, criada_em').single());
+      D.publicacoes.unshift(row); D.ultimoPacote = pacote; V.notaPub = ''; V.jsonVersao = null;
+      toast(`Versão ${row.versao} publicada. O app passa a ler este conteúdo.`); return render();
+    }
+    case 'ver-json': {
+      if (x === 'atual') { V.jsonVersao = null; V.jsonTexto = ''; return render(); }
+      const row = await db(sb.from('publicacoes').select('pacote').eq('versao', +x).single());
+      V.jsonVersao = +x; V.jsonTexto = JSON.stringify(row.pacote, null, 2); return render();
+    }
+    case 'restaurar': return confirmar(`Voltar à versão ${x}?`, `Uma nova versão igual à v${x} será publicada e o app passa a ler esse conteúdo.`, async () => {
+      const row = await db(sb.from('publicacoes').select('pacote').eq('versao', +x).single());
+      const pacote = {...row.pacote, geradoEm: agora()};
+      const nova = await db(sb.from('publicacoes').insert({pacote, nota: `Restaurada da v${x}`, criada_por: sessao.user.id}).select('versao, nota, criada_em').single());
+      D.publicacoes.unshift(nova); D.ultimoPacote = pacote; V.jsonVersao = null; toast(`Versão ${nova.versao} publicada (igual à v${x}).`);
+    }, 'Voltar');
+    case 'copiar-json': { const t = document.getElementById('jsonout').textContent; (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('JSON copiado.')).catch(() => { const r = document.createRange(); r.selectNodeContents(document.getElementById('jsonout')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast('Selecionado: use Ctrl+C para copiar.'); }); return; }
+
+    /* modais */
+    case 'modal-cancelar': V.modal = null; return render();
+    case 'modal-ok': { const Mo = V.modal; if (!Mo) return; const v = {}; Mo.campos.forEach(c => { v[c.k] = document.getElementById('md-' + c.k).value; }); if (Mo.campos.some(c => c.obrigatorio && !String(v[c.k]).trim())) return toast('Preencha todos os campos.'); V.modal = null; await Mo.fn(v); return render(); }
+    case 'confirmar-nao': V.confirmar = null; return render();
+    case 'confirmar-sim': { const C = V.confirmar; V.confirmar = null; render(); await C.fn(); return render(); }
+  }
+}
+shell.addEventListener('click', ev => {
+  const el = ev.target.closest('[data-a]'); if (!el || el.disabled || !D) return;
+  if (el.tagName === 'INPUT' && el.type === 'checkbox') { act(el.dataset.a, el).catch(e => console.error(e)); return; }
+  if (el.tagName === 'TR' && ev.target.closest('button, input, select, a')) return;
+  if (el.tagName === 'FORM' || el.tagName === 'LABEL') return;
+  if (el.type === 'submit' && el.dataset.a === 'modal-ok') return;
+  act(el.dataset.a, el).catch(e => console.error(e));
+});
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && D && (V.rascunho || V.licaoAtribuir || V.modal || V.confirmar)) { V.rascunho = null; V.licaoAtribuir = null; V.modal = null; V.confirmar = null; render(); } });
+
+/* =====================================================================
+   Início
+   ===================================================================== */
+telaAuth('<div class="msg">Carregando…</div>');
+sb.auth.onAuthStateChange((ev, s) => {
+  if (ev === 'PASSWORD_RECOVERY') { mostrando = 'recuperar'; telaNovaSenha(); return; }
+  if (ev === 'SIGNED_IN' || ev === 'SIGNED_OUT' || ev === 'INITIAL_SESSION') rota(s);
+});
+sb.auth.getSession().then(({data}) => rota(data.session)).catch(() => rota(null));
 })();
 </script>
 </body>
