@@ -31,8 +31,9 @@ Regras: uma entrega testável por semana (sexta); fora do escopo vai para `DEPOI
 - [x] Importar conteúdo dos protótipos (botão na Visão geral quando o banco está vazio)
 - [x] Publicar: pacote JSON versionado + histórico + voltar versão
 - [x] Tela Alunos (buscar, ativar Findout+, ver progresso) e métricas na Visão geral
-- [ ] Rodar `0003_admin.sql` no SQL Editor (Artur)
-- [ ] Testar o painel no ar e corrigir o que aparecer
+- [x] Rodar `0003_admin.sql` no SQL Editor (10 out)
+- [x] Painel no ar e funcionando (10 out); migration `0004_admins.sql` + botão "Tornar admin" na aba Alunos
+- [ ] Testar "Tornar admin" com uma segunda conta
 - [x] Deploy do painel na Vercel: https://findout-jornada-painel.vercel.app (10 out)
 - [x] Deploy do app na Vercel: https://findout-jornada-app.vercel.app (10 out)
 - [x] Supabase → Authentication → URL Configuration (Site URL = app; redirect = app e painel) (10 out)
@@ -40,11 +41,12 @@ Regras: uma entrega testável por semana (sexta); fora do escopo vai para `DEPOI
 - **Pronto quando:** questão cadastrada no painel aparece na versão publicada
 
 ## Semanas 4–6 · App ligado ao banco (até 21 nov)
-- [ ] Sem 4: app baixa pacote publicado (cache por versão); trilhas e progresso do servidor
-- [ ] Sem 5: lição grava via `concluir_licao`; corações, XP, moedas, coroas, baú, lendária reais; erros gravados
-- [ ] Sem 6: ofensiva, congelador, missões diárias, revisão diária, teste de pular, loja
-- [ ] PWA: manifest, ícone, service worker, fila offline
-- [ ] Deploy do app na Vercel
+- [x] App baixa pacote publicado (cache por versão); trilhas e progresso do servidor (código em 10 out)
+- [x] Lição grava via `concluir_licao`; corações, XP, moedas, coroas, baú, lendária reais; erros gravados
+- [x] Ofensiva, congelador, missões diárias, revisão diária, teste de pular, loja, relâmpago, perfil
+- [x] PWA: manifest, ícones, service worker (casca offline). Fila offline de lições fica para depois
+- [x] Deploy do app na Vercel (publicar pelo GitHub Desktop)
+- [ ] Testar no celular com conteúdo publicado e corrigir o que aparecer
 - **Pronto quando:** lição no celular, progresso aparece no computador
 
 ## Semanas 7–8 · Liga, loja, acabamento (até 5 dez)

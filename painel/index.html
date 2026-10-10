@@ -397,7 +397,7 @@ function telaNovaSenha(msg = '') {
 async function rota(s) {
   const alvo = s ? 'in:' + s.user.id : 'out';
   if (alvo === mostrando) return; mostrando = alvo;
-  if (!s) { sessao = null; D = null; admin = false; return telaLogin(); }
+  if (!s) { sessao = null; D = null; admin = false; const h = new URLSearchParams((location.hash || '').replace(/^#/, '')), q = new URLSearchParams(location.search); const e = h.get('error_description') || q.get('error_description') || h.get('error') || q.get('error'); if (e) { try { history.replaceState(null, '', location.pathname); } catch (x) {} } return telaLogin(e ? `<div class="msg err">Não foi possível entrar: ${esc(e.replace(/\+/g, ' '))}</div>` : ''); }
   sessao = s;
   telaAuth('<div class="msg">Verificando permissões…</div>');
   const {data: a, error} = await sb.from('admins').select('user_id').eq('user_id', s.user.id).maybeSingle();
@@ -632,16 +632,23 @@ function drawerQuestao() {
 function drawerAtribuir() {
   const x = licaoInfo(V.licaoAtribuir); if (!x) return '';
   const atuais = questoesDaLicao(x.l.id);
-  const pool = D.questoes.filter(q => q.unidade_id === x.u.id);
-  const outras = D.questoes.filter(q => q.materia_id === x.m.id && q.unidade_id !== x.u.id);
-  const linha = q => `<label><input type="checkbox" ${atuais.includes(q.id) ? 'checked' : ''} data-a="atribuir-toggle:${q.id}"><span class="pill type" style="font-size:10px">${TIPOS[q.tipo] || q.tipo}</span><span style="flex:1">${esc(q.enunciado)}${q.tipo === 'tf' ? ' · ' + esc((q.dados || {}).stmt) : ''}</span>${q.status === 'rascunho' ? '<span class="pill draft">rascunho</span>' : ''}</label>`;
+  const busca = (V.atribuirBusca || '').trim().toLowerCase();
+  const bate = q => !busca || (q.enunciado + ' ' + JSON.stringify(q.dados || {}) + ' ' + (q.explicacao || '')).toLowerCase().includes(busca);
+  const pool = D.questoes.filter(q => q.unidade_id === x.u.id && bate(q));
+  const outras = D.questoes.filter(q => q.materia_id === x.m.id && q.unidade_id !== x.u.id && bate(q));
+  const demais = D.questoes.filter(q => q.materia_id !== x.m.id && bate(q));
+  const ondeQ = q => { const u = unidadeInfo(q.unidade_id); const m = materiaPorId(q.materia_id); return `<span style="font-size:11px;color:var(--muted);white-space:nowrap">${m ? esc(m.sigla) : ''}${u ? ' · ' + esc(u.u.titulo) : ''}</span>`; };
+  const linha = q => `<label><input type="checkbox" ${atuais.includes(q.id) ? 'checked' : ''} data-a="atribuir-toggle:${q.id}"><span class="pill type" style="font-size:10px">${TIPOS[q.tipo] || q.tipo}</span><span style="flex:1">${esc(q.enunciado)}${q.tipo === 'tf' ? ' · ' + esc((q.dados || {}).stmt) : ''}</span>${q.materia_id !== x.m.id || q.unidade_id !== x.u.id ? ondeQ(q) : ''}${q.status === 'rascunho' ? '<span class="pill draft">rascunho</span>' : ''}</label>`;
   return `<div class="drawer-bg" data-a="fechar"></div><div class="drawer" role="dialog" aria-modal="true" style="grid-template-columns:1fr;width:min(640px,100%)"><div class="formcol">
     <div class="drawer-h"><div><h2>Questões da lição</h2><div style="font-size:13px;color:var(--muted)">${esc(x.m.nome)} · ${esc(x.u.titulo)} · <b>${esc(x.l.titulo)}</b></div></div><span class="right"><button class="btn btn-ghost" data-a="fechar" aria-label="Fechar">${I.close}</button></span></div>
     <div class="field"><label for="f-ldesc">Descrição curta da lição (aparece no app)</label><input id="f-ldesc" class="inp sm" value="${esc(x.l.descricao || '')}" data-f="licao.${x.l.id}.descricao" placeholder="Ex.: Aprenda a somar frações com denominadores diferentes"></div>
     <div class="kv" style="background:var(--surface2);padding:10px 14px;border-radius:10px"><span>Selecionadas</span><b class="num">${atuais.length}</b><span>Tamanho da lição no app</span><b class="num">${tamLicao()}</b></div>
     ${atuais.length < tamLicao() ? `<div class="warnbox">${I.warn}<span>Com menos de ${tamLicao()} questões, o app completa a lição com outras questões publicadas da mesma unidade.</span></div>` : ''}
+    <div class="field"><label for="f-abusca">Buscar no banco de questões</label><input id="f-abusca" class="inp sm" value="${esc(V.atribuirBusca || '')}" data-f="atribuirBusca" placeholder="Digite parte do enunciado, de uma alternativa ou da explicação"></div>
     <div class="field"><span class="lab">Desta unidade (${pool.length})</span><div class="checklist">${pool.map(linha).join('') || '<div class="empty">Nenhuma questão nesta unidade ainda.</div>'}</div></div>
     <div class="field"><span class="lab">Outras unidades de ${esc(x.m.nome)} (${outras.length})</span><div class="checklist">${outras.map(linha).join('') || '<div class="empty">Nenhuma.</div>'}</div></div>
+    <div class="field"><span class="lab">Outras matérias (${demais.length})</span><div class="checklist">${demais.slice(0, 80).map(linha).join('') || '<div class="empty">Nenhuma.</div>'}${demais.length > 80 ? '<div class="empty">Mostrando 80. Use a busca para achar as outras.</div>' : ''}</div></div>
+    <p style="margin:0;font-size:12px;color:var(--muted)">Uma questão pode estar em várias lições. Marque e desmarque à vontade; salva na hora.</p>
     <div style="display:flex;gap:8px"><button class="btn btn-primary" data-a="fechar">${I.check}Concluir</button><button class="btn btn-outline" data-a="nova-q-unidade:${x.u.id}">${I.plus}Nova questão nesta unidade</button></div>
   </div></div>`;
 }
@@ -804,6 +811,7 @@ function setCampo(path, value) {
   const p = path.split('.');
   switch (p[0]) {
     case 'qf': V.qf[p[1]] = value; if (p[1] === 'materia') V.qf.unidade = ''; return 'ui';
+    case 'atribuirBusca': V.atribuirBusca = value; return 'ui';
     case 'alunos': V.alunos.busca = value; return 'nada';
     case 'notaPub': V.notaPub = value; return 'nada';
     case 'rascunho': setIn(V.rascunho, p.slice(1), value); return 'rascunho';
@@ -963,7 +971,7 @@ async function act(a, el) {
       D.questoes = D.questoes.filter(q => q.id !== id); D.licaoQuestoes = D.licaoQuestoes.filter(q => q.questao_id !== id); V.rascunho = null; toast('Questão excluída.');
     });
     case 'fechar': V.rascunho = null; V.licaoAtribuir = null; return render();
-    case 'atribuir': V.licaoAtribuir = x; V.rascunho = null; return render();
+    case 'atribuir': V.licaoAtribuir = x; V.rascunho = null; V.atribuirBusca = ''; return render();
     case 'atribuir-toggle': {
       const lid = V.licaoAtribuir;
       if (el.checked) { const lq = {licao_id: lid, questao_id: x, ordem: questoesDaLicao(lid).length}; D.licaoQuestoes.push(lq); render(); await db(sb.from('licao_questoes').insert(lq)); }
