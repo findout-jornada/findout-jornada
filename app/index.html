@@ -1093,7 +1093,9 @@ setInterval(() => {
   const mt = document.getElementById('mid-t'); if (mt) { const m = new Date(); m.setHours(24, 0, 0, 0); mt.textContent = 'renovam em ' + hms(m - Date.now()); }
   if (!plus() && S.economia.proximoCoracaoEm && nextHeartMs() <= 0 && !V.salvando) { S.economia.proximoCoracaoEm = null; recarregarEstado(); }
   if (dkey() !== ultimoDia) { ultimoDia = dkey(); if (!L) recarregarEstado(); }
+  if (!L && !document.hidden && ++tiques % 90 === 0) recarregarEstado();
 }, 1000);
+let tiques = 0;
 document.addEventListener('visibilitychange', () => { if (!document.hidden && S && !L) recarregarEstado(); });
 
 /* ---------- início ---------- */

@@ -269,7 +269,9 @@ function traduzErro(m) {
 }
 function statusHtml() {
   if (V.salvando > 0) return '<span style="color:var(--gold)">● Salvando…</span>';
-  return alteracoesPendentes() ? '<span style="color:var(--gold)">● Alterações não publicadas</span>' : '<span style="color:var(--teal)">● Tudo publicado</span>';
+  if (V.publicando) return '<span style="color:var(--gold)">● Publicando…</span>';
+  if (alteracoesPendentes()) return autoPub ? '<span style="color:var(--gold)">● Publicando em instantes…</span>' : '<span style="color:var(--gold)">● Alterações não publicadas</span>';
+  return '<span style="color:var(--teal)">● Tudo publicado</span>';
 }
 function renderStatus() { const el = document.getElementById('status'); if (el) el.innerHTML = statusHtml(); }
 async function db(consulta) {
@@ -277,7 +279,29 @@ async function db(consulta) {
   const {data, error} = await consulta;
   V.salvando--; renderStatus();
   if (error) { console.error(error); toast('Erro: ' + traduzErro(error.message)); throw error; }
+  agendarPublicacao();
   return data;
+}
+/* Publicação automática: qualquer alteração vira uma nova versão alguns segundos depois */
+let autoPub = true; try { autoPub = localStorage.getItem('fj-autopub') !== '0'; } catch (e) {}
+let pubTimer;
+function agendarPublicacao() {
+  if (!autoPub || !D) return;
+  clearTimeout(pubTimer);
+  pubTimer = setTimeout(() => { if (D && !V.publicando && V.salvando === 0 && pendentes.size === 0 && alteracoesPendentes()) publicar('Publicação automática').catch(() => {}); else if (pendentes.size > 0 || V.salvando > 0) agendarPublicacao(); }, 2500);
+}
+async function publicar(nota) {
+  if (V.publicando || !alteracoesPendentes()) return;
+  V.publicando = true; renderStatus();
+  try {
+    const pacote = {...montarPacote(), geradoEm: agora()};
+    const {data: row, error} = await sb.from('publicacoes').insert({pacote, nota: nota || 'Publicado pelo painel', criada_por: sessao.user.id}).select('versao, nota, criada_em').single();
+    if (error) throw error;
+    D.publicacoes.unshift(row); D.ultimoPacote = pacote; V.notaPub = ''; V.jsonVersao = null;
+    toast(`Versão ${row.versao} publicada. O app passa a ler este conteúdo.`);
+  } catch (e) { console.error(e); toast('Erro ao publicar: ' + traduzErro(e.message)); }
+  V.publicando = false;
+  if (V.view === 'publicar' || V.view === 'inicio') render(); else renderStatus();
 }
 const pendentes = new Map();
 function agendar(chave, fn) { clearTimeout(pendentes.get(chave)); pendentes.set(chave, setTimeout(() => { pendentes.delete(chave); fn().catch(() => {}); }, 600)); }
@@ -761,6 +785,7 @@ function viewPublicar() {
   const nLicoes = pkg.materias.reduce((n, m) => n + m.secoes.reduce((k, s) => k + s.unidades.reduce((j, u) => j + u.licoes.length, 0), 0), 0);
   const prox = D.publicacoes[0] ? D.publicacoes[0].versao + 1 : 1;
   return topbar('Publicar', 'Gera o pacote de conteúdo que o app lê. Só o que está publicado aqui chega ao aluno.', `<button class="btn btn-primary" data-a="publicar" ${sujo ? '' : 'disabled'}>${I.up}Publicar versão ${prox}</button>`) + `<div class="content">
+    <div class="card"><div class="card-b" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:240px"><h2>Publicação automática</h2><p style="margin:6px 0 0;color:var(--fg2);font-size:13px">${autoPub ? 'Ligada: cada alteração no painel vira uma nova versão alguns segundos depois, e o app passa a ler sozinho.' : 'Desligada: o app só recebe o que você publicar clicando no botão.'}</p></div>${toggle(autoPub, 'toggle-autopub', 'Publicação automática')}</div></div>
     ${sujo ? '' : `<div class="warnbox okbox">${I.check}<span>Não há alterações desde a última publicação.</span></div>`}
     ${problemas.map(p => `<div class="warnbox">${I.warn}<span>${esc(p)} Você ainda pode publicar.</span></div>`).join('')}
     <div class="tiles">
@@ -771,8 +796,8 @@ function viewPublicar() {
     </div>
     <div class="card"><div class="card-b" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap"><div class="field" style="flex:1;min-width:240px"><label for="nota">Nota desta versão (o que mudou)</label><input id="nota" class="inp" value="${esc(V.notaPub)}" data-f="notaPub" placeholder="Ex.: 20 questões novas de porcentagem"></div><button class="btn btn-primary" data-a="publicar" ${sujo ? '' : 'disabled'}>${I.up}Publicar versão ${prox}</button></div></div>
     <div class="grid2">
-      <div class="card"><div class="card-h"><h2>Histórico</h2></div><div class="list">${D.publicacoes.map((p, i) => `<div class="item"><span class="pill ${i === 0 ? 'pub' : 'off'}">v${p.versao}</span><span style="flex:1"><b>${esc(p.nota || 'Sem nota')}</b><br><span style="font-size:12px;color:var(--muted)">${fmtData(p.criada_em)}</span></span><button class="btn btn-ghost btn-sm" data-a="ver-json:${p.versao}">Ver</button>${i === 0 ? '' : `<button class="btn btn-outline btn-sm" data-a="restaurar:${p.versao}">Voltar a esta</button>`}</div>`).join('') || '<div class="empty">Nada publicado ainda.</div>'}</div>
-        <div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">"Voltar a esta" cria uma nova versão igual à escolhida. O app passa a ler esse conteúdo; o que você edita no painel continua como está.</div></div>
+      <div class="card"><div class="card-h"><h2>Histórico</h2></div><div class="list">${D.publicacoes.map((p, i) => `<div class="item"><span class="pill ${i === 0 ? 'pub' : 'off'}">v${p.versao}</span><span style="flex:1"><b>${esc(p.nota || 'Sem nota')}</b><br><span style="font-size:12px;color:var(--muted)">${fmtData(p.criada_em)}</span></span><button class="btn btn-ghost btn-sm" data-a="ver-json:${p.versao}">Ver</button>${i === 0 || autoPub ? '' : `<button class="btn btn-outline btn-sm" data-a="restaurar:${p.versao}">Voltar a esta</button>`}</div>`).join('') || '<div class="empty">Nada publicado ainda.</div>'}</div>
+        <div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">${autoPub ? 'Com a publicação automática ligada, o app sempre lê a versão mais nova. Para voltar a uma versão antiga, desligue o automático.' : '"Voltar a esta" cria uma nova versão igual à escolhida. O app passa a ler esse conteúdo; o que você edita no painel continua como está.'}</div></div>
       <div class="card"><div class="card-h"><h2>${V.jsonVersao ? 'Pacote da v' + V.jsonVersao : 'Pacote que será publicado'}</h2><span class="right">${V.jsonVersao ? `<button class="btn btn-ghost btn-sm" data-a="ver-json:atual">Ver o atual</button>` : ''}<button class="btn btn-outline btn-sm" data-a="copiar-json">${I.copy}Copiar</button></span></div><div class="card-b"><pre class="json" id="jsonout">${esc(V.jsonVersao ? V.jsonTexto : json)}</pre></div></div>
     </div></div>`;
 }
@@ -1028,13 +1053,8 @@ async function act(a, el) {
     }
 
     /* publicar */
-    case 'publicar': {
-      if (!alteracoesPendentes()) return;
-      const pacote = {...montarPacote(), geradoEm: agora()};
-      const row = await db(sb.from('publicacoes').insert({pacote, nota: V.notaPub.trim() || 'Publicado pelo painel', criada_por: sessao.user.id}).select('versao, nota, criada_em').single());
-      D.publicacoes.unshift(row); D.ultimoPacote = pacote; V.notaPub = ''; V.jsonVersao = null;
-      toast(`Versão ${row.versao} publicada. O app passa a ler este conteúdo.`); return render();
-    }
+    case 'publicar': return publicar(V.notaPub.trim());
+    case 'toggle-autopub': autoPub = !autoPub; try { localStorage.setItem('fj-autopub', autoPub ? '1' : '0'); } catch (e) {} if (autoPub) agendarPublicacao(); return render();
     case 'ver-json': {
       if (x === 'atual') { V.jsonVersao = null; V.jsonTexto = ''; return render(); }
       const row = await db(sb.from('publicacoes').select('pacote').eq('versao', +x).single());
