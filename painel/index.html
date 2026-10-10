@@ -273,7 +273,7 @@ function statusHtml() {
   if (alteracoesPendentes()) return autoPub ? '<span style="color:var(--gold)">● Publicando em instantes…</span>' : '<span style="color:var(--gold)">● Alterações não publicadas</span>';
   return '<span style="color:var(--teal)">● Tudo publicado</span>';
 }
-function renderStatus() { const el = document.getElementById('status'); if (el) el.innerHTML = statusHtml(); }
+function renderStatus() { const el = document.getElementById('status'); if (el) el.innerHTML = statusHtml(); const v = document.getElementById('versao-pub'); if (v && D) v.textContent = D.publicacoes[0] ? 'v' + D.publicacoes[0].versao : 'nenhuma'; }
 async function db(consulta) {
   V.salvando++; renderStatus();
   const {data, error} = await consulta;
@@ -453,7 +453,7 @@ function sidebar() {
   const ult = D.publicacoes[0];
   return `<aside><div class="brand"><span class="abbr" style="background:var(--primary);width:36px;height:36px;font-size:9px">FJ</span><div><b>Findout</b><small>Painel · Jornada</small></div></div>
     ${NAV.map(([id, l, ic]) => `<button class="navbtn" data-a="view:${id}" ${V.view === id ? 'aria-current="page"' : ''}>${ic}${l}${counts[id] != null ? `<span class="cnt num">${counts[id]}</span>` : ''}</button>`).join('')}
-    <div class="sidefoot"><span>Versão publicada: <b class="num">${ult ? 'v' + ult.versao : 'nenhuma'}</b></span><span id="status">${statusHtml()}</span><span style="overflow:hidden;text-overflow:ellipsis">${esc(sessao.user.email)}</span><button data-a="sair">Sair</button></div></aside>`;
+    <div class="sidefoot"><span>Versão publicada: <b class="num" id="versao-pub">${ult ? 'v' + ult.versao : 'nenhuma'}</b></span><span id="status">${statusHtml()}</span><span style="overflow:hidden;text-overflow:ellipsis">${esc(sessao.user.email)}</span><button data-a="sair">Sair</button></div></aside>`;
 }
 function topbar(titulo, sub, acoes = '') { return `<div class="topbar"><div><h1>${titulo}</h1>${sub ? `<div class="sub">${sub}</div>` : ''}</div><div class="actions">${acoes}</div></div>`; }
 const toggle = (on, a, label) => `<button class="toggle" role="switch" aria-checked="${!!on}" aria-label="${esc(label || 'Ativar')}" data-a="${a}"></button>`;
