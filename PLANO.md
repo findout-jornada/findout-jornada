@@ -71,7 +71,7 @@ Regras: uma entrega testável por semana (sexta); fora do escopo vai para `DEPOI
 
 ## Trilha de conteúdo (semanas 2–8, em paralelo)
 Meta: 3 matérias × 3 unidades × ~5 lições × 8 questões ≈ 360 questões.
-- [ ] Sem 2: árvore das 3 matérias (Claude propõe, Artur aprova)
+- [x] Sem 2: árvore inicial das matérias + 112 questões de partida (`0005_conteudo.sql`, 10 out): Matemática 44, Português 28, Biologia 24, História 16 (História foi criada pelo Artur no painel)
 - [ ] Sem 3–4: Matemática, 120 questões (rascunhos → revisão → publicar)
 - [ ] Sem 5–6: Português, 120 questões
 - [ ] Sem 7–8: terceira matéria, 120 questões
