@@ -131,7 +131,7 @@ button.card:active{transform:scale(.985)}
 .node:hover{transform:translateY(-2px)}
 .crown{position:absolute;right:-8px;bottom:-6px;min-width:26px;height:26px;padding:0 5px;border-radius:13px;background:var(--gold);border:2px solid var(--gold-d);color:var(--gold-dd);font-size:8px;display:flex;align-items:center;justify-content:center;gap:2px}
 .startlbl{background:var(--white);border:2px solid var(--primary);border-radius:8px;padding:7px 9px;font-size:8px;color:var(--primary)}
-.mascot-side{position:absolute;left:100%;top:50%;transform:translate(14px,-50%);width:92px;pointer-events:none}
+.mascot-side{position:absolute;left:100%;top:50%;transform:translate(14px,-50%);width:92px!important;pointer-events:none}
 .mascot-side.left{left:auto;right:100%;transform:translate(-14px,-50%)}
 .pop-card{margin:2px 20px 6px;position:relative}
 .pop-card .caret{position:absolute;top:-8px;width:14px;height:14px;border-left:2px solid;border-top:2px solid;transform:translateX(-7px) rotate(45deg)}
@@ -202,7 +202,9 @@ button.card:active{transform:scale(.985)}
 .auth{flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:calc(24px + env(safe-area-inset-top,0px)) 20px calc(24px + env(safe-area-inset-bottom,0px));overflow-y:auto;background-image:radial-gradient(420px 260px at 50% -40px,rgba(142,127,207,.35),transparent 70%)}
 .auth h1{font-family:var(--f-display);font-size:clamp(24px,6.5vw,28px);margin:0;line-height:1.2}
 .hero-mascot{width:132px;height:132px;border-radius:50%;background:linear-gradient(135deg,#6450B8,var(--primary));box-shadow:0 14px 34px rgba(80,60,157,.35),inset 0 0 0 4px rgba(255,255,255,.25);display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
-.hero-mascot img{width:112px;height:auto;display:block;transform:translateY(6px)}
+.hero-mascot .mascot{width:112px!important;transform:translateY(6px)}
+.mascot{display:block;flex-shrink:0}
+.mascot canvas,.mascot img{width:100%;height:auto;display:block}
 .stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .stats3 .stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;height:auto;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:22px}
 .stats3 .stat small{font-size:11px;color:var(--muted);font-family:var(--f-body);font-weight:500}
@@ -221,7 +223,57 @@ const app = document.getElementById('app');
 const MASCOT = 'rapozinha.png';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-const mascot = (w, cls = '', alt = '') => `<img src="${MASCOT}" alt="${esc(alt)}" class="${cls}" style="width:${w}px;height:auto;display:block">`;
+const VIDEO = {feliz: 'rapozinha-feliz.mp4', triste: 'rapozinha-triste.mp4'};
+// Mascote animada: o vídeo é desenhado num canvas com o fundo removido (a cor do canto vira transparente).
+// Enquanto o vídeo carrega, ou se ele falhar, aparece a imagem estática.
+const mascot = (w, cls = '', alt = '', humor = 'feliz') => `<span class="mascot ${cls}" data-humor="${VIDEO[humor] ? humor : 'feliz'}" style="width:${w}px"><canvas style="display:none" aria-hidden="true"></canvas><img src="${MASCOT}" alt="${esc(alt)}"></span>`;
+const MASC = (() => {
+  const videos = {}, telas = new Set(); let loop = false;
+  const reduz = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function video(h) {
+    if (videos[h]) return videos[h];
+    const v = document.createElement('video'); v.muted = true; v.loop = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('muted', ''); v.preload = 'auto'; v.src = VIDEO[h];
+    v.style.cssText = 'position:fixed;left:-20px;top:-20px;width:4px;height:4px;opacity:0.01;pointer-events:none';
+    v.onerror = () => { v._erro = true; };
+    document.body.appendChild(v); v.play().catch(() => {}); videos[h] = v; return v;
+  }
+  function ligar() {
+    if (reduz) return;
+    document.querySelectorAll('.mascot[data-humor]').forEach(el => {
+      if (el._ok) return; el._ok = true;
+      const cv = el.querySelector('canvas'), im = el.querySelector('img'); if (!cv || !im) return;
+      telas.add({el, v: video(el.dataset.humor), cv, im, g: cv.getContext('2d', {willReadFrequently: true}), bg: null, t0: Date.now()});
+    });
+    if (!loop && telas.size) { loop = true; requestAnimationFrame(quadro); }
+  }
+  function quadro() {
+    for (const t of telas) {
+      if (!t.el.isConnected) { telas.delete(t); continue; }
+      const v = t.v;
+      if (v._erro || (Date.now() - t.t0 > 5000 && v.readyState < 2)) { t.cv.style.display = 'none'; t.im.style.display = 'block'; telas.delete(t); continue; }
+      if (v.readyState < 2) continue;
+      if (v.paused) v.play().catch(() => {});
+      const w = Math.min(320, v.videoWidth || 320), h = Math.round((v.videoHeight || 320) * w / (v.videoWidth || 320));
+      if (t.cv.width !== w || t.cv.height !== h) { t.cv.width = w; t.cv.height = h; }
+      let d;
+      try { t.g.drawImage(v, 0, 0, w, h); d = t.g.getImageData(0, 0, w, h); }
+      catch (e) { v._erro = true; continue; }
+      const p = d.data;
+      if (!t.bg) t.bg = [p[0], p[1], p[2]];
+      const r0 = t.bg[0], g0 = t.bg[1], b0 = t.bg[2];
+      for (let i = 0; i < p.length; i += 4) {
+        const dist = Math.abs(p[i] - r0) + Math.abs(p[i + 1] - g0) + Math.abs(p[i + 2] - b0);
+        if (dist < 30) p[i + 3] = 0; else if (dist < 60) p[i + 3] = Math.round((dist - 30) / 30 * 255);
+      }
+      t.g.putImageData(d, 0, 0);
+      if (t.im.style.display !== 'none') { t.im.style.display = 'none'; t.cv.style.display = 'block'; }
+    }
+    if (telas.size) requestAnimationFrame(quadro); else loop = false;
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) Object.values(videos).forEach(v => v.play().catch(() => {})); });
+  ['touchend', 'click'].forEach(ev => document.addEventListener(ev, () => Object.values(videos).forEach(v => { if (v.paused) v.play().catch(() => {}); }), {passive: true}));
+  return {ligar};
+})();
 const HOUR = 3600e3;
 const dkey = (d = new Date()) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
@@ -386,7 +438,7 @@ async function recarregarEstado(silencioso = true) {
 /* =====================================================================
    Telas de entrada
    ===================================================================== */
-function telaAuth(html) { app.innerHTML = `<div class="auth">${html}</div>`; }
+function telaAuth(html) { app.innerHTML = `<div class="auth">${html}</div>`; MASC.ligar(); }
 function erroDaUrl() {
   const h = new URLSearchParams((location.hash || '').replace(/^#/, '')), q = new URLSearchParams(location.search);
   const d = h.get('error_description') || q.get('error_description') || h.get('error') || q.get('error');
@@ -397,7 +449,7 @@ function telaEntrar(modo = 'entrar', msg = '') {
   const cadastro = modo === 'cadastro';
   telaAuth(`
     <div style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
-      <span class="hero-mascot bounce"><img src="${MASCOT}" alt="Rapozinha"></span>
+      <span class="hero-mascot bounce">${mascot(112, '', 'Rapozinha')}</span>
       <span class="px" style="color:var(--primary);font-size:8px">★ FINDOUT JORNADA ★</span>
       <h1>${cadastro ? 'Criar sua conta' : 'Bem-vindo de volta'}</h1>
       <p style="margin:0;color:var(--muted);font-size:14px">${cadastro ? 'Leva 20 segundos. Depois é só começar a trilha.' : 'Entre para continuar sua ofensiva.'}</p>
@@ -760,6 +812,7 @@ function sheetNoHearts() {
   const custo = +E().custoRecarga || 350;
   return `<div class="sheet-bg"></div><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="nh-t"><span class="grab" aria-hidden="true"></span>
     <div style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
+      ${mascot(90, '', 'Rapozinha triste', 'triste')}
       <span style="display:flex;gap:6px">${Array.from({length: maxHearts()}, () => I.heart(30, '#FFFFFF', '#C5C9E3')).join('')}</span>
       <h1 id="nh-t" style="margin:0;font-family:var(--f-display);font-size:22px;font-weight:700">Você ficou sem corações</h1>
       <p style="margin:0;font-size:14px;color:var(--ink2);line-height:1.45">Cada erro custa um coração. Eles voltam sozinhos, um a cada ${E().horasCoracao} horas, ou você pode recarregar agora.</p>
@@ -772,7 +825,7 @@ function sheetNoHearts() {
 }
 function sheetQuit() {
   return `<div class="sheet-bg" data-a="stay"></div><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="q-t"><span class="grab" aria-hidden="true"></span>
-    <div style="display:flex;align-items:center;gap:12px">${mascot(64)}<div class="grow"><h1 id="q-t" style="margin:0;font-family:var(--f-display);font-size:20px;font-weight:700">Quer mesmo sair?</h1><span class="sub">Você perde o progresso desta lição.</span></div></div>
+    <div style="display:flex;align-items:center;gap:12px">${mascot(64, '', 'Rapozinha triste', 'triste')}<div class="grow"><h1 id="q-t" style="margin:0;font-family:var(--f-display);font-size:20px;font-weight:700">Quer mesmo sair?</h1><span class="sub">Você perde o progresso desta lição.</span></div></div>
     <button class="btn btn-primary pxbtn" data-a="stay">Continuar estudando</button><button class="btn-ghost" style="color:var(--red-d)" data-a="exit">Sair da lição</button></section>`;
 }
 function sheetPlus() {
@@ -852,7 +905,7 @@ function screenFim() {
   const r = lastResult; if (!r) return screenJornada();
   return `<div class="scroll fullpurple" style="display:flex;flex-direction:column">
   <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:calc(28px + env(safe-area-inset-top,0px)) 20px 8px">
-    ${r.passed ? mascot(160, 'bounce', 'Rapozinha comemorando') : mascot(130, '', 'Rapozinha')}
+    ${r.passed ? mascot(160, 'bounce', 'Rapozinha comemorando', 'feliz') : mascot(130, '', 'Rapozinha triste', 'triste')}
     <div style="display:flex;flex-direction:column;gap:8px;align-items:center">
       <span class="px ${r.passed ? 'blink' : ''}" style="font-size:9px;color:var(--gold)">★ ${r.headline} ★</span>
       <h1 style="margin:0;font-family:var(--f-display);font-size:28px;font-weight:700;line-height:1.2;text-wrap:balance">${esc(r.title)}</h1>
@@ -1026,6 +1079,7 @@ function render(reset) {
   if (V.screen === 'ligas' && reset) { const m = document.getElementById('me-row'), s = app.querySelector('.scroll'); if (m && s) s.scrollTop = Math.max(0, m.offsetTop - s.offsetTop - s.clientHeight / 2); }
   if (V.editNome) { const i = document.getElementById('nome-inp'); if (i) i.focus(); }
   lastScreen = V.screen;
+  MASC.ligar();
 }
 async function rpcEstado(fn, args, okMsg) {
   const {data, error} = await sb.rpc(fn, args);
