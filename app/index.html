@@ -237,6 +237,11 @@ button.card:active{transform:scale(.985)}
 .hero-mascot .mascot{width:112px!important;transform:translateY(6px)}
 .mascot{display:block;flex-shrink:0}
 .mascot canvas,.mascot img{width:100%;height:auto;display:block}
+/* Rapozinha em dúvida (escolha da primeira disciplina) */
+.duvida-wrap{position:relative;display:inline-flex}
+.duvida{position:absolute;top:-4px;right:-16px;width:36px;height:36px;border-radius:50% 50% 50% 6px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;border:3px solid #fff;box-shadow:0 3px 10px rgba(80,60,157,.35);animation:duvida-bob 1.6s ease-in-out infinite}
+@keyframes duvida-bob{0%,100%{transform:translateY(0) rotate(8deg)}50%{transform:translateY(-6px) rotate(8deg)}}
+@media (prefers-reduced-motion:reduce){.duvida{animation:none}}
 .stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .stats3 .stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;height:auto;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:22px}
 .stats3 .stat small{font-size:11px;color:var(--muted);font-family:var(--f-body);font-weight:500}
@@ -527,7 +532,8 @@ async function carregarEstado() {
   if (error) throw error;
   S = data;
   if (S.versaoConteudo) await carregarPacote(S.versaoConteudo); else { PK = null; QI = {}; }
-  if (PK && PK.materias.length && !PK.materias.some(m => m.id === S.perfil.materia)) { S.perfil.materia = PK.materias[0].id; sb.from('perfis').update({materia_atual: S.perfil.materia}).eq('user_id', sessao.user.id).then(() => {}); }
+  // Matéria salva que não existe mais no conteúdo: troca pela primeira. Aluno novo (sem matéria) escolhe na tela de boas-vindas.
+  if (PK && PK.materias.length && S.perfil.materia && !PK.materias.some(m => m.id === S.perfil.materia)) { S.perfil.materia = PK.materias[0].id; sb.from('perfis').update({materia_atual: S.perfil.materia}).eq('user_id', sessao.user.id).then(() => {}); }
 }
 async function recarregarEstado(silencioso = true) {
   try { const {data, error} = await sb.rpc('estado_aluno'); if (error) throw error; S = data; if (S.versaoConteudo && (!PK || !PK._versao || PK._versao !== S.versaoConteudo)) { await carregarPacote(S.versaoConteudo); PK._versao = S.versaoConteudo; } if (!L) render(); }
@@ -732,6 +738,7 @@ function headerJornada(m) {
     </div></header>`;
 }
 function screenJornada() {
+  if (!S.perfil.materia && materias().length) return screenMaterias();
   const m = materiaAtual();
   if (!m) return headerJornada(null) + `<div class="scroll"><div class="pad" style="align-items:center;text-align:center;padding-top:40px">${mascot(130)}<h2 class="h2" style="font-size:20px">Conteúdo chegando</h2><p class="sub" style="max-width:280px">As trilhas ainda não foram publicadas. Assim que a equipe publicar, elas aparecem aqui.</p><button class="chipbtn" data-a="recarregar">Atualizar</button></div></div>${nav('jornada')}`;
   const T = trilha(m);
@@ -771,13 +778,14 @@ function nav(cur) {
 /* ---------- matérias ---------- */
 function screenMaterias() {
   const rev = PM().revisao || {};
-  return `<header class="topbar"><button class="iconbtn" data-a="go:jornada" aria-label="Voltar à jornada">${I.back}</button><h1>Suas matérias</h1></header>
+  const escolhendo = !S.perfil.materia;
+  return `<header class="topbar">${escolhendo ? '' : `<button class="iconbtn" data-a="go:jornada" aria-label="Voltar à jornada">${I.back}</button>`}<h1>${escolhendo ? 'Boas-vindas!' : 'Suas matérias'}</h1></header>
   <div class="scroll"><div class="pad">
-    ${rev.ativo !== false ? `<button class="pxbtn" data-a="review" style="background:var(--teal);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;text-align:left">${mascot(56)}
+    ${escolhendo ? `<div style="display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:10px 0 2px"><span class="duvida-wrap">${mascot(112, '', 'Rapozinha pensativa')}<span class="duvida px" aria-hidden="true">?</span></span><h2 class="h2" style="font-size:19px">Por qual disciplina vamos começar?</h2><p class="sub" style="margin:0;max-width:280px">Dá para trocar quando quiser — o progresso de cada uma fica guardado.</p></div>` : rev.ativo !== false ? `<button class="pxbtn" data-a="review" style="background:var(--teal);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;text-align:left">${mascot(56)}
       <div class="grow"><span class="px" style="font-size:9px"><span class="blink" aria-hidden="true">►</span> REVISÃO DIÁRIA</span><span style="font-weight:700;font-size:15px">Mistura de todas as matérias</span><span style="font-size:12px;color:var(--teal-dd)">${rev.tamanho || E().tamanhoRevisao} exercícios · +${rev.xp || E().xpRevisao} XP · conta para a ofensiva</span></div>${I.chevR}</button>` : ''}
-    <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 class="h2">Jornadas por matéria</h2><span class="num" style="font-size:12px;color:var(--muted)">toque para trocar</span></div>
+    ${escolhendo ? '' : `<div style="display:flex;justify-content:space-between;align-items:baseline"><h2 class="h2">Jornadas por matéria</h2><span class="num" style="font-size:12px;color:var(--muted)">toque para trocar</span></div>`}
     <div class="card" style="overflow:hidden">
-      ${materias().map(m => { const a = m.id === (materiaAtual() || {}).id; const T = trilha(m); const p = T.total ? Math.round(T.done / T.total * 100) : 0; const onde = !T.total ? 'Sem lições ainda' : T.cur < 0 ? 'Concluída' : T.done === 0 ? 'Ainda não começou' : `Seção ${T.curUnit.si + 1} · Unidade ${T.curUnit.n}`; return `
+      ${materias().map(m => { const a = m.id === S.perfil.materia; const T = trilha(m); const p = T.total ? Math.round(T.done / T.total * 100) : 0; const onde = !T.total ? 'Sem lições ainda' : T.cur < 0 ? 'Concluída' : T.done === 0 ? 'Ainda não começou' : `Seção ${T.curUnit.si + 1} · Unidade ${T.curUnit.n}`; return `
       <button data-a="subject:${m.id}" aria-pressed="${a}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--lav);background:${a ? 'var(--lav)' : '#fff'};width:100%;text-align:left">
         <span class="px" style="width:44px;height:44px;border-radius:12px;background:${a ? 'var(--primary)' : 'var(--lav)'};color:${a ? '#fff' : 'var(--primary)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px">${esc(m.sigla)}</span>
         <div class="grow" style="gap:5px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:15px;font-weight:600">${esc(m.nome)}</span><span class="num" style="font-size:11px;color:var(--muted);white-space:nowrap">${onde}</span></div>
@@ -785,7 +793,7 @@ function screenMaterias() {
         <span style="width:26px;height:26px;border-radius:50%;border:2px solid var(--primary);background:${a ? 'var(--primary)' : '#fff'};color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0">${a ? I.check(14) : ''}</span>
       </button>`; }).join('') || '<div class="row"><span class="sub">Nenhuma matéria publicada ainda.</span></div>'}
     </div>
-    ${materiaAtual() ? `<button class="btn btn-primary pxbtn" data-a="go:jornada">Abrir jornada de ${esc(materiaAtual().nome)}</button>` : ''}
+    ${!escolhendo && materiaAtual() ? `<button class="btn btn-primary pxbtn" data-a="go:jornada">Abrir jornada de ${esc(materiaAtual().nome)}</button>` : ''}
     <p style="margin:0;font-size:12px;color:var(--muted);text-align:center;line-height:1.45">A ofensiva, as moedas, os corações e a liga são os mesmos em todas as matérias. Só a trilha muda.</p>
   </div></div>`;
 }
