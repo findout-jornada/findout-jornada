@@ -16,6 +16,16 @@ No painel do Supabase: **SQL Editor** (ícone `>_` no menu da esquerda) → **Ne
 
 Todas podem ser rodadas de novo sem estragar nada. Se aparecer erro, copie a mensagem inteira (ela diz a linha) e mande para o Claude.
 
+## Criar contas de aluno pelo painel (botão "Novo aluno")
+
+O botão "Novo aluno" da aba Alunos usa a Edge Function `criar-aluno`, que precisa ser publicada uma vez:
+
+1. No Supabase: **Edge Functions → Deploy a new function** (ou "Create function" no editor do site).
+2. Nome: `criar-aluno`. Cole o conteúdo de `functions/criar-aluno/index.ts` e publique, deixando **Verify JWT** ligado.
+3. Pronto: o painel cria contas já confirmadas, **sem gastar o limite de e-mails** do Supabase. Só administradores conseguem usar (a função confere no servidor).
+
+Isso funciona mesmo com o cadastro público desligado (**Authentication → Sign In / Up → Allow new users to sign up**), que é o modo recomendado enquanto a plataforma for para poucas pessoas.
+
 ## Criar o primeiro administrador
 
 1. **Authentication → Users → Add user → Create new user**: seu e-mail, uma senha, marcar **Auto Confirm User**.

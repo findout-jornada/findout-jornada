@@ -490,7 +490,7 @@ function traduz(m) {
   if (/email not confirmed/i.test(m)) return 'Confirme seu e-mail pelo link que enviamos.';
   if (/password should be/i.test(m)) return 'A senha precisa ter pelo menos 6 caracteres.';
   if (/rate limit|too many/i.test(m)) return 'Muitas tentativas. Espere um minuto.';
-  if (/signups not allowed/i.test(m)) return 'Cadastro fechado no momento.';
+  if (/signups not allowed/i.test(m)) return 'Os cadastros estão temporariamente fechados. Fale com a equipe Findout para ganhar acesso.';
   if (/failed to fetch|networkerror|load failed/i.test(m)) return 'Sem conexão. Verifique a internet.';
   if (/jwt expired/i.test(m)) return 'Sua sessão expirou. Entre de novo.';
   if (/database error saving new user/i.test(m)) return 'Erro no servidor ao criar a conta (gatilho de novo usuário). Avise a equipe.';

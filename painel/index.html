@@ -848,7 +848,7 @@ function viewAlunos() {
   const plus = a => a.findout_plus_ate && new Date(a.findout_plus_ate) > new Date();
   const nSel = (A.lista || []).filter(a => A.sel[a.user_id]).length;
   const todosSel = !!(A.lista && A.lista.length && nSel === A.lista.length);
-  return topbar('Alunos', 'Quem usa o app, progresso, Findout+ e moedas/corações') + `<div class="content">
+  return topbar('Alunos', 'Quem usa o app, progresso, Findout+ e moedas/corações', `<button class="btn btn-primary" data-a="novo-aluno">${I.plus}Novo aluno</button>`) + `<div class="content">
     <form class="toolbar" id="f-alunos"><input class="inp sm" placeholder="Nome ou e-mail" value="${esc(A.busca)}" data-f="alunos.busca" aria-label="Buscar aluno" style="min-width:260px"><button type="button" class="btn btn-primary btn-sm" data-a="buscar-alunos">Buscar</button><button type="button" class="btn btn-outline btn-sm" data-a="dar-lote" ${nSel ? '' : 'disabled'}>${I.coin}Adicionar moedas/corações${nSel ? ` (${nSel})` : ''}</button><span style="color:var(--muted);font-size:13px">${A.lista ? A.lista.length + ' aluno' + (A.lista.length === 1 ? '' : 's') : ''}</span></form>
     ${A.erro ? `<div class="warnbox">${I.warn}<span>${esc(A.erro)}</span></div>` : ''}
     <div class="alunos">
@@ -1181,6 +1181,16 @@ async function act(a, el) {
     case 'sel-todos': { const marca = el.checked; (V.alunos.lista || []).forEach(a => { V.alunos.sel[a.user_id] = marca; }); return render(); }
     case 'dar': return darRecursos([x]);
     case 'dar-lote': { const ids = (V.alunos.lista || []).filter(a => V.alunos.sel[a.user_id]).map(a => a.user_id); if (!ids.length) return toast('Marque ao menos um aluno na lista.'); return darRecursos(ids); }
+    case 'novo-aluno': V.modal = {titulo: 'Novo aluno', texto: 'A conta nasce confirmada, sem gastar e-mail do Supabase. Anote a senha e repasse ao aluno — ele pode trocá-la depois com "Esqueci a senha".', ok: 'Criar conta', campos: [
+      {k: 'nome', label: 'Nome do aluno', obrigatorio: true, maxlength: 30},
+      {k: 'email', label: 'E-mail', tipo: 'email', obrigatorio: true},
+      {k: 'senha', label: 'Senha (mínimo 8 caracteres)', obrigatorio: true}
+    ], fn: async v => {
+      if (v.senha.length < 8) return toast('A senha precisa de pelo menos 8 caracteres.');
+      const {error} = await sb.functions.invoke('criar-aluno', {body: {nome: v.nome.trim(), email: v.email.trim(), senha: v.senha}});
+      if (error) { let msg = 'Não deu para criar a conta. A função "criar-aluno" está publicada no Supabase?'; try { msg = (await error.context.json()).erro || msg; } catch (e) {} return toast(msg); }
+      toast(`Conta criada para ${v.nome.trim()}.`); return buscarAlunos();
+    }}; return render();
     case 'admin': {
       const a = (V.alunos.lista || []).find(t => t.user_id === x); const nome = a ? a.nome : 'esta pessoa';
       if (y === '1') return confirmar(`Tornar ${nome} administrador?`, 'Ela poderá editar todo o conteúdo, publicar e gerenciar alunos neste painel.', async () => { await db(sb.rpc('definir_admin', {p_user: x, p_admin: true})); toast('Agora é administrador.'); await buscarAlunos(); }, 'Tornar admin');
