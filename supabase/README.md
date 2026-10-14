@@ -13,6 +13,7 @@ No painel do Supabase: **SQL Editor** (ícone `>_` no menu da esquerda) → **Ne
 7. `migrations/0007_conteudo_5_secoes.sql` — 5 seções por disciplina (576 questões novas).
 8. `migrations/0008_conceder_recursos.sql` — botão "Adicionar" na aba Alunos do painel: admin soma moedas e corações para um aluno ou vários de uma vez (função `conceder_recursos`).
 9. `migrations/0009_corrige_baus.sql` — conserta o erro ao abrir baús (`missing FROM-clause entry for table "abrir_bau"`).
+10. `migrations/0010_alunos_bloqueados.sql` — a lista de alunos do painel passa a dizer quem está bloqueado (botões Bloquear/Liberar).
 
 Todas podem ser rodadas de novo sem estragar nada. Se aparecer erro, copie a mensagem inteira (ela diz a linha) e mande para o Claude.
 
@@ -23,6 +24,7 @@ O botão "Novo aluno" da aba Alunos usa a Edge Function `criar-aluno`, que preci
 1. No Supabase: **Edge Functions → Deploy a new function** (ou "Create function" no editor do site).
 2. Nome: `criar-aluno`. Cole o conteúdo de `functions/criar-aluno/index.ts` e publique, deixando **Verify JWT** ligado.
 3. Pronto: o painel cria contas já confirmadas, **sem gastar o limite de e-mails** do Supabase. Só administradores conseguem usar (a função confere no servidor).
+4. Repita o mesmo para a função `bloquear-aluno` (arquivo `functions/bloquear-aluno/index.ts`): é ela que liga os botões **Bloquear/Liberar** da aba Alunos. Bloquear não apaga nada — ao liberar, o aluno volta com XP, moedas e progresso intactos.
 
 Isso funciona mesmo com o cadastro público desligado (**Authentication → Sign In / Up → Allow new users to sign up**), que é o modo recomendado enquanto a plataforma for para poucas pessoas.
 

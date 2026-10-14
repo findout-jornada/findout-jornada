@@ -855,7 +855,7 @@ function viewAlunos() {
       <label style="display:flex;align-items:center;gap:8px;padding:2px 2px 10px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;align-self:flex-start;cursor:pointer"><input type="checkbox" data-a="sel-todos" ${todosSel ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--primary)">Marcar todos</label>
       ${A.carregando ? '<div class="empty">Carregando…</div>' : (A.lista || []).map(a => `<div class="aluno">
         <input type="checkbox" data-a="sel-aluno:${a.user_id}" ${A.sel[a.user_id] ? 'checked' : ''} aria-label="Selecionar ${esc(a.nome)}">
-        <div class="who"><span class="av" aria-hidden="true">${esc((a.nome || '?').trim().charAt(0).toUpperCase())}</span><span style="min-width:0"><b>${esc(a.nome)}</b>${a.admin ? ' <span class="pill type">admin</span>' : ''}${plus(a) ? ` <span class="pill on">Findout+ até ${fmtDia(a.findout_plus_ate)}</span>` : ''}<span class="meta">${esc(a.email)} · visto ${fmtData(a.visto_em)} · desde ${fmtDia(a.criado_em)}</span></span></div>
+        <div class="who"><span class="av" aria-hidden="true">${esc((a.nome || '?').trim().charAt(0).toUpperCase())}</span><span style="min-width:0"><b>${esc(a.nome)}</b>${a.banido ? ' <span class="pill" style="background:var(--red-l);color:var(--red-d)">bloqueado</span>' : ''}${a.admin ? ' <span class="pill type">admin</span>' : ''}${plus(a) ? ` <span class="pill on">Findout+ até ${fmtDia(a.findout_plus_ate)}</span>` : ''}<span class="meta">${esc(a.email)} · visto ${fmtData(a.visto_em)} · desde ${fmtDia(a.criado_em)}</span></span></div>
         <div class="stats">
           <span class="stat s-xp" title="XP acumulado">${I.bolt}<span class="num">${a.xp}</span>&nbsp;XP</span>
           <span class="stat s-mo" title="Moedas">${I.coin}<span class="num">${a.moedas}</span></span>
@@ -868,6 +868,7 @@ function viewAlunos() {
           <button class="btn btn-outline btn-sm" data-a="dar:${a.user_id}">${I.plus}Adicionar</button>
           ${plus(a) ? `<button class="btn btn-ghost btn-sm" data-a="plus:${a.user_id}:30">+30 dias</button><button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="plus:${a.user_id}:0">Remover Findout+</button>` : `<button class="btn btn-ghost btn-sm" data-a="plus:${a.user_id}:30">Ativar Findout+</button>`}
           ${a.admin ? (a.user_id === sessao.user.id ? '<span style="font-size:12px;color:var(--muted);padding:0 4px">você</span>' : `<button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="admin:${a.user_id}:0">Tirar acesso</button>`) : `<button class="btn btn-ghost btn-sm" data-a="admin:${a.user_id}:1">Tornar admin</button>`}
+          ${a.user_id === sessao.user.id ? '' : a.banido ? `<button class="btn btn-outline btn-sm" data-a="bloq:${a.user_id}:0">Liberar</button>` : `<button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="bloq:${a.user_id}:1">Bloquear</button>`}
         </div>
       </div>`).join('')}
       ${!A.carregando && A.lista && !A.lista.length ? '<div class="empty">Nenhum aluno encontrado.</div>' : ''}
@@ -1181,6 +1182,16 @@ async function act(a, el) {
     case 'sel-todos': { const marca = el.checked; (V.alunos.lista || []).forEach(a => { V.alunos.sel[a.user_id] = marca; }); return render(); }
     case 'dar': return darRecursos([x]);
     case 'dar-lote': { const ids = (V.alunos.lista || []).filter(a => V.alunos.sel[a.user_id]).map(a => a.user_id); if (!ids.length) return toast('Marque ao menos um aluno na lista.'); return darRecursos(ids); }
+    case 'bloq': {
+      const alvo = (V.alunos.lista || []).find(a => a.user_id === x), nome = alvo ? alvo.nome : 'o aluno';
+      const fazer = async () => {
+        const {error} = await sb.functions.invoke('bloquear-aluno', {body: {user_id: x, bloquear: y === '1'}});
+        if (error) { let msg = 'Não deu para alterar. A função bloquear-aluno está publicada no Supabase?'; try { msg = (await error.context.json()).erro || msg; } catch (e) {} return toast(msg); }
+        toast(y === '1' ? `${nome} foi bloqueado.` : `${nome} foi liberado.`); return buscarAlunos();
+      };
+      if (y === '1') return confirmar(`Bloquear ${nome}?`, 'A pessoa não consegue mais entrar no app, mas todos os dados (XP, moedas, progresso) ficam guardados. Dá para liberar de novo quando quiser.', fazer, 'Bloquear');
+      return fazer();
+    }
     case 'novo-aluno': V.modal = {titulo: 'Novo aluno', texto: 'A conta nasce confirmada, sem gastar e-mail do Supabase. Anote a senha e repasse ao aluno — ele pode trocá-la depois com "Esqueci a senha".', ok: 'Criar conta', campos: [
       {k: 'nome', label: 'Nome do aluno', obrigatorio: true, maxlength: 30},
       {k: 'email', label: 'E-mail', tipo: 'email', obrigatorio: true},
