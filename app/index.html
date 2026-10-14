@@ -722,6 +722,7 @@ function headerJornada(m) {
     <button class="subjbtn" data-a="go:materias" aria-label="Trocar de matéria">${I.filter}<span>${esc(m ? m.nome : 'Matérias')}</span>${I.chevD}</button>
     <div style="display:flex;align-items:center;gap:2px">
       <button class="stat" style="color:${practicedToday() ? 'var(--orange-d)' : 'var(--muted)'}" data-a="go:ofensiva" aria-label="Ofensiva: ${streak()} dias">${practicedToday() ? I.flame() : I.flame(20, '#E4DFF7', '#9AA0BC')}${streak()}</button>
+      ${S.economia.congeladores > 0 ? `<button class="stat" style="color:var(--teal-d)" data-a="go:ofensiva" aria-label="Congeladores de ofensiva: ${S.economia.congeladores}">${I.snow(20)}${S.economia.congeladores}</button>` : ''}
       <button class="stat" style="color:var(--gold-d)" data-a="go:loja" aria-label="Moedas: ${S.economia.moedas}">${I.coin()}${S.economia.moedas}</button>
       <button class="stat" style="color:var(--red-d)" data-a="hearts" aria-label="Corações: ${heartsTxt()}">${I.heart()}${heartsTxt()}</button>
     </div></header>`;
