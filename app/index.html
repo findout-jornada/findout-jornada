@@ -1258,7 +1258,15 @@ async function act(a) {
     case 'next': return next();
   }
 }
-app.addEventListener('click', ev => { const el = ev.target.closest('[data-a]'); if (!el || el.disabled || !S) return; act(el.dataset.a).catch(e => { console.error(e); toast('Algo deu errado. Tente de novo.'); }); });
+app.addEventListener('click', ev => {
+  const el = ev.target.closest('[data-a]');
+  if (!el || el.disabled || !S) {
+    // clique fora do balão da trilha fecha o balão
+    if (S && V.open && V.screen === 'jornada' && !ev.target.closest('.pop-card')) { V.open = null; render(); }
+    return;
+  }
+  act(el.dataset.a).catch(e => { console.error(e); toast('Algo deu errado. Tente de novo.'); });
+});
 app.addEventListener('submit', async ev => {
   if (ev.target.id !== 'f-nome') return;
   ev.preventDefault();
