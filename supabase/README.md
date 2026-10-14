@@ -11,7 +11,7 @@ No painel do Supabase: **SQL Editor** (ícone `>_` no menu da esquerda) → **Ne
 5. `migrations/0005_conteudo.sql` — conteúdo inicial: 112 questões (Matemática, Português, Biologia, História) com trilhas, lições e explicações. Depois de rodar, abra o painel: ele publica a versão nova sozinho.
 6. `migrations/0006_conteudo_mais_materias.sql` — mais 108 questões em 6 matérias novas (Geografia, Física, Química, Redação, Inglês, Filosofia e Sociologia).
 7. `migrations/0007_conteudo_5_secoes.sql` — 5 seções por disciplina (576 questões novas).
-8. `migrations/0008_conceder_recursos.sql` — botão "Dar" na aba Alunos do painel: admin soma moedas e corações para um aluno ou vários de uma vez (função `conceder_recursos`).
+8. `migrations/0008_conceder_recursos.sql` — botão "Adicionar" na aba Alunos do painel: admin soma moedas e corações para um aluno ou vários de uma vez (função `conceder_recursos`).
 
 Todas podem ser rodadas de novo sem estragar nada. Se aparecer erro, copie a mensagem inteira (ela diz a linha) e mande para o Claude.
 
