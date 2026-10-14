@@ -12,6 +12,7 @@ No painel do Supabase: **SQL Editor** (ícone `>_` no menu da esquerda) → **Ne
 6. `migrations/0006_conteudo_mais_materias.sql` — mais 108 questões em 6 matérias novas (Geografia, Física, Química, Redação, Inglês, Filosofia e Sociologia).
 7. `migrations/0007_conteudo_5_secoes.sql` — 5 seções por disciplina (576 questões novas).
 8. `migrations/0008_conceder_recursos.sql` — botão "Adicionar" na aba Alunos do painel: admin soma moedas e corações para um aluno ou vários de uma vez (função `conceder_recursos`).
+9. `migrations/0009_corrige_baus.sql` — conserta o erro ao abrir baús (`missing FROM-clause entry for table "abrir_bau"`).
 
 Todas podem ser rodadas de novo sem estragar nada. Se aparecer erro, copie a mensagem inteira (ela diz a linha) e mande para o Claude.
 

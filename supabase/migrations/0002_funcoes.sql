@@ -323,7 +323,7 @@ end $$;
 -- Baú da unidade: libera depois da lição 4 (unidades com 5+ lições) ou da penúltima
 create or replace function public.abrir_bau(p_unidade uuid)
 returns jsonb language plpgsql security definer set search_path = public as $$
-declare u uuid := exigir_login(); total int; feitas int; precisa int; moedas int := (param('economia')->>'moedasBau')::int;
+declare u uuid := exigir_login(); total int; feitas int; precisa int; v_moedas int := (param('economia')->>'moedasBau')::int;
 begin
   if exists (select 1 from public.conquistas_unidade where user_id = u and unidade_id = p_unidade and bau_em is not null) then
     raise exception 'Este baú já foi aberto.';
@@ -336,13 +336,13 @@ begin
   if feitas < precisa then raise exception 'Conclua a lição % para abrir o baú.', precisa; end if;
   insert into public.conquistas_unidade (user_id, unidade_id, bau_em) values (u, p_unidade, now())
     on conflict (user_id, unidade_id) do update set bau_em = now();
-  update public.economia_aluno set moedas = economia_aluno.moedas + abrir_bau.moedas where user_id = u;
-  return jsonb_build_object('moedas', moedas, 'estado', estado_aluno());
+  update public.economia_aluno set moedas = economia_aluno.moedas + v_moedas where user_id = u;
+  return jsonb_build_object('moedas', v_moedas, 'estado', estado_aluno());
 end $$;
 
 create or replace function public.abrir_bau_diario()
 returns jsonb language plpgsql security definer set search_path = public as $$
-declare u uuid := exigir_login(); d public.dias_aluno; ms jsonb; moedas int := (param('missoes')->>'moedasBauDiario')::int;
+declare u uuid := exigir_login(); d public.dias_aluno; ms jsonb; v_moedas int := (param('missoes')->>'moedasBauDiario')::int;
 begin
   d := preparar_dia(u);
   if d.bau_aberto then raise exception 'O baú de hoje já foi aberto.'; end if;
@@ -351,8 +351,8 @@ begin
     raise exception 'Complete todas as missões de hoje primeiro.';
   end if;
   update public.dias_aluno set bau_aberto = true where user_id = u and dia = hoje();
-  update public.economia_aluno set moedas = economia_aluno.moedas + abrir_bau_diario.moedas where user_id = u;
-  return jsonb_build_object('moedas', moedas, 'estado', estado_aluno());
+  update public.economia_aluno set moedas = economia_aluno.moedas + v_moedas where user_id = u;
+  return jsonb_build_object('moedas', v_moedas, 'estado', estado_aluno());
 end $$;
 
 create or replace function public.comprar(p_codigo text)
