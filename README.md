@@ -9,6 +9,7 @@ Módulo gamificado de estudo para o ENEM, no estilo Duolingo: trilhas por matér
 | `app/` | App do aluno (PWA, celular e desktop) | projeto Vercel com Root Directory `app` |
 | `painel/` | Painel de gestão (trilhas, questões, missões, economia, publicação) | projeto Vercel com Root Directory `painel` |
 | `supabase/migrations/` | Esquema do banco, segurança (RLS) e funções, em ordem numérica | rodar no SQL Editor do Supabase |
+| `supabase/functions/` | Edge Functions (criar aluno, bloquear/liberar) usadas pelo painel | colar em Edge Functions no Supabase ([como](supabase/README.md)) |
 | `conteudo/` | Rascunhos de questões e árvore das matérias | importado pelo painel |
 
 Sem etapa de build: os dois sites são HTML + JS puros e carregam o cliente do Supabase por CDN. Para rodar localmente basta abrir `app/index.html` ou `painel/index.html` num servidor estático qualquer (por exemplo a extensão Live Server do VS Code).
@@ -21,7 +22,11 @@ As chaves públicas ficam em `app/config.js` e `painel/config.js`:
 window.FJ_CONFIG = { supabaseUrl: 'https://xxxx.supabase.co', supabaseAnonKey: 'eyJ...' };
 ```
 
-A anon key é pública por design; quem protege os dados é o RLS no banco. A `service_role` key nunca entra neste repositório.
+A anon key é pública por design; quem protege os dados é o RLS no banco. A `service_role` key nunca entra neste repositório (as Edge Functions a leem do ambiente do Supabase).
+
+## Acesso (fase atual: fechado)
+
+O cadastro público está desligado no Supabase (Authentication → Sign In / Up). Contas são criadas pelo painel (aba Alunos → **Novo aluno**), já confirmadas e sem gastar o limite de e-mails. Ali também dá para **bloquear/liberar** um aluno sem apagar os dados dele. Para reabrir no lançamento: configurar SMTP próprio (ex.: Brevo) e religar o cadastro — ver [DEPOIS.md](DEPOIS.md).
 
 ## Publicar
 
