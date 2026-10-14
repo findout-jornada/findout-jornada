@@ -112,6 +112,23 @@ tr:last-child td{border-bottom:0}
 tr.rowbtn{cursor:pointer}
 tr.rowbtn:hover td{background:var(--surface2)}
 .tbl-wrap{overflow-x:auto}
+.alunos{display:flex;flex-direction:column}
+.aluno{display:flex;align-items:center;gap:14px 18px;padding:14px 2px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.aluno>input[type=checkbox]{width:16px;height:16px;accent-color:var(--primary);flex-shrink:0}
+.aluno .who{display:flex;align-items:center;gap:12px;flex:1 1 250px;min-width:0}
+.aluno .av{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--primary-l),var(--teal-l));color:var(--primary);display:inline-flex;align-items:center;justify-content:center;font-family:var(--f-display);font-weight:700;font-size:16px;flex-shrink:0}
+.aluno .who .meta{display:block;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aluno .stats{display:flex;gap:6px;flex-wrap:wrap}
+.stat{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;background:var(--surface2);color:var(--fg2)}
+.stat svg{width:13px;height:13px;flex-shrink:0}
+.stat .num{font-size:13px}
+.stat.s-xp{background:var(--primary-l);color:var(--primary)}
+.stat.s-mo{background:var(--gold-l);color:var(--gold-d)}
+.stat.s-co{background:var(--red-l);color:var(--red-d)}
+.stat.s-li{background:var(--teal-l);color:var(--teal-d)}
+.stat.s-of{background:rgba(240,138,36,.14);color:var(--orange-d)}
+.aluno .acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-left:auto}
+@media (max-width:820px){.aluno .acts{margin-left:54px}}
 .pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
 .pill.pub{background:var(--green-l);color:var(--green-d)}
 .pill.draft{background:var(--gold-l);color:var(--gold-d)}
@@ -288,6 +305,10 @@ const I = {
   q: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
   target: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>',
   coin: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></svg>',
+  heart: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21C7.2 16.9 3 13.4 3 9.4 3 6.4 5.2 4.3 7.8 4.3c1.6 0 3.2.8 4.2 2.2 1-1.4 2.6-2.2 4.2-2.2 2.6 0 4.8 2.1 4.8 5.1 0 4-4.2 7.5-9 11.6z"/></svg>',
+  bolt: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12z"/></svg>',
+  flame: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.8 4.5-5 6.5-5 12a5 5 0 0 0 10 0c0-1.8-.8-3.3-1.9-4.6-.4 1.3-1.1 2.1-2.1 2.1-1.4 0-2-1.8-1-9.5z"/></svg>',
+  book: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>',
   shield: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5z"/></svg>',
   users: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5a5 5 0 0 1 6 5"/></svg>',
   up: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>',
@@ -825,14 +846,27 @@ function viewAlunos() {
   return topbar('Alunos', 'Quem usa o app, progresso, Findout+ e moedas/corações') + `<div class="content">
     <form class="toolbar" id="f-alunos"><input class="inp sm" placeholder="Nome ou e-mail" value="${esc(A.busca)}" data-f="alunos.busca" aria-label="Buscar aluno" style="min-width:260px"><button type="button" class="btn btn-primary btn-sm" data-a="buscar-alunos">Buscar</button><button type="button" class="btn btn-outline btn-sm" data-a="dar-lote" ${nSel ? '' : 'disabled'}>${I.coin}Adicionar moedas/corações${nSel ? ` (${nSel})` : ''}</button><span style="color:var(--muted);font-size:13px">${A.lista ? A.lista.length + ' aluno' + (A.lista.length === 1 ? '' : 's') : ''}</span></form>
     ${A.erro ? `<div class="warnbox">${I.warn}<span>${esc(A.erro)}</span></div>` : ''}
-    <div class="card tbl-wrap"><table><thead><tr><th style="width:28px"><input type="checkbox" data-a="sel-todos" ${todosSel ? 'checked' : ''} aria-label="Selecionar todos"></th><th>Aluno</th><th>XP</th><th>Moedas</th><th>Corações</th><th>Lições</th><th>Ofensiva</th><th>Findout+</th><th>Último acesso</th><th>Cadastro</th><th>Painel</th><th></th></tr></thead><tbody>
-      ${A.carregando ? '<tr><td colspan="12" class="empty">Carregando…</td></tr>' : (A.lista || []).map(a => `<tr><td><input type="checkbox" data-a="sel-aluno:${a.user_id}" ${A.sel[a.user_id] ? 'checked' : ''} aria-label="Selecionar ${esc(a.nome)}"></td><td><b>${esc(a.nome)}</b>${a.admin ? ' <span class="pill type">admin</span>' : ''}<br><span style="font-size:12px;color:var(--muted)">${esc(a.email)}</span></td><td class="num">${a.xp}</td><td class="num">${a.moedas}</td><td class="num">${plus(a) ? '∞' : a.coracoes}</td><td class="num">${a.licoes}</td><td class="num">${a.ofensiva} dias</td>
-        <td>${plus(a) ? `<span class="pill on">até ${fmtDia(a.findout_plus_ate)}</span>` : '<span class="pill off">não</span>'}</td><td style="font-size:12px">${fmtData(a.visto_em)}</td><td style="font-size:12px">${fmtDia(a.criado_em)}</td>
-        <td style="white-space:nowrap">${a.admin ? (a.user_id === sessao.user.id ? '<span style="font-size:12px;color:var(--muted)">você</span>' : `<button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="admin:${a.user_id}:0">Tirar acesso</button>`) : `<button class="btn btn-ghost btn-sm" data-a="admin:${a.user_id}:1">Tornar admin</button>`}</td>
-        <td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" data-a="dar:${a.user_id}">${I.coin}Adicionar</button> ${plus(a) ? `<button class="btn btn-ghost btn-sm" data-a="plus:${a.user_id}:30">+30 dias</button> <button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="plus:${a.user_id}:0">Remover</button>` : `<button class="btn btn-outline btn-sm" data-a="plus:${a.user_id}:30">Ativar 30 dias</button>`}</td></tr>`).join('')}
-      ${!A.carregando && A.lista && !A.lista.length ? '<tr><td colspan="12" class="empty">Nenhum aluno encontrado.</td></tr>' : ''}
-    </tbody></table></div>
-    <p style="margin:0;font-size:12px;color:var(--muted)">"Adicionar" soma moedas e/ou corações para o aluno (valores negativos tiram). Para adicionar em lote, marque os alunos e use o botão lá em cima.<br>O Findout+ dá corações ilimitados. A ativação aqui é manual (pagamento por Pix combinado com o aluno). Para somar mais dias a um aluno que já tem, use "+30 dias" (reinicia a contagem a partir de hoje).<br>"Tornar admin" dá acesso a este painel: a pessoa cria conta no app e entra aqui com o mesmo login.</p>
+    <div class="alunos">
+      <label style="display:flex;align-items:center;gap:8px;padding:2px 2px 10px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;align-self:flex-start;cursor:pointer"><input type="checkbox" data-a="sel-todos" ${todosSel ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--primary)">Marcar todos</label>
+      ${A.carregando ? '<div class="empty">Carregando…</div>' : (A.lista || []).map(a => `<div class="aluno">
+        <input type="checkbox" data-a="sel-aluno:${a.user_id}" ${A.sel[a.user_id] ? 'checked' : ''} aria-label="Selecionar ${esc(a.nome)}">
+        <div class="who"><span class="av" aria-hidden="true">${esc((a.nome || '?').trim().charAt(0).toUpperCase())}</span><span style="min-width:0"><b>${esc(a.nome)}</b>${a.admin ? ' <span class="pill type">admin</span>' : ''}${plus(a) ? ` <span class="pill on">Findout+ até ${fmtDia(a.findout_plus_ate)}</span>` : ''}<span class="meta">${esc(a.email)} · visto ${fmtData(a.visto_em)} · desde ${fmtDia(a.criado_em)}</span></span></div>
+        <div class="stats">
+          <span class="stat s-xp" title="XP acumulado">${I.bolt}<span class="num">${a.xp}</span>&nbsp;XP</span>
+          <span class="stat s-mo" title="Moedas">${I.coin}<span class="num">${a.moedas}</span></span>
+          <span class="stat s-co" title="Corações">${I.heart}<span class="num">${plus(a) ? '∞' : a.coracoes}</span></span>
+          <span class="stat s-li" title="Lições concluídas">${I.book}<span class="num">${a.licoes}</span>&nbsp;lições</span>
+          <span class="stat s-of" title="Ofensiva (dias seguidos)">${I.flame}<span class="num">${a.ofensiva}</span>&nbsp;dias</span>
+        </div>
+        <div class="acts">
+          <button class="btn btn-outline btn-sm" data-a="dar:${a.user_id}">${I.plus}Adicionar</button>
+          ${plus(a) ? `<button class="btn btn-ghost btn-sm" data-a="plus:${a.user_id}:30">+30 dias</button><button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="plus:${a.user_id}:0">Remover Findout+</button>` : `<button class="btn btn-ghost btn-sm" data-a="plus:${a.user_id}:30">Ativar Findout+</button>`}
+          ${a.admin ? (a.user_id === sessao.user.id ? '<span style="font-size:12px;color:var(--muted);padding:0 4px">você</span>' : `<button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="admin:${a.user_id}:0">Tirar acesso</button>`) : `<button class="btn btn-ghost btn-sm" data-a="admin:${a.user_id}:1">Tornar admin</button>`}
+        </div>
+      </div>`).join('')}
+      ${!A.carregando && A.lista && !A.lista.length ? '<div class="empty">Nenhum aluno encontrado.</div>' : ''}
+    </div>
+    <p style="margin:0;font-size:12px;color:var(--muted)">"Adicionar" soma moedas e/ou corações para o aluno (valores negativos tiram). Para adicionar em lote, marque os alunos e use o botão lá em cima.<br>O Findout+ dá corações ilimitados e é ativado por 30 dias. A ativação aqui é manual (pagamento por Pix combinado com o aluno). Para somar mais dias a um aluno que já tem, use "+30 dias" (reinicia a contagem a partir de hoje).<br>"Tornar admin" dá acesso a este painel: a pessoa cria conta no app e entra aqui com o mesmo login.</p>
   </div>`;
 }
 async function buscarAlunos() {
