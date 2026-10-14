@@ -909,7 +909,7 @@ function sheetNoHearts() {
   const custo = +E().custoRecarga || 350;
   return `<div class="sheet-bg" data-key="bg:nohearts"></div><section class="sheet" data-key="sh:nohearts" role="dialog" aria-modal="true" aria-labelledby="nh-t"><span class="grab" aria-hidden="true"></span>
     <div style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
-      ${mascot(90, '', 'Rapozinha triste', 'triste')}
+      ${mascot(120, '', 'Rapozinha triste', 'triste')}
       <span style="display:flex;gap:6px">${Array.from({length: maxHearts()}, () => I.heart(30, '#FFFFFF', '#C5C9E3')).join('')}</span>
       <h1 id="nh-t" style="margin:0;font-family:var(--f-display);font-size:22px;font-weight:700">Você ficou sem corações</h1>
       <p style="margin:0;font-size:14px;color:var(--ink2);line-height:1.45">Cada erro custa um coração. Eles voltam sozinhos, um a cada ${E().horasCoracao} horas, ou você pode recarregar agora.</p>
