@@ -307,7 +307,7 @@ const I = {
    Estado
    ===================================================================== */
 let sessao = null, admin = false, D = null, mostrando = '';
-let V = {view: 'inicio', qf: {materia: '', unidade: '', tipo: '', status: '', busca: ''}, materia: null, rascunho: null, licaoAtribuir: null, confirmar: null, modal: null, alunos: {busca: '', lista: null, carregando: false, erro: null}, metricas: null, metricasErro: null, salvando: 0, notaPub: '', jsonVersao: null, jsonTexto: ''};
+let V = {view: 'inicio', qf: {materia: '', unidade: '', tipo: '', status: '', busca: ''}, materia: null, rascunho: null, licaoAtribuir: null, alunoGerenciar: null, confirmar: null, modal: null, alunos: {busca: '', lista: null, carregando: false, erro: null, sel: {}}, metricas: null, metricasErro: null, salvando: 0, notaPub: '', jsonVersao: null, jsonTexto: ''};
 let toastTimer;
 function toast(m) {
   let t = document.getElementById('toast');
@@ -786,13 +786,20 @@ function viewEconomia() {
     <div class="card"><div class="card-h"><h2>Ofensiva e turbos</h2></div><div class="card-b frow">${n('Congelador (moedas)', 'custoCongelador')}${n('Congeladores no máximo', 'maxCongeladores')}${n('Relâmpago (segundos)', 'segundosRelampago')}${n('Multiplicador do relâmpago', 'multiplicadorRelampago')}</div></div>
     <div class="card"><div class="card-h"><h2>Revisão e erros</h2></div><div class="card-b frow">${n('Revisão diária (XP)', 'xpRevisao')}${n('Revisão diária (moedas)', 'moedasRevisao')}${n('Exercícios na revisão', 'tamanhoRevisao')}${n('Praticar erros (XP)', 'xpErros')}</div></div>
   </div>
-  <div class="card"><div class="card-h"><h2>Loja</h2><span class="right" style="font-size:12px;color:var(--muted)">Itens com efeito no app: <code>congelador</code>, <code>recarga</code>, <code>plus</code></span></div><div class="tbl-wrap"><table><thead><tr><th>À venda</th><th>Código</th><th>Item</th><th>Tipo</th><th>Preço</th><th></th></tr></thead><tbody>
+  <div class="card"><div class="card-h"><h2>Loja do app</h2><span class="right" style="font-size:12px;color:var(--muted)">O interruptor "À venda" mostra ou esconde o item na loja do aluno</span></div><div class="tbl-wrap"><table><thead><tr><th>À venda</th><th>Código</th><th>Item</th><th>Tipo</th><th>Preço</th><th></th></tr></thead><tbody>
     ${D.loja.map(it => `<tr><td>${toggle(it.ativo, 'toggle-item:' + it.id, 'Item à venda')}</td><td><code>${esc(it.codigo)}</code></td><td><input class="inline-edit" style="min-width:200px" value="${esc(it.nome)}" data-f="loja.${it.id}.nome" aria-label="Nome do item"></td>
       <td><select class="inp sm" data-f="loja.${it.id}.tipo" aria-label="Tipo"><option value="moedas" ${it.tipo === 'moedas' ? 'selected' : ''}>Moedas</option><option value="assinatura" ${it.tipo === 'assinatura' ? 'selected' : ''}>Assinatura</option></select></td>
       <td>${it.tipo === 'assinatura' ? `<input class="inline-edit" value="${esc(it.rotulo_preco || '')}" data-f="loja.${it.id}.rotulo_preco" aria-label="Rótulo do preço" placeholder="Ex.: R$ 19,90/mês · Pix">` : `<input type="number" class="inp sm" style="width:90px" value="${it.preco}" data-f="loja.${it.id}.preco" aria-label="Preço em moedas">`}</td>
       <td style="white-space:nowrap">${mover('loja', it.id)} <button class="btn btn-ghost btn-sm" data-a="excluir-item:${it.id}" aria-label="Excluir item">${I.trash}</button></td></tr>`).join('')}
     ${D.loja.length ? '' : '<tr><td colspan="6" class="empty">Nenhum item.</td></tr>'}
-  </tbody></table></div></div></div>`;
+  </tbody></table></div>
+  <div class="card-b" style="padding-top:12px;font-size:12px;color:var(--muted);line-height:1.7;border-top:1px solid var(--line)">
+    <b style="color:var(--fg2)">O que cada código faz no app:</b><br>
+    · <code>recarga</code> — enche os corações do aluno na hora, em troca de moedas.<br>
+    · <code>congelador</code> — protege a ofensiva em um dia sem estudo (o aluno não perde a sequência).<br>
+    · <code>plus</code> — assinatura Findout+ (corações ilimitados). No app ela só mostra as instruções de contato; a <b>ativação é manual</b>, na aba <b>Alunos</b> deste painel.<br>
+    Outros códigos aparecem na loja, mas não têm efeito sem programação. Desligar um item o esconde da loja sem apagar nada, e as mudanças chegam ao app na próxima publicação (automática).
+  </div></div></div>`;
 }
 
 /* =====================================================================
@@ -813,24 +820,45 @@ function viewLigas() {
 function viewAlunos() {
   const A = V.alunos;
   const plus = a => a.findout_plus_ate && new Date(a.findout_plus_ate) > new Date();
-  return topbar('Alunos', 'Quem usa o app, progresso e ativação manual do Findout+') + `<div class="content">
-    <form class="toolbar" id="f-alunos"><input class="inp sm" placeholder="Nome ou e-mail" value="${esc(A.busca)}" data-f="alunos.busca" aria-label="Buscar aluno" style="min-width:260px"><button type="button" class="btn btn-primary btn-sm" data-a="buscar-alunos">Buscar</button><span style="color:var(--muted);font-size:13px">${A.lista ? A.lista.length + ' aluno' + (A.lista.length === 1 ? '' : 's') : ''}</span></form>
+  const nSel = (A.lista || []).filter(a => A.sel[a.user_id]).length;
+  const todosSel = !!(A.lista && A.lista.length && nSel === A.lista.length);
+  return topbar('Alunos', 'Quem usa o app, progresso, Findout+ e moedas/corações') + `<div class="content">
+    <form class="toolbar" id="f-alunos"><input class="inp sm" placeholder="Nome ou e-mail" value="${esc(A.busca)}" data-f="alunos.busca" aria-label="Buscar aluno" style="min-width:260px"><button type="button" class="btn btn-primary btn-sm" data-a="buscar-alunos">Buscar</button><button type="button" class="btn btn-outline btn-sm" data-a="dar-lote" ${nSel ? '' : 'disabled'}>${I.coin}Dar moedas/corações${nSel ? ` (${nSel})` : ''}</button><span style="color:var(--muted);font-size:13px">${A.lista ? A.lista.length + ' aluno' + (A.lista.length === 1 ? '' : 's') : ''}</span></form>
     ${A.erro ? `<div class="warnbox">${I.warn}<span>${esc(A.erro)}</span></div>` : ''}
-    <div class="card tbl-wrap"><table><thead><tr><th>Aluno</th><th>XP</th><th>Moedas</th><th>Lições</th><th>Ofensiva</th><th>Findout+</th><th>Último acesso</th><th>Cadastro</th><th>Painel</th><th></th></tr></thead><tbody>
-      ${A.carregando ? '<tr><td colspan="10" class="empty">Carregando…</td></tr>' : (A.lista || []).map(a => `<tr><td><b>${esc(a.nome)}</b>${a.admin ? ' <span class="pill type">admin</span>' : ''}<br><span style="font-size:12px;color:var(--muted)">${esc(a.email)}</span></td><td class="num">${a.xp}</td><td class="num">${a.moedas}</td><td class="num">${a.licoes}</td><td class="num">${a.ofensiva} dias</td>
+    <div class="card tbl-wrap"><table><thead><tr><th style="width:28px"><input type="checkbox" data-a="sel-todos" ${todosSel ? 'checked' : ''} aria-label="Selecionar todos"></th><th>Aluno</th><th>XP</th><th>Moedas</th><th>Corações</th><th>Lições</th><th>Ofensiva</th><th>Findout+</th><th>Último acesso</th><th>Cadastro</th><th>Painel</th><th></th></tr></thead><tbody>
+      ${A.carregando ? '<tr><td colspan="12" class="empty">Carregando…</td></tr>' : (A.lista || []).map(a => `<tr><td><input type="checkbox" data-a="sel-aluno:${a.user_id}" ${A.sel[a.user_id] ? 'checked' : ''} aria-label="Selecionar ${esc(a.nome)}"></td><td><b>${esc(a.nome)}</b>${a.admin ? ' <span class="pill type">admin</span>' : ''}<br><span style="font-size:12px;color:var(--muted)">${esc(a.email)}</span></td><td class="num">${a.xp}</td><td class="num">${a.moedas}</td><td class="num">${plus(a) ? '∞' : a.coracoes}</td><td class="num">${a.licoes}</td><td class="num">${a.ofensiva} dias</td>
         <td>${plus(a) ? `<span class="pill on">até ${fmtDia(a.findout_plus_ate)}</span>` : '<span class="pill off">não</span>'}</td><td style="font-size:12px">${fmtData(a.visto_em)}</td><td style="font-size:12px">${fmtDia(a.criado_em)}</td>
         <td style="white-space:nowrap">${a.admin ? (a.user_id === sessao.user.id ? '<span style="font-size:12px;color:var(--muted)">você</span>' : `<button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="admin:${a.user_id}:0">Tirar acesso</button>`) : `<button class="btn btn-ghost btn-sm" data-a="admin:${a.user_id}:1">Tornar admin</button>`}</td>
-        <td style="white-space:nowrap">${plus(a) ? `<button class="btn btn-ghost btn-sm" data-a="plus:${a.user_id}:30">+30 dias</button> <button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="plus:${a.user_id}:0">Remover</button>` : `<button class="btn btn-outline btn-sm" data-a="plus:${a.user_id}:30">Ativar 30 dias</button>`}</td></tr>`).join('')}
-      ${!A.carregando && A.lista && !A.lista.length ? '<tr><td colspan="10" class="empty">Nenhum aluno encontrado.</td></tr>' : ''}
+        <td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" data-a="dar:${a.user_id}">${I.coin}Dar</button> ${plus(a) ? `<button class="btn btn-ghost btn-sm" data-a="plus:${a.user_id}:30">+30 dias</button> <button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="plus:${a.user_id}:0">Remover</button>` : `<button class="btn btn-outline btn-sm" data-a="plus:${a.user_id}:30">Ativar 30 dias</button>`}</td></tr>`).join('')}
+      ${!A.carregando && A.lista && !A.lista.length ? '<tr><td colspan="12" class="empty">Nenhum aluno encontrado.</td></tr>' : ''}
     </tbody></table></div>
-    <p style="margin:0;font-size:12px;color:var(--muted)">O Findout+ dá corações ilimitados. A ativação aqui é manual (pagamento por Pix combinado com o aluno). Para somar mais dias a um aluno que já tem, use "+30 dias" (reinicia a contagem a partir de hoje).<br>"Tornar admin" dá acesso a este painel: a pessoa cria conta no app e entra aqui com o mesmo login.</p>
+    <p style="margin:0;font-size:12px;color:var(--muted)">"Dar" soma moedas e/ou corações para o aluno (valores negativos tiram). Para dar em lote, marque os alunos e use o botão lá em cima.<br>O Findout+ dá corações ilimitados. A ativação aqui é manual (pagamento por Pix combinado com o aluno). Para somar mais dias a um aluno que já tem, use "+30 dias" (reinicia a contagem a partir de hoje).<br>"Tornar admin" dá acesso a este painel: a pessoa cria conta no app e entra aqui com o mesmo login.</p>
   </div>`;
 }
 async function buscarAlunos() {
-  V.alunos.carregando = true; V.alunos.erro = null; render();
+  V.alunos.carregando = true; V.alunos.erro = null; V.alunos.sel = {}; render();
   const {data, error} = await sb.rpc('alunos_admin', {p_busca: V.alunos.busca.trim(), p_limite: 100});
   V.alunos.carregando = false;
   if (error) { V.alunos.erro = traduzErro(error.message); V.alunos.lista = []; } else V.alunos.lista = data || [];
+  render();
+}
+function darRecursos(ids) {
+  const alunos = (V.alunos.lista || []).filter(a => ids.includes(a.user_id));
+  const quem = alunos.length === 1 ? alunos[0].nome : alunos.length + ' alunos';
+  const mx = D.param.economia.coracoes;
+  V.modal = {titulo: 'Dar moedas e corações', texto: `Para <b>${esc(quem)}</b>. Deixe em branco o que não quiser mudar; valores negativos tiram. Corações ficam entre 0 e ${mx}; moedas nunca ficam abaixo de 0.`, ok: 'Aplicar', campos: [
+    {k: 'moedas', label: 'Moedas', tipo: 'number', placeholder: 'ex.: 100'},
+    {k: 'coracoes', label: `Corações (máx. ${mx})`, tipo: 'number', placeholder: 'ex.: 1'}
+  ], fn: async v => {
+    const moedas = Math.trunc(+v.moedas) || 0, coracoes = Math.trunc(+v.coracoes) || 0;
+    if (!moedas && !coracoes) return toast('Informe moedas ou corações.');
+    await db(sb.rpc('conceder_recursos', {p_users: ids, p_moedas: moedas, p_coracoes: coracoes}));
+    const partes = [];
+    if (moedas) partes.push(`${moedas > 0 ? '+' : ''}${moedas} moeda${Math.abs(moedas) === 1 ? '' : 's'}`);
+    if (coracoes) partes.push(`${coracoes > 0 ? '+' : ''}${coracoes} coraç${Math.abs(coracoes) === 1 ? 'ão' : 'ões'}`);
+    toast(`${partes.join(' e ')} para ${quem}.`);
+    return buscarAlunos();
+  }};
   render();
 }
 
@@ -1109,6 +1137,10 @@ async function act(a, el) {
     /* alunos */
     case 'buscar-alunos': return buscarAlunos();
     case 'plus': { await db(sb.rpc('ativar_plus', {p_user: x, p_dias: +y})); toast(+y > 0 ? `Findout+ ativado por ${y} dias.` : 'Findout+ removido.'); return buscarAlunos(); }
+    case 'sel-aluno': V.alunos.sel[x] = el.checked; return render();
+    case 'sel-todos': { const marca = el.checked; (V.alunos.lista || []).forEach(a => { V.alunos.sel[a.user_id] = marca; }); return render(); }
+    case 'dar': return darRecursos([x]);
+    case 'dar-lote': { const ids = (V.alunos.lista || []).filter(a => V.alunos.sel[a.user_id]).map(a => a.user_id); if (!ids.length) return toast('Marque ao menos um aluno na lista.'); return darRecursos(ids); }
     case 'admin': {
       const a = (V.alunos.lista || []).find(t => t.user_id === x); const nome = a ? a.nome : 'esta pessoa';
       if (y === '1') return confirmar(`Tornar ${nome} administrador?`, 'Ela poderá editar todo o conteúdo, publicar e gerenciar alunos neste painel.', async () => { await db(sb.rpc('definir_admin', {p_user: x, p_admin: true})); toast('Agora é administrador.'); await buscarAlunos(); }, 'Tornar admin');
