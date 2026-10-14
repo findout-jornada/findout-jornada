@@ -519,6 +519,8 @@ async function carregarPacote(versao) {
     else { PK = data.pacote; try { localStorage.setItem('fj-pacote', JSON.stringify(data)); } catch (e) {} }
   }
   QI = {}; (PK.questoes || []).forEach(q => { QI[q.id] = q; });
+  // Matérias sempre em ordem alfabética (a matéria atual do aluno continua sendo a salva no perfil)
+  if (PK && PK.materias) PK.materias.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 }
 async function carregarEstado() {
   const {data, error} = await sb.rpc('estado_aluno');
