@@ -237,22 +237,6 @@ button.card:active{transform:scale(.985)}
 .hero-mascot .mascot{width:112px!important;transform:translateY(6px)}
 .mascot{display:block;flex-shrink:0}
 .mascot canvas,.mascot img{width:100%;height:auto;display:block}
-/* Rapozinha lendo (perfil): livro aberto em CSS na frente da mascote, com página virando */
-.lendo{position:relative;display:inline-flex;flex-shrink:0}
-.lendo .livro{position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);width:56px;height:21px;perspective:240px;pointer-events:none;filter:drop-shadow(0 2px 2px rgba(1,15,46,.25))}
-.lendo .capa{position:absolute;left:-3px;right:-3px;top:-2px;bottom:-4px;background:var(--primary-d);border-radius:4px 4px 7px 7px}
-.lendo .pag{position:absolute;top:0;width:50%;height:100%;box-sizing:border-box;background:#fff repeating-linear-gradient(to bottom,transparent 0 4px,var(--line) 4px 5px);border:1px solid var(--line2)}
-.lendo .pag.esq{left:0;border-radius:4px 1px 1px 4px}
-.lendo .pag.dir{right:0;border-radius:1px 4px 4px 1px}
-.lendo .pag.vira{left:50%;right:auto;border-radius:1px 4px 4px 1px;transform-origin:left center;animation:vira-pagina 3.4s ease-in-out infinite}
-@keyframes vira-pagina{
-  0%,42%{transform:rotateY(0);opacity:1}
-  72%{transform:rotateY(-165deg);opacity:1}
-  74%{transform:rotateY(-165deg);opacity:0}
-  76%,99%{transform:rotateY(0);opacity:0}
-  100%{transform:rotateY(0);opacity:1}
-}
-@media (prefers-reduced-motion:reduce){.lendo .pag.vira{animation:none;opacity:0}}
 .stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .stats3 .stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;height:auto;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:22px}
 .stats3 .stat small{font-size:11px;color:var(--muted);font-family:var(--f-body);font-weight:500}
@@ -1166,7 +1150,7 @@ function screenPerfil() {
   const coroas = Object.values(S.progresso).reduce((n, c) => n + c, 0);
   return `<header class="topbar"><h1>Perfil</h1></header>
   <div class="scroll"><div class="pad">
-    <div class="card" style="padding:16px 16px 20px;display:flex;align-items:center;gap:14px"><span class="lendo">${mascot(68, '', 'Rapozinha lendo um livro')}<span class="livro" aria-hidden="true"><span class="capa"></span><span class="pag esq"></span><span class="pag dir"></span><span class="pag vira"></span></span></span><div class="grow">
+    <div class="card" style="padding:16px;display:flex;align-items:center;gap:14px">${mascot(64)}<div class="grow">
       ${V.editNome ? `<form id="f-nome" style="display:flex;gap:8px;align-items:center"><input class="inp" id="nome-inp" value="${esc(S.perfil.nome)}" maxlength="30" required style="height:40px"><button class="chipbtn" type="submit">Salvar</button></form>`
         : `<span style="font-family:var(--f-display);font-weight:700;font-size:20px">${esc(S.perfil.nome)}</span><span class="sub">${esc(sessao.user.email || '')}</span><button class="btn-ghost" style="height:auto;text-align:left;font-size:13px" data-a="edit-nome">Mudar nome</button>`}</div></div>
     <div class="stats3">
