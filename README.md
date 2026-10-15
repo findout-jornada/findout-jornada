@@ -50,6 +50,10 @@ As questões recebem o campo **assuntos** (separados por vírgula no editor) par
 
 Para ativar: rodar `supabase/migrations/0011_turmas_atividades.sql` e depois `0012_segmentos.sql` no SQL Editor. O app e o painel já estão preparados e mostram um aviso enquanto as migrations não rodam.
 
+## Auditoria (migration 0014)
+
+Tudo que acontece no painel fica registrado na tabela `auditoria`, consultável pelo admin na aba **Auditoria**: alterações de dados (gatilhos nas tabelas de conteúdo, turmas, atividades, perfis e admins, com o antes e o depois de cada campo) e eventos do painel (login, saída, tela aberta, busca de alunos, turma aberta, resultados vistos, cópia de notas e do JSON). Os gatilhos valem mesmo para alterações feitas fora do painel. O que os alunos fazem no app (lições, moedas, ofensiva) não entra, só mudanças de perfil e entrada em turma.
+
 ## Banco de questões
 
 As questões vivem nas migrations de conteúdo (`0005`, `0006`, `0007` e `0013`), gravadas por uma função auxiliar que deriva os ids dos títulos, por isso cada arquivo pode ser rodado de novo sem duplicar. A migration `0013` revisou o banco (8 questões quase repetidas trocadas, 1 enunciado corrigido) e acrescentou 2 seções por matéria: ao todo são 70 seções, 136 unidades, 287 lições e 1.324 questões publicadas em 10 matérias. Regra para novas questões: uma só de verdadeiro/falso e uma só de completar por lição, com enunciados diferentes entre si, porque o id vem do texto do enunciado.
