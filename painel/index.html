@@ -1180,7 +1180,7 @@ function viewResultados() {
 /* =====================================================================
    Auditoria (admin)
    ===================================================================== */
-const ACOES_AUD = {insert: ['Criou', 'pub'], update: ['Alterou', 'draft'], delete: ['Excluiu', ''], login: ['Entrou', 'type'], sair: ['Saiu', 'off'], tela: ['Abriu a tela', 'off'], busca: ['Buscou', 'on'], copia: ['Copiou', 'on'], resultados: ['Viu resultados', 'on'], turma: ['Abriu a turma', 'on']};
+const ACOES_AUD = {insert: ['Criou', 'pub'], update: ['Alterou', 'draft'], delete: ['Excluiu', ''], login: ['Entrou', 'type'], sair: ['Saiu', 'off'], tela: ['Abriu a tela', 'off'], busca: ['Buscou', 'on'], copia: ['Copiou', 'on'], resultados: ['Viu resultados', 'on'], turma: ['Abriu a turma', 'on'], novo_aluno: ['Criou conta', 'pub'], bloqueio: ['Bloqueou', ''], liberacao: ['Liberou', 'pub']};
 const TABELAS_AUD = {materias: 'Matérias', secoes: 'Seções', unidades: 'Unidades', licoes: 'Lições', questoes: 'Questões', licao_questoes: 'Questões da lição', missoes: 'Missões', itens_loja: 'Loja', parametros: 'Parâmetros', publicacoes: 'Publicações', segmentos: 'Segmentos', escolas: 'Escolas', escola_membros: 'Membros da escola', turmas: 'Turmas', turma_professores: 'Professores da turma', turma_alunos: 'Alunos da turma', atividades: 'Atividades', perfis: 'Perfis', admins: 'Administradores', painel: 'Painel', alunos: 'Alunos', resultados: 'Resultados'};
 function viewAuditoria() {
   const A = V.aud, f = A.f;
@@ -1586,6 +1586,7 @@ async function act(a, el) {
       const fazer = async () => {
         const {error} = await sb.functions.invoke('bloquear-aluno', {body: {user_id: x, bloquear: y === '1'}});
         if (error) { let msg = 'Não deu para alterar. A função bloquear-aluno está publicada no Supabase?'; try { msg = (await error.context.json()).erro || msg; } catch (e) {} return toast(msg); }
+        auditar(y === '1' ? 'bloqueio' : 'liberacao', 'alunos', x, (y === '1' ? 'Bloqueou ' : 'Liberou ') + nome, {email: alvo ? alvo.email : null});
         toast(y === '1' ? `${nome} foi bloqueado.` : `${nome} foi liberado.`); return buscarAlunos();
       };
       if (y === '1') return confirmar(`Bloquear ${nome}?`, 'A pessoa não consegue mais entrar no app, mas todos os dados (XP, moedas, progresso) ficam guardados. Dá para liberar de novo quando quiser.', fazer, 'Bloquear');
@@ -1599,6 +1600,7 @@ async function act(a, el) {
       if (v.senha.length < 8) return toast('A senha precisa de pelo menos 8 caracteres.');
       const {error} = await sb.functions.invoke('criar-aluno', {body: {nome: v.nome.trim(), email: v.email.trim(), senha: v.senha}});
       if (error) { let msg = 'Não deu para criar a conta. A função "criar-aluno" está publicada no Supabase?'; try { msg = (await error.context.json()).erro || msg; } catch (e) {} return toast(msg); }
+      auditar('novo_aluno', 'alunos', null, 'Criou a conta de ' + v.nome.trim(), {email: v.email.trim()});
       toast(`Conta criada para ${v.nome.trim()}.`); return buscarAlunos();
     }}; return render();
     case 'admin': {
