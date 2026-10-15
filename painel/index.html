@@ -462,7 +462,11 @@ const souCoord = eid => admin || (T && T.membros.some(m => m.escola_id === eid &
 const STATUS_ATIV = {rascunho: ['Rascunho', 'draft'], aberta: ['Aberta', 'pub'], encerrada: ['Encerrada', 'off']};
 const statusReal = a => a.status === 'aberta' && a.prazo && new Date(a.prazo) < new Date() ? 'encerrada' : a.status;
 const isoLocal = iso => { if (!iso) return ''; const d = new Date(iso), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
-const todosAssuntos = () => { const s = new Set(); D.questoes.forEach(q => (q.assuntos || []).forEach(a => s.add(a))); return [...s].sort((a, b) => a.localeCompare(b, 'pt-BR')); };
+// Assuntos de uma questão: os cadastrados (opcionais) mais o título da unidade, que vale como assunto implícito
+const assuntosDe = q => { const u = unidadeInfo(q.unidade_id); const s = new Set(q.assuntos || []); if (u) s.add(u.u.titulo); return [...s]; };
+const temAssunto = (q, a) => assuntosDe(q).some(x => x.localeCompare(a, 'pt-BR', {sensitivity: 'base'}) === 0);
+const textoBusca = q => (q.enunciado + ' ' + JSON.stringify(q.dados || {}) + ' ' + (q.explicacao || '') + ' ' + assuntosDe(q).join(' ')).toLowerCase();
+const todosAssuntos = (qs = D.questoes) => { const s = new Map(); qs.forEach(q => assuntosDe(q).forEach(a => { const k = a.toLowerCase(); if (!s.has(k)) s.set(k, a); })); return [...s.values()].sort((a, b) => a.localeCompare(b, 'pt-BR')); };
 
 /* helpers de árvore */
 const materiaPorId = id => D.materias.find(m => m.id === id);
@@ -673,7 +677,7 @@ function resumoQ(q) {
 function viewQuestoes() {
   const f = V.qf;
   const unidadesFiltro = f.materia ? todasUnidades().filter(x => x.m.id === f.materia) : [];
-  const lista = D.questoes.filter(q => (!f.materia || q.materia_id === f.materia) && (!f.unidade || q.unidade_id === f.unidade) && (!f.tipo || q.tipo === f.tipo) && (!f.status || q.status === f.status) && (!f.assunto || (q.assuntos || []).includes(f.assunto)) && (!f.busca || (q.enunciado + ' ' + JSON.stringify(q.dados) + ' ' + (q.explicacao || '') + ' ' + (q.assuntos || []).join(' ')).toLowerCase().includes(f.busca.toLowerCase())));
+  const lista = D.questoes.filter(q => (!f.materia || q.materia_id === f.materia) && (!f.unidade || q.unidade_id === f.unidade) && (!f.tipo || q.tipo === f.tipo) && (!f.status || q.status === f.status) && (!f.assunto || temAssunto(q, f.assunto)) && (!f.busca || textoBusca(q).includes(f.busca.toLowerCase())));
   const usadaEm = qid => D.licaoQuestoes.filter(x => x.questao_id === qid).length;
   const assuntos = todosAssuntos();
   const acaoQ = admin ? 'editar-q' : 'prev-q';
@@ -776,7 +780,7 @@ function drawerQuestao() {
       </div></div>` : ''}
       ${formTipo}
       <div class="field"><label for="f-why">Explicação quando erra</label><textarea id="f-why" class="inp" data-f="rascunho.explicacao" placeholder="Resposta correta e o porquê, em uma ou duas frases">${esc(d.explicacao)}</textarea></div>
-      <div class="frow"><div class="field"><label for="f-ass">Assuntos (separe por vírgula)</label><input id="f-ass" class="inp sm" value="${esc(d.assuntos)}" data-f="rascunho.assuntos" placeholder="Ex.: porcentagem, juros simples"></div>
+      <div class="frow"><div class="field"><label for="f-ass">Assuntos (opcional, separe por vírgula)</label><input id="f-ass" class="inp sm" value="${esc(d.assuntos)}" data-f="rascunho.assuntos" placeholder="Ex.: porcentagem, juros simples"></div>
         <div class="field"><label for="f-fonte">Fonte (opcional)</label><input id="f-fonte" class="inp sm" value="${esc(d.fonte)}" data-f="rascunho.fonte" placeholder="Ex.: ENEM 2019, adaptada"></div>
         <div class="field"><label for="f-dif">Dificuldade</label><select id="f-dif" class="inp sm" data-f="rascunho.dificuldade">${Object.entries(DIFICULDADES).map(([k, v]) => `<option value="${k}" ${+d.dificuldade === +k ? 'selected' : ''}>${v}</option>`).join('')}</select></div></div>
       <div class="warnbox" id="qerros" ${errs.length ? '' : 'hidden'}>${I.warn}<span>${errs.join(' ')}</span></div>
@@ -787,7 +791,7 @@ function drawerQuestao() {
         <button class="btn btn-outline" data-a="salvar-q:rascunho">Salvar como rascunho</button>
         ${d.id ? `<button class="btn btn-ghost btn-danger" style="margin-left:auto" data-a="excluir-q">${I.trash}Excluir</button>` : ''}
       </div>
-      <p style="margin:0;font-size:12px;color:var(--muted)">Questões publicadas entram no pacote na próxima vez que você clicar em Publicar. Rascunhos ficam só no painel. Os assuntos ajudam os professores a achar a questão para montar atividades.</p>`}
+      <p style="margin:0;font-size:12px;color:var(--muted)">Questões publicadas entram no pacote na próxima vez que você clicar em Publicar. Rascunhos ficam só no painel. O título da unidade já conta como assunto na busca dos professores; preencha assuntos só para refinar (ex.: "juros compostos").</p>`}
     </div>
     <div class="prevcol"><span class="lab" style="font-size:12px;font-weight:600;color:var(--fg2);align-self:flex-start">Prévia no celular</span><div id="qprev">${previaCelular(d)}</div><span style="font-size:12px;color:var(--muted);text-align:center">A alternativa verde é a correta. O app embaralha alternativas, itens e pares.</span></div>
   </div>`;
@@ -1067,9 +1071,9 @@ function drawerAtividade() {
   const turmas = T ? T.turmas.filter(t => t.ativa || t.id === a.turma_id) : [];
   const ids = new Set(a.questoes.map(q => q.id));
   const unidades = B.materia ? todasUnidades().filter(x => x.m.id === B.materia) : [];
-  const assuntos = todosAssuntos();
+  const assuntos = todosAssuntos(B.materia ? D.questoes.filter(q => q.materia_id === B.materia) : D.questoes);
   const txt = (B.texto || '').trim().toLowerCase();
-  const bate = q => (!B.materia || q.materia_id === B.materia) && (!B.unidade || q.unidade_id === B.unidade) && (!B.assunto || (q.assuntos || []).includes(B.assunto)) && (!txt || (q.enunciado + ' ' + JSON.stringify(q.dados || {}) + ' ' + (q.explicacao || '') + ' ' + (q.assuntos || []).join(' ')).toLowerCase().includes(txt));
+  const bate = q => (!B.materia || q.materia_id === B.materia) && (!B.unidade || q.unidade_id === B.unidade) && (!B.assunto || temAssunto(q, B.assunto)) && (!txt || textoBusca(q).includes(txt));
   const pool = D.questoes.filter(q => q.status === 'publicada' && !ids.has(q.id) && bate(q));
   const total = a.questoes.reduce((s, q) => s + (+q.valor || 0), 0);
   const linhaBanco = q => { const u = unidadeInfo(q.unidade_id); return `<div class="item" style="gap:8px"><span class="pill type" style="font-size:10px">${TIPOS[q.tipo] || q.tipo}</span><span style="flex:1;min-width:0;font-size:13px">${esc(q.enunciado)}<br><span style="font-size:11px;color:var(--muted)">${u ? esc(u.m.sigla) + ' · ' + esc(u.u.titulo) : esc((materiaPorId(q.materia_id) || {}).sigla || '')}${(q.assuntos || []).length ? ' · ' + esc(q.assuntos.join(', ')) : ''}${q.dados && q.dados.dificuldade ? ' · ' + DIFICULDADES[q.dados.dificuldade] : ''}</span></span><button class="btn btn-outline btn-sm" data-a="ativ-add:${q.id}">${I.plus}Usar</button></div>`; };
@@ -1090,7 +1094,7 @@ function drawerAtividade() {
         <div class="toolbar"><input class="inp sm" style="min-width:240px;flex:1" placeholder="Assunto, palavra do enunciado…" value="${esc(B.texto)}" data-f="ativBusca.texto" aria-label="Buscar">
           <select class="inp sm" data-f="ativBusca.materia" aria-label="Matéria"><option value="">Todas as matérias</option>${D.materias.map(m => `<option value="${m.id}" ${B.materia === m.id ? 'selected' : ''}>${esc(m.nome)}</option>`).join('')}</select>
           ${B.materia ? `<select class="inp sm" data-f="ativBusca.unidade" aria-label="Unidade"><option value="">Todas as unidades</option>${unidades.map(x => `<option value="${x.u.id}" ${B.unidade === x.u.id ? 'selected' : ''}>${esc(x.s.titulo)} · ${esc(x.u.titulo)}</option>`).join('')}</select>` : ''}</div>
-        ${assuntos.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span style="font-size:12px;color:var(--muted)">Assuntos:</span>${assuntos.slice(0, 40).map(s => `<button class="pill ${B.assunto === s ? 'type' : 'off'}" data-a="ativ-assunto:${esc(s)}">${esc(s)}</button>`).join('')}</div>` : ''}
+        ${assuntos.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span style="font-size:12px;color:var(--muted)">Assuntos:</span>${assuntos.slice(0, 60).map(s => `<button class="pill ${B.assunto === s ? 'type' : 'off'}" data-a="ativ-assunto:${esc(s)}">${esc(s)}</button>`).join('')}${assuntos.length > 60 ? `<span style="font-size:12px;color:var(--muted)">+${assuntos.length - 60}: escolha a matéria para ver todos</span>` : ''}</div>` : ''}
         <div class="list" style="max-height:360px;overflow-y:auto;border:1.5px solid var(--line);border-radius:10px">${pool.slice(0, 60).map(linhaBanco).join('') || '<div class="empty">Nada com esses filtros.</div>'}${pool.length > 60 ? '<div class="empty">Mostrando 60. Refine a busca.</div>' : ''}</div>
       </div></div>
     <div class="warnbox" ${errs.length ? '' : 'hidden'}>${I.warn}<span>${errs.join(' ')}</span></div>
@@ -1354,7 +1358,7 @@ async function act(a, el) {
     case 'fechar-ativ': V.ativ = null; V.rascunho = null; return render();
     case 'ativ-add': { const q = D.questoes.find(q => q.id === x); if (q && !V.ativ.questoes.some(z => z.id === q.id)) V.ativ.questoes.push(snapshotQ(q)); return render(); }
     case 'ativ-rm': V.ativ.questoes.splice(+x, 1); return render();
-    case 'ativ-assunto': V.ativBusca.assunto = V.ativBusca.assunto === x ? '' : x; return render();
+    case 'ativ-assunto': { const s = a.slice(a.indexOf(':') + 1); V.ativBusca.assunto = V.ativBusca.assunto === s ? '' : s; return render(); }
     case 'ativ-propria': { const d = novoRascunho('mc', V.ativ.materia_id || (D.materias[0] ? D.materias[0].id : null), null); d.destino = 'atividade'; V.rascunho = d; return render(); }
     case 'salvar-ativ': {
       const a = V.ativ; const errs = validarAtiv(a); if (errs.length) return toast(errs[0]);
