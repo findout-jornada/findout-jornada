@@ -179,9 +179,13 @@ input[type=color].inp{padding:2px 4px;width:48px}
 
 .drawer-bg{position:fixed;inset:0;background:rgba(1,15,46,.45);z-index:20}
 .drawer{position:fixed;top:0;right:0;bottom:0;width:min(980px,100%);background:var(--bg);z-index:21;display:grid;grid-template-columns:1fr 360px;overflow:hidden;box-shadow:-8px 0 30px rgba(1,15,46,.25)}
-@media (max-width:860px){.drawer{grid-template-columns:1fr}.drawer .prevcol{display:none}}
 .drawer .formcol{overflow-y:auto;padding:22px 24px 40px;display:flex;flex-direction:column;gap:16px}
 .drawer .prevcol{background:var(--surface2);border-left:1px solid var(--line);padding:22px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;align-items:center}
+/* Em telas estreitas a prévia do celular some (a regra precisa vir depois da base para vencer) */
+@media (max-width:860px){.drawer{grid-template-columns:1fr}.drawer .prevcol{display:none}}
+.qtxt{flex:1 1 180px;min-width:0;font-size:13px}
+.tbl-wide table{min-width:620px}
+.tbl-wide td:first-child,.tbl-wide th:first-child{min-width:220px}
 .drawer-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .drawer-h .right{margin-left:auto;display:flex;gap:8px}
 .optrow{display:flex;align-items:center;gap:8px}
@@ -232,7 +236,10 @@ pre.json{margin:0;background:var(--navy);color:#C5C9E3;padding:14px;border-radiu
 .modal{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 32px));z-index:30;padding:20px;display:flex;flex-direction:column;gap:14px}
 
 @media (max-width:760px){
-  #shell{grid-template-columns:1fr}
+  #shell{grid-template-columns:1fr;grid-template-rows:auto 1fr;align-content:start}
+  .drawer .list>div.item{flex-wrap:wrap}
+  .drawer .list>div.item .mv{margin-left:auto}
+  .tbl-wide table{min-width:560px}
   aside{position:sticky;top:0;z-index:15;height:auto;flex-direction:row;align-items:center;flex-wrap:nowrap;overflow-x:auto;padding:10px 12px;gap:4px;scrollbar-width:none}
   aside::-webkit-scrollbar{display:none}
   .brand{width:auto;padding:0 10px 0 2px;flex-shrink:0}
@@ -1041,15 +1048,15 @@ function viewTurma() {
     </div></div>
     <div class="grid2">
       <div class="card"><div class="card-h"><h2>Alunos</h2><span class="pill type">${nAlunos}</span><span class="right"><button class="btn btn-outline btn-sm" data-a="add-aluno:${t.id}">${I.plus}Adicionar por e-mail</button></span></div>
-        ${A === null ? '<div class="empty">Carregando…</div>' : A.erro ? `<div class="warnbox">${I.warn}<span>${esc(A.erro)}</span></div>` : A.lista.length ? `<div class="tbl-wrap"><table><thead><tr><th>Aluno</th><th>XP</th><th>Ofensiva</th><th>Entregas</th><th></th></tr></thead><tbody>
-          ${A.lista.map(a => `<tr><td><b>${esc(a.nome)}</b><br><span style="font-size:12px;color:var(--muted)">${esc(a.email)} · desde ${fmtDia(a.entrou_em)}</span></td><td class="num">${a.xp}</td><td class="num">${a.ofensiva} d</td><td class="num">${a.entregas} / ${ativs.filter(x => x.status !== 'rascunho').length}</td><td><button class="btn btn-ghost btn-sm" data-a="remover-aluno:${t.id}:${a.user_id}" aria-label="Tirar da turma">${I.trash}</button></td></tr>`).join('')}
+        ${A === null ? '<div class="empty">Carregando…</div>' : A.erro ? `<div class="warnbox">${I.warn}<span>${esc(A.erro)}</span></div>` : A.lista.length ? `<div class="tbl-wrap tbl-wide"><table><thead><tr><th>Aluno</th><th>XP</th><th>Ofensiva</th><th>Entregas</th><th></th></tr></thead><tbody>
+          ${A.lista.map(a => `<tr><td><b>${esc(a.nome)}</b><br><span style="font-size:12px;color:var(--muted);white-space:nowrap">${esc(a.email)} · desde ${fmtDia(a.entrou_em)}</span></td><td class="num">${a.xp}</td><td class="num">${a.ofensiva} d</td><td class="num">${a.entregas} / ${ativs.filter(x => x.status !== 'rascunho').length}</td><td><button class="btn btn-ghost btn-sm" data-a="remover-aluno:${t.id}:${a.user_id}" aria-label="Tirar da turma">${I.trash}</button></td></tr>`).join('')}
         </tbody></table></div>` : `<div class="empty">Nenhum aluno ainda. Passe o código <b>${esc(t.codigo)}</b> para a turma digitar no app, ou adicione pelo e-mail.</div>`}</div>
       <div class="card"><div class="card-h"><h2>Professores</h2><span class="right"><button class="btn btn-outline btn-sm" data-a="add-prof-turma:${t.id}">${I.plus}Professor</button></span></div>
         <div class="list">${profs.map(p => `<div class="item"><span style="flex:1;min-width:0"><b>${esc(nomeDe(p.user_id))}</b><br><span style="font-size:12px;color:var(--muted)">${esc((T.pessoas[p.user_id] || {}).email || '')} · ${p.materia_id ? esc((materiaPorId(p.materia_id) || {}).nome || p.materia_id) : 'todas as matérias'}</span></span>${p.user_id === sessao.user.id ? '<span style="font-size:12px;color:var(--muted)">você</span>' : `<button class="btn btn-ghost btn-sm" data-a="remover-prof:${t.id}:${p.user_id}" aria-label="Remover professor">${I.trash}</button>`}</div>`).join('') || '<div class="empty">Sem professores.</div>'}</div>
         <div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">Cada professor pode ser responsável por uma matéria; as atividades dele ficam com essa matéria por padrão.</div></div>
     </div>
     <div class="card"><div class="card-h"><h2>Atividades desta turma</h2><span class="right"><button class="btn btn-primary btn-sm" data-a="nova-ativ:${t.id}">${I.plus}Nova atividade</button></span></div>
-      ${ativs.length ? `<div class="tbl-wrap"><table><thead><tr><th>Atividade</th><th>Status</th><th>Prazo</th><th>Entregas</th><th></th></tr></thead><tbody>${ativs.map(linhaAtiv).join('')}</tbody></table></div>` : '<div class="empty">Nenhuma atividade. Crie a primeira: escolha questões do banco por assunto ou escreva as suas.</div>'}</div>
+      ${ativs.length ? `<div class="tbl-wrap tbl-wide"><table><thead><tr><th>Atividade</th><th>Status</th><th>Prazo</th><th>Entregas</th><th></th></tr></thead><tbody>${ativs.map(linhaAtiv).join('')}</tbody></table></div>` : '<div class="empty">Nenhuma atividade. Crie a primeira: escolha questões do banco por assunto ou escreva as suas.</div>'}</div>
   </div>`;
 }
 
@@ -1063,7 +1070,7 @@ function viewAtividades() {
     ${avisoTurmas()}
     ${turmas.length ? '' : `<div class="warnbox">${I.warn}<span>Crie uma turma primeiro, na aba Turmas.</span></div>`}
     <div class="toolbar"><select class="inp sm" data-f="ativFiltroTurma" aria-label="Turma"><option value="">Todas as turmas</option>${turmas.map(t => `<option value="${t.id}" ${V.ativFiltroTurma === t.id ? 'selected' : ''}>${esc(t.nome)}</option>`).join('')}</select><span style="color:var(--muted);font-size:13px">${lista.length} atividade${lista.length === 1 ? '' : 's'}</span></div>
-    <div class="card tbl-wrap"><table><thead><tr><th>Atividade</th><th>Turma</th><th>Status</th><th>Prazo</th><th>Entregas</th><th>Média</th><th></th></tr></thead><tbody>
+    <div class="card tbl-wrap tbl-wide"><table><thead><tr><th>Atividade</th><th>Turma</th><th>Status</th><th>Prazo</th><th>Entregas</th><th>Média</th><th></th></tr></thead><tbody>
       ${lista.map(a => { const t = turmaPorId(a.turma_id), st = statusReal(a), ent = entregasDe(a.id), na = alunosDaTurma(a.turma_id).length, media = ent.length ? (ent.reduce((s, e) => s + (+e.nota || 0), 0) / ent.length).toFixed(1).replace('.', ',') : '—';
         return `<tr class="rowbtn" data-a="resultados:${a.id}"><td style="max-width:360px"><b>${esc(a.titulo)}</b><br><span style="font-size:12px;color:var(--muted)">${a.materia_id ? esc((materiaPorId(a.materia_id) || {}).nome || a.materia_id) + ' · ' : ''}${(a.questoes || []).length} questões · por ${esc(nomeDe(a.professor_id))}</span></td><td>${t ? esc(t.nome) : '—'}</td><td><span class="pill ${STATUS_ATIV[st][1]}">${STATUS_ATIV[st][0]}</span></td><td style="white-space:nowrap">${a.prazo ? fmtData(a.prazo) : 'sem prazo'}</td><td class="num">${ent.length} / ${na}</td><td class="num">${media}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" data-a="editar-ativ:${a.id}">${I.edit}Editar</button><button class="btn btn-outline btn-sm" data-a="resultados:${a.id}">Resultados</button></td></tr>`; }).join('')}
       ${lista.length ? '' : '<tr><td colspan="7" class="empty">Nenhuma atividade ainda.</td></tr>'}
@@ -1093,7 +1100,7 @@ function drawerAtividade() {
   const bate = q => (!B.materia || q.materia_id === B.materia) && (!B.unidade || q.unidade_id === B.unidade) && (!B.assunto || temAssunto(q, B.assunto)) && (!B.segmento || !(q.segmentos || []).length || q.segmentos.includes(B.segmento)) && (!B.nivel || +(q.dados || {}).dificuldade === +B.nivel) && (!txt || textoBusca(q).includes(txt));
   const pool = D.questoes.filter(q => q.status === 'publicada' && !ids.has(q.id) && bate(q));
   const total = a.questoes.reduce((s, q) => s + (+q.valor || 0), 0);
-  const linhaBanco = q => { const u = unidadeInfo(q.unidade_id); return `<div class="item" style="gap:8px"><span class="pill type" style="font-size:10px">${TIPOS[q.tipo] || q.tipo}</span><span style="flex:1;min-width:0;font-size:13px">${esc(q.enunciado)}<br><span style="font-size:11px;color:var(--muted)">${u ? esc(u.m.sigla) + ' · ' + esc(u.u.titulo) : esc((materiaPorId(q.materia_id) || {}).sigla || '')}${(q.assuntos || []).length ? ' · ' + esc(q.assuntos.join(', ')) : ''}</span><span style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">${nivelPill(q)}${segPills(q)}</span></span><button class="btn btn-outline btn-sm" data-a="ativ-add:${q.id}">${I.plus}Usar</button></div>`; };
+  const linhaBanco = q => { const u = unidadeInfo(q.unidade_id); return `<div class="item" style="gap:8px"><span class="pill type" style="font-size:10px">${TIPOS[q.tipo] || q.tipo}</span><span class="qtxt">${esc(q.enunciado)}<br><span style="font-size:11px;color:var(--muted)">${u ? esc(u.m.sigla) + ' · ' + esc(u.u.titulo) : esc((materiaPorId(q.materia_id) || {}).sigla || '')}${(q.assuntos || []).length ? ' · ' + esc(q.assuntos.join(', ')) : ''}</span><span style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">${nivelPill(q)}${segPills(q)}</span></span><button class="btn btn-outline btn-sm" data-a="ativ-add:${q.id}">${I.plus}Usar</button></div>`; };
   return `<div class="drawer-bg" data-a="fechar-ativ"></div><div class="drawer" role="dialog" aria-modal="true" aria-labelledby="da-t" style="grid-template-columns:1fr;width:min(860px,100%)"><div class="formcol">
     <div class="drawer-h"><h2 id="da-t">${a.id ? 'Editar atividade' : 'Nova atividade'}</h2><span class="pill ${STATUS_ATIV[a.status][1]}">${STATUS_ATIV[a.status][0]}</span><span class="right"><button class="btn btn-ghost" data-a="fechar-ativ" aria-label="Fechar">${I.close}</button></span></div>
     <div class="frow">
@@ -1104,7 +1111,7 @@ function drawerAtividade() {
     </div>
     <div class="field"><label for="a-desc">Orientações para o aluno (opcional)</label><textarea id="a-desc" class="inp" data-f="ativ.descricao" placeholder="Ex.: Revise o capítulo 4 antes. Vale ponto na média.">${esc(a.descricao)}</textarea></div>
     <div class="card"><div class="card-h"><h2>Questões da atividade</h2><span class="pill type">${a.questoes.length}</span><span class="right" style="font-size:12px;color:var(--muted)">Total: <b class="num">${String(total).replace('.', ',')}</b> ponto${total === 1 ? '' : 's'} · nota de 0 a 10 proporcional</span></div>
-      <div class="list">${a.questoes.map((q, i) => `<div class="item" style="gap:8px"><b class="num" style="color:var(--muted);width:20px">${i + 1}</b><span class="pill type" style="font-size:10px">${TIPOS[q.tipo] || q.tipo}</span><span style="flex:1;min-width:0;font-size:13px">${esc(q.enunciado)}${q.origem === 'propria' ? ' <span class="pill draft" style="font-size:10px">própria</span>' : ''}</span><label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)">vale <input type="number" min="0" step="0.5" class="inp sm" style="width:64px" value="${q.valor}" data-f="ativ.questoes.${i}.valor" aria-label="Valor da questão ${i + 1}"></label>${mover('ativq', String(i))}<button class="btn btn-ghost btn-sm" data-a="ativ-rm:${i}" aria-label="Tirar questão">${I.trash}</button></div>`).join('') || '<div class="empty">Nenhuma questão ainda. Busque no banco abaixo ou crie a sua.</div>'}</div>
+      <div class="list">${a.questoes.map((q, i) => `<div class="item" style="gap:8px"><b class="num" style="color:var(--muted);width:20px">${i + 1}</b><span class="pill type" style="font-size:10px">${TIPOS[q.tipo] || q.tipo}</span><span class="qtxt">${esc(q.enunciado)}${q.origem === 'propria' ? ' <span class="pill draft" style="font-size:10px">própria</span>' : ''}</span><label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)">vale <input type="number" min="0" step="0.5" class="inp sm" style="width:64px" value="${q.valor}" data-f="ativ.questoes.${i}.valor" aria-label="Valor da questão ${i + 1}"></label>${mover('ativq', String(i))}<button class="btn btn-ghost btn-sm" data-a="ativ-rm:${i}" aria-label="Tirar questão">${I.trash}</button></div>`).join('') || '<div class="empty">Nenhuma questão ainda. Busque no banco abaixo ou crie a sua.</div>'}</div>
       <div class="card-b" style="padding-top:12px;display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line)"><button class="btn btn-outline btn-sm" data-a="ativ-propria">${I.plus}Criar questão própria</button><span style="font-size:12px;color:var(--muted);align-self:center">A ordem acima é a ordem que o aluno vê. O app embaralha só as alternativas.</span></div></div>
     <div class="card"><div class="card-h"><h2>Buscar no banco de questões</h2><span class="right" style="font-size:12px;color:var(--muted)">${pool.length} encontrada${pool.length === 1 ? '' : 's'}</span></div>
       <div class="card-b" style="display:flex;flex-direction:column;gap:10px">
@@ -1142,7 +1149,7 @@ function viewResultados() {
       <div class="tile"><span class="lbl">Acerto médio</span><span class="val num">${(() => { const e = d.alunos.filter(x => x.entregueEm); const tot = e.reduce((s, x) => s + (x.total || 0), 0); return tot ? pct(e.reduce((s, x) => s + (x.acertos || 0), 0), tot) + '%' : '—'; })()}</span></div>
     </div>
     <div class="grid2">
-      <div class="card"><div class="card-h"><h2>Alunos</h2><span class="right"><button class="btn btn-ghost btn-sm" data-a="copiar-notas">${I.copy}Copiar notas</button></span></div><div class="tbl-wrap"><table><thead><tr><th>Aluno</th><th>Nota</th><th>Acertos</th><th>Entregue</th></tr></thead><tbody>
+      <div class="card"><div class="card-h"><h2>Alunos</h2><span class="right"><button class="btn btn-ghost btn-sm" data-a="copiar-notas">${I.copy}Copiar notas</button></span></div><div class="tbl-wrap tbl-wide"><table><thead><tr><th>Aluno</th><th>Nota</th><th>Acertos</th><th>Entregue</th></tr></thead><tbody>
         ${d.alunos.map(x => `<tr><td><b>${esc(x.nome)}</b><br><span style="font-size:12px;color:var(--muted)">${esc(x.email || '')}</span></td><td class="num" style="font-weight:700;color:${x.entregueEm ? (x.nota >= 6 ? 'var(--green-d)' : 'var(--red-d)') : 'var(--muted)'}">${x.entregueEm ? fmtNota(x.nota) : '—'}</td><td class="num">${x.entregueEm ? `${x.acertos} / ${x.total}` : '—'}</td><td style="font-size:12px;white-space:nowrap">${x.entregueEm ? fmtData(x.entregueEm) + (x.tempo_s ? ` · ${Math.max(1, Math.round(x.tempo_s / 60))} min` : '') : x.iniciadaEm ? '<span class="pill draft">começou</span>' : '<span class="pill off">não fez</span>'}</td></tr>`).join('')}
         ${d.alunos.length ? '' : '<tr><td colspan="4" class="empty">A turma ainda não tem alunos.</td></tr>'}
       </tbody></table></div></div>

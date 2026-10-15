@@ -29,10 +29,17 @@
 }
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;background:var(--backdrop);color:var(--navy);font-family:var(--f-body);font-size:15px;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
-@media (min-width:520px){
+@supports (height:100dvh){html,body{height:100dvh}}
+body{margin:0;background:var(--bg);color:var(--navy);font-family:var(--f-body);font-size:15px;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+/* Celular e tablet (toque): o app ocupa a tela inteira. No tablet largo, fica numa coluna central. */
+@media (min-width:600px) and (pointer:coarse){
+  body{background:var(--backdrop);display:flex;justify-content:center}
+  #app{max-width:520px;border-left:1px solid var(--line);border-right:1px solid var(--line)}
+}
+/* Computador (mouse): moldura de celular no meio da tela */
+@media (min-width:520px) and (hover:hover) and (pointer:fine){
   body{background:#0B1230;background-image:radial-gradient(900px 520px at 15% -10%,rgba(142,127,207,.55),transparent 60%),radial-gradient(760px 480px at 100% 110%,rgba(76,195,193,.45),transparent 55%),radial-gradient(500px 300px at 80% 10%,rgba(255,211,106,.18),transparent 60%);display:flex;align-items:center;justify-content:center;padding:24px 16px}
-  #app{height:min(100%,880px);border-radius:40px;border:10px solid #070C22;box-shadow:0 0 0 2px rgba(255,255,255,.08),0 40px 90px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.04)}
+  #app{max-width:430px;height:min(100%,880px);border-radius:40px;border:10px solid #070C22;box-shadow:0 0 0 2px rgba(255,255,255,.08),0 40px 90px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.04)}
   .nav{margin-bottom:14px}
 }
 button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}
@@ -41,7 +48,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(-
 a{color:inherit;text-decoration:none}
 svg{flex-shrink:0}
 input{font:inherit}
-#app{height:100%;width:100%;max-width:430px;margin:0 auto;background:var(--bg);background-image:radial-gradient(600px 300px at 50% -80px,rgba(142,127,207,.18),transparent 70%);display:flex;flex-direction:column;position:relative;overflow:hidden}
+#app{height:100%;width:100%;margin:0 auto;background:var(--bg);background-image:radial-gradient(600px 300px at 50% -80px,rgba(142,127,207,.18),transparent 70%);display:flex;flex-direction:column;position:relative;overflow:hidden}
 .px{font-family:var(--f-pixel);letter-spacing:.02em}
 .num{font-family:var(--f-display);font-variant-numeric:tabular-nums}
 .pxbtn{box-shadow:4px 4px 0 var(--sh,var(--navy));transition:transform .06s}
