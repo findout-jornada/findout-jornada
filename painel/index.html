@@ -416,14 +416,24 @@ function slug(s) { return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toL
 /* =====================================================================
    Carregamento
    ===================================================================== */
+/* O Supabase devolve no máximo 1.000 linhas por consulta; esta função busca em páginas até acabar */
+async function tudo(consulta) {
+  const linhas = [];
+  for (let i = 0; ; i += 1000) {
+    const {data, error} = await consulta().range(i, i + 999);
+    if (error) return {data: null, error};
+    linhas.push(...(data || []));
+    if (!data || data.length < 1000) return {data: linhas, error: null};
+  }
+}
 async function carregar() {
   const r = await Promise.all([
-    sb.from('materias').select('*').order('ordem').order('nome'),
-    sb.from('secoes').select('*').order('ordem'),
-    sb.from('unidades').select('*').order('ordem'),
-    sb.from('licoes').select('*').order('ordem'),
-    sb.from('questoes').select('*').order('criada_em', {ascending: false}),
-    sb.from('licao_questoes').select('*').order('ordem'),
+    tudo(() => sb.from('materias').select('*').order('ordem').order('nome')),
+    tudo(() => sb.from('secoes').select('*').order('ordem')),
+    tudo(() => sb.from('unidades').select('*').order('ordem')),
+    tudo(() => sb.from('licoes').select('*').order('ordem')),
+    tudo(() => sb.from('questoes').select('*').order('criada_em', {ascending: false}).order('id')),
+    tudo(() => sb.from('licao_questoes').select('*').order('licao_id').order('ordem')),
     sb.from('missoes').select('*').order('ordem'),
     sb.from('itens_loja').select('*').order('ordem'),
     sb.from('parametros').select('*'),
@@ -453,9 +463,9 @@ async function carregarTurmas() {
     sb.from('escola_membros').select('*'),
     sb.from('turmas').select('*').order('nome'),
     sb.from('turma_professores').select('*'),
-    sb.from('turma_alunos').select('*'),
-    sb.from('atividades').select('*').order('criada_em', {ascending: false}),
-    sb.from('atividade_entregas').select('atividade_id,user_id,nota,acertos,total,entregue_em'),
+    tudo(() => sb.from('turma_alunos').select('*').order('turma_id').order('user_id')),
+    tudo(() => sb.from('atividades').select('*').order('criada_em', {ascending: false}).order('id')),
+    tudo(() => sb.from('atividade_entregas').select('atividade_id,user_id,nota,acertos,total,entregue_em').order('atividade_id').order('user_id')),
     sb.rpc('pessoas_das_turmas')
   ]);
   const erro = r.find(x => x.error);
