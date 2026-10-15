@@ -46,6 +46,8 @@ Fluxo:
 
 As questões recebem o campo **assuntos** (separados por vírgula no editor) para a busca por assunto. A correção é feita no servidor (`entregar_atividade`) a partir da cópia das questões guardada na atividade, então editar a questão no banco depois não muda a atividade.
 
-Para ativar: rodar `supabase/migrations/0011_turmas_atividades.sql` no SQL Editor. O app e o painel já estão preparados e mostram um aviso enquanto a migration não roda.
+**Segmentos (migration 0012):** o admin cadastra os segmentos de ensino (Fundamental II, Ensino Médio, Pré-vestibular…) na aba Turmas. Cada turma pertence a um segmento e cada questão pode indicar para quais segmentos serve (opcional; vazio = todos). Na busca do professor, o segmento da turma entra como filtro padrão e cada questão mostra o nível (fácil, média, difícil) e o segmento.
+
+Para ativar: rodar `supabase/migrations/0011_turmas_atividades.sql` e depois `0012_segmentos.sql` no SQL Editor. O app e o painel já estão preparados e mostram um aviso enquanto as migrations não rodam.
 
 Plano de trabalho semana a semana: [PLANO.md](PLANO.md). O que ficou para depois do lançamento: [DEPOIS.md](DEPOIS.md).

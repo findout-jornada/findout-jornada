@@ -297,6 +297,11 @@ const TIPOS = {mc: 'Múltipla escolha', tf: 'Verdadeiro ou falso', bank: 'Comple
 const TIPO_DESC = {mc: '4 alternativas, 1 correta', tf: 'Afirmação para julgar', bank: '2 lacunas + banco de palavras', order: 'Itens na ordem certa', match: '4 pares para ligar'};
 const TIPOS_MISSAO = {xp: 'Ganhar XP', combo: 'Acertos seguidos', materias: 'Matérias diferentes', licoes: 'Lições concluídas', perfeita: 'Lições perfeitas', revisao: 'Revisão diária', minutos: 'Minutos praticando'};
 const DIFICULDADES = {1: 'Fácil', 2: 'Média', 3: 'Difícil'};
+const SEG_PADRAO = [{id: 'fund1', nome: 'Fundamental I (1º ao 5º ano)', ordem: 0, ativo: true}, {id: 'fund2', nome: 'Fundamental II (6º ao 9º ano)', ordem: 1, ativo: true}, {id: 'medio', nome: 'Ensino Médio', ordem: 2, ativo: true}, {id: 'prevest', nome: 'Pré-vestibular / ENEM', ordem: 3, ativo: true}, {id: 'eja', nome: 'EJA', ordem: 4, ativo: true}];
+const segNome = id => { const s = (D.segmentos || []).find(s => s.id === id); return s ? s.nome : (id || '—'); };
+const segAtivos = () => (D.segmentos || []).filter(s => s.ativo);
+const nivelPill = q => { const n = q.dados && q.dados.dificuldade; return n ? `<span class="pill ${n === 1 ? 'pub' : n === 3 ? 'draft' : 'off'}" style="font-size:10px">${DIFICULDADES[n]}</span>` : ''; };
+const segPills = q => (q.segmentos || []).length ? q.segmentos.map(s => `<span class="pill on" style="font-size:10px">${esc(segNome(s))}</span>`).join(' ') : '<span class="pill off" style="font-size:10px">todos os segmentos</span>';
 const PADRAO = {
   economia: {coracoes: 5, horasCoracao: 5, custoRecarga: 350, custoCongelador: 200, maxCongeladores: 2, xpLicao: 15, xpPratica: 5, xpExercicio: 10, comboAPartirDe: 3, bonusCombo: 5, bonusPerfeita: 5, moedasLicao: 10, moedasBau: 25, xpLendaria: 40, moedasLendaria: 100, xpPular: 20, moedasPular: 20, acertosPular: 4, questoesPular: 5, tamanhoLicao: 5, segundosRelampago: 120, multiplicadorRelampago: 2, xpRevisao: 20, moedasRevisao: 10, tamanhoRevisao: 8, xpErros: 10, moedasIniciais: 100, xpAtividade: 20},
   ligas: {tamanho: 15, sobem: 7, caem: 5, moedasTop3: 200, niveis: ['Bronze', 'Prata', 'Ouro', 'Safira', 'Rubi', 'Esmeralda', 'Diamante']},
@@ -333,8 +338,8 @@ const I = {
    Estado
    ===================================================================== */
 let sessao = null, admin = false, papel = 'aluno', D = null, T = null, mostrando = '';
-let V = {view: 'inicio', qf: {materia: '', unidade: '', tipo: '', status: '', busca: '', assunto: ''}, materia: null, rascunho: null, licaoAtribuir: null, alunoGerenciar: null, confirmar: null, modal: null, alunos: {busca: '', lista: null, carregando: false, erro: null, sel: {}}, metricas: null, metricasErro: null, salvando: 0, notaPub: '', jsonVersao: null, jsonTexto: '',
-  turma: null, turmaAlunos: null, ativ: null, ativBusca: {texto: '', materia: '', unidade: '', assunto: ''}, ativFiltroTurma: '', resultados: null, modalPrev: null};
+let V = {view: 'inicio', qf: {materia: '', unidade: '', tipo: '', status: '', busca: '', assunto: '', segmento: '', nivel: ''}, materia: null, rascunho: null, licaoAtribuir: null, alunoGerenciar: null, confirmar: null, modal: null, alunos: {busca: '', lista: null, carregando: false, erro: null, sel: {}}, metricas: null, metricasErro: null, salvando: 0, notaPub: '', jsonVersao: null, jsonTexto: '',
+  turma: null, turmaAlunos: null, ativ: null, ativBusca: {texto: '', materia: '', unidade: '', assunto: '', segmento: '', nivel: ''}, ativFiltroTurma: '', resultados: null, modalPrev: null};
 const PAPEIS = {aluno: 'Aluno', professor: 'Professor', coordenador: 'Coordenador'};
 const educador = () => admin || papel === 'professor' || papel === 'coordenador';
 let toastTimer;
@@ -423,7 +428,10 @@ async function carregar() {
   const param = {};
   pa.forEach(p => { param[p.chave] = p.valor; });
   ['economia', 'ligas', 'missoes'].forEach(k => { param[k] = Object.assign(JSON.parse(JSON.stringify(PADRAO[k])), param[k] || {}); });
-  D = {materias: m, secoes: s, unidades: u, licoes: l, questoes: q, licaoQuestoes: lq, missoes: mi, loja: lo, param, publicacoes: pu, ultimoPacote: ult ? ult.pacote : null};
+  D = {materias: m, secoes: s, unidades: u, licoes: l, questoes: q, licaoQuestoes: lq, missoes: mi, loja: lo, param, publicacoes: pu, ultimoPacote: ult ? ult.pacote : null, segmentos: SEG_PADRAO, segmentosErro: null};
+  // Segmentos chegam na migration 0012; sem ela, usa a lista padrão só para exibir
+  const seg = await sb.from('segmentos').select('*').order('ordem').order('nome');
+  if (seg.error) D.segmentosErro = traduzErro(seg.error.message); else D.segmentos = seg.data || [];
   if (!V.materia || !D.materias.some(x => x.id === V.materia)) V.materia = D.materias[0] ? D.materias[0].id : null;
 }
 async function carregarMetricas() {
@@ -677,7 +685,7 @@ function resumoQ(q) {
 function viewQuestoes() {
   const f = V.qf;
   const unidadesFiltro = f.materia ? todasUnidades().filter(x => x.m.id === f.materia) : [];
-  const lista = D.questoes.filter(q => (!f.materia || q.materia_id === f.materia) && (!f.unidade || q.unidade_id === f.unidade) && (!f.tipo || q.tipo === f.tipo) && (!f.status || q.status === f.status) && (!f.assunto || temAssunto(q, f.assunto)) && (!f.busca || textoBusca(q).includes(f.busca.toLowerCase())));
+  const lista = D.questoes.filter(q => (!f.materia || q.materia_id === f.materia) && (!f.unidade || q.unidade_id === f.unidade) && (!f.tipo || q.tipo === f.tipo) && (!f.status || q.status === f.status) && (!f.assunto || temAssunto(q, f.assunto)) && (!f.segmento || !(q.segmentos || []).length || q.segmentos.includes(f.segmento)) && (!f.nivel || +(q.dados || {}).dificuldade === +f.nivel) && (!f.busca || textoBusca(q).includes(f.busca.toLowerCase())));
   const usadaEm = qid => D.licaoQuestoes.filter(x => x.questao_id === qid).length;
   const assuntos = todosAssuntos();
   const acaoQ = admin ? 'editar-q' : 'prev-q';
@@ -685,6 +693,8 @@ function viewQuestoes() {
     <div class="toolbar">
       <input class="inp sm" placeholder="Buscar por assunto, enunciado, alternativa ou explicação…" value="${esc(f.busca)}" data-f="qf.busca" aria-label="Buscar" style="min-width:260px">
       ${assuntos.length ? `<select class="inp sm" data-f="qf.assunto" aria-label="Assunto"><option value="">Todos os assuntos</option>${assuntos.map(a => `<option value="${esc(a)}" ${f.assunto === a ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select>` : ''}
+      <select class="inp sm" data-f="qf.segmento" aria-label="Segmento"><option value="">Todos os segmentos</option>${segAtivos().map(s => `<option value="${esc(s.id)}" ${f.segmento === s.id ? 'selected' : ''}>${esc(s.nome)}</option>`).join('')}</select>
+      <select class="inp sm" data-f="qf.nivel" aria-label="Nível"><option value="">Todos os níveis</option>${Object.entries(DIFICULDADES).map(([k, v]) => `<option value="${k}" ${f.nivel === k ? 'selected' : ''}>${v}</option>`).join('')}</select>
       <select class="inp sm" data-f="qf.materia" aria-label="Matéria"><option value="">Todas as matérias</option>${D.materias.map(m => `<option value="${m.id}" ${f.materia === m.id ? 'selected' : ''}>${esc(m.nome)}</option>`).join('')}</select>
       ${f.materia ? `<select class="inp sm" data-f="qf.unidade" aria-label="Unidade"><option value="">Todas as unidades</option>${unidadesFiltro.map(x => `<option value="${x.u.id}" ${f.unidade === x.u.id ? 'selected' : ''}>${esc(x.s.titulo)} · ${esc(x.u.titulo)}</option>`).join('')}</select>` : ''}
       <select class="inp sm" data-f="qf.tipo" aria-label="Tipo"><option value="">Todos os tipos</option>${Object.entries(TIPOS).map(([k, v]) => `<option value="${k}" ${f.tipo === k ? 'selected' : ''}>${v}</option>`).join('')}</select>
@@ -693,7 +703,7 @@ function viewQuestoes() {
     </div>
     <div class="card tbl-wrap"><table><thead><tr><th></th><th>Enunciado</th><th>Tipo</th><th>Matéria · unidade</th><th>Usada em</th><th>Status</th><th></th></tr></thead><tbody>
       ${lista.map(q => { const u = unidadeInfo(q.unidade_id); const m = materiaPorId(q.materia_id); const used = usadaEm(q.id); const x = q.dados || {};
-        return `<tr class="rowbtn" data-a="${acaoQ}:${q.id}"><td style="width:52px">${q.imagem_url ? `<img class="thumb" src="${esc(q.imagem_url)}" alt="">` : ''}</td><td style="max-width:420px"><b>${esc(q.enunciado)}</b><div style="color:var(--muted);font-size:12px">${resumoQ(q)}${x.fonte ? ' · <i>' + esc(x.fonte) + '</i>' : ''}${x.dificuldade ? ' · ' + DIFICULDADES[x.dificuldade] : ''}</div>${(q.assuntos || []).length ? `<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">${q.assuntos.map(a => `<span class="pill on" style="font-size:10px">${esc(a)}</span>`).join('')}</div>` : ''}</td>
+        return `<tr class="rowbtn" data-a="${acaoQ}:${q.id}"><td style="width:52px">${q.imagem_url ? `<img class="thumb" src="${esc(q.imagem_url)}" alt="">` : ''}</td><td style="max-width:420px"><b>${esc(q.enunciado)}</b><div style="color:var(--muted);font-size:12px">${resumoQ(q)}${x.fonte ? ' · <i>' + esc(x.fonte) + '</i>' : ''}</div><div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">${nivelPill(q)}${segPills(q)}${(q.assuntos || []).map(a => `<span class="pill type" style="font-size:10px">${esc(a)}</span>`).join('')}</div></td>
         <td><span class="pill type">${TIPOS[q.tipo] || q.tipo}</span></td><td style="font-size:12px"><b>${m ? esc(m.nome) : '<span style="color:var(--red-d)">matéria removida</span>'}</b><br><span style="color:var(--muted)">${u ? esc(u.u.titulo) : '<span style="color:var(--orange-d)">sem unidade</span>'}</span></td>
         <td class="num">${used} ${used === 1 ? 'lição' : 'lições'}</td><td><span class="pill ${q.status === 'publicada' ? 'pub' : 'draft'}">${q.status === 'publicada' ? 'publicada' : 'rascunho'}</span></td>
         <td><button class="btn btn-ghost btn-sm" data-a="${acaoQ}:${q.id}">${admin ? I.edit + 'Editar' : 'Ver'}</button></td></tr>`; }).join('')}
@@ -701,12 +711,12 @@ function viewQuestoes() {
     </tbody></table></div></div>`;
 }
 function novoRascunho(tipo = 'mc', materia_id = null, unidade_id = null) {
-  return {id: null, tipo, materia_id, unidade_id, status: 'rascunho', enunciado: '', explicacao: '', imagem_url: null, fonte: '', dificuldade: 2, assuntos: '', destino: 'banco', opts: ['', '', '', ''], a: 0, stmt: '', parts: ['', '', ''], ans: ['', ''], extra: ['', ''], items: ['', '', '', ''], pairs: [['', ''], ['', ''], ['', ''], ['', '']], enviando: false};
+  return {id: null, tipo, materia_id, unidade_id, status: 'rascunho', enunciado: '', explicacao: '', imagem_url: null, fonte: '', dificuldade: 2, assuntos: '', segmentos: [], destino: 'banco', opts: ['', '', '', ''], a: 0, stmt: '', parts: ['', '', ''], ans: ['', ''], extra: ['', ''], items: ['', '', '', ''], pairs: [['', ''], ['', ''], ['', ''], ['', '']], enviando: false};
 }
 const listaAssuntos = s => [...new Set(String(s || '').split(/[,;]/).map(a => a.trim().replace(/\s+/g, ' ')).filter(Boolean))];
 function rascunhoDe(q) {
   const d = novoRascunho(q.tipo, q.materia_id, q.unidade_id); const x = q.dados || {};
-  d.id = q.id; d.status = q.status; d.enunciado = q.enunciado || ''; d.explicacao = q.explicacao || ''; d.imagem_url = q.imagem_url || null; d.fonte = x.fonte || ''; d.dificuldade = x.dificuldade || 2; d.assuntos = (q.assuntos || []).join(', ');
+  d.id = q.id; d.status = q.status; d.enunciado = q.enunciado || ''; d.explicacao = q.explicacao || ''; d.imagem_url = q.imagem_url || null; d.fonte = x.fonte || ''; d.dificuldade = x.dificuldade || 2; d.assuntos = (q.assuntos || []).join(', '); d.segmentos = (q.segmentos || []).slice();
   const completa = (arr, min, vazio) => { const a = (arr || []).map(v => Array.isArray(v) ? v.slice() : v); while (a.length < min) a.push(Array.isArray(vazio) ? vazio.slice() : vazio); return a; };
   if (q.tipo === 'mc') { d.opts = completa(x.opts, 4, ''); d.a = +x.a || 0; }
   if (q.tipo === 'tf') { d.stmt = x.stmt || ''; d.a = !!x.a; }
@@ -725,7 +735,7 @@ function rascunhoParaLinha(d, status) {
   else dados = {pairs: d.pairs.map(p => [t(p[0]), t(p[1])]).filter(p => p[0] && p[1])};
   if (t(d.fonte)) dados.fonte = t(d.fonte);
   if (+d.dificuldade) dados.dificuldade = +d.dificuldade;
-  return {materia_id: d.materia_id, unidade_id: d.unidade_id || null, tipo: d.tipo, enunciado: t(d.enunciado), explicacao: t(d.explicacao), imagem_url: d.imagem_url || null, dados, status, assuntos: listaAssuntos(d.assuntos), atualizada_em: agora()};
+  return {materia_id: d.materia_id, unidade_id: d.unidade_id || null, tipo: d.tipo, enunciado: t(d.enunciado), explicacao: t(d.explicacao), imagem_url: d.imagem_url || null, dados, status, assuntos: listaAssuntos(d.assuntos), segmentos: (d.segmentos || []).slice(), atualizada_em: agora()};
 }
 function validar(d) {
   const e = []; const t = s => String(s || '').trim();
@@ -782,7 +792,8 @@ function drawerQuestao() {
       <div class="field"><label for="f-why">Explicação quando erra</label><textarea id="f-why" class="inp" data-f="rascunho.explicacao" placeholder="Resposta correta e o porquê, em uma ou duas frases">${esc(d.explicacao)}</textarea></div>
       <div class="frow"><div class="field"><label for="f-ass">Assuntos (opcional, separe por vírgula)</label><input id="f-ass" class="inp sm" value="${esc(d.assuntos)}" data-f="rascunho.assuntos" placeholder="Ex.: porcentagem, juros simples"></div>
         <div class="field"><label for="f-fonte">Fonte (opcional)</label><input id="f-fonte" class="inp sm" value="${esc(d.fonte)}" data-f="rascunho.fonte" placeholder="Ex.: ENEM 2019, adaptada"></div>
-        <div class="field"><label for="f-dif">Dificuldade</label><select id="f-dif" class="inp sm" data-f="rascunho.dificuldade">${Object.entries(DIFICULDADES).map(([k, v]) => `<option value="${k}" ${+d.dificuldade === +k ? 'selected' : ''}>${v}</option>`).join('')}</select></div></div>
+        <div class="field"><label for="f-dif">Nível</label><select id="f-dif" class="inp sm" data-f="rascunho.dificuldade">${Object.entries(DIFICULDADES).map(([k, v]) => `<option value="${k}" ${+d.dificuldade === +k ? 'selected' : ''}>${v}</option>`).join('')}</select></div></div>
+      <div class="field"><span class="lab">Indicada para (opcional; nada marcado = todos os segmentos)</span><div style="display:flex;gap:6px 14px;flex-wrap:wrap">${segAtivos().map(s => `<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" data-a="rascunho-seg:${esc(s.id)}" ${(d.segmentos || []).includes(s.id) ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--primary)">${esc(s.nome)}</label>`).join('') || '<span style="font-size:12px;color:var(--muted)">Nenhum segmento cadastrado.</span>'}</div></div>
       <div class="warnbox" id="qerros" ${errs.length ? '' : 'hidden'}>${I.warn}<span>${errs.join(' ')}</span></div>
       ${paraAtiv ? `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn btn-primary" data-a="salvar-q:atividade" ${errs.length ? 'disabled' : ''}>${I.check}Adicionar à atividade</button><button class="btn btn-ghost" data-a="fechar">Cancelar</button></div>
       <p style="margin:0;font-size:12px;color:var(--muted)">Esta questão fica só nesta atividade; ela não entra no banco nem na trilha do app.</p>`
@@ -1001,11 +1012,16 @@ function viewTurmas() {
   const cardTurma = t => { const na = alunosDaTurma(t.id).length, ativs = T.atividades.filter(a => a.turma_id === t.id), abertas = ativs.filter(a => statusReal(a) === 'aberta').length; const esc_ = escolaPorId(t.escola_id); const profs = profsDaTurma(t.id);
     return `<button class="card" style="text-align:left;padding:16px;display:flex;flex-direction:column;gap:8px;${t.ativa ? '' : 'opacity:.6'}" data-a="abrir-turma:${t.id}">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h2 style="flex:1;min-width:0">${esc(t.nome)}</h2>${t.ativa ? '' : '<span class="pill off">inativa</span>'}<span class="pill type" style="font-family:var(--f-display);letter-spacing:.1em">${esc(t.codigo)}</span></div>
-      <span style="font-size:12px;color:var(--muted)">${esc_ ? esc(esc_.nome) : 'Sem escola'} · ${profs.map(p => nomeDe(p.user_id)).join(', ') || 'sem professor'}</span>
+      <span style="font-size:12px;color:var(--muted)">${esc_ ? esc(esc_.nome) : 'Sem escola'}${t.segmento_id ? ' · ' + esc(segNome(t.segmento_id)) : ''} · ${profs.map(p => nomeDe(p.user_id)).join(', ') || 'sem professor'}</span>
       <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="stat s-li">${I.users}<span class="num">${na}</span>&nbsp;aluno${na === 1 ? '' : 's'}</span><span class="stat s-xp">${I.bolt}<span class="num">${abertas}</span>&nbsp;aberta${abertas === 1 ? '' : 's'}</span><span class="stat">${I.book}<span class="num">${ativs.length}</span>&nbsp;atividade${ativs.length === 1 ? '' : 's'}</span></div></button>`; };
   return topbar('Turmas', admin ? 'Todas as escolas e turmas cadastradas' : papel === 'coordenador' ? 'Suas escolas, os professores e todas as turmas delas' : 'As turmas em que você dá aula', `${podeEscola ? `<button class="btn btn-outline" data-a="nova-escola">${I.plus}Nova escola</button>` : ''}<button class="btn btn-primary" data-a="nova-turma">${I.plus}Nova turma</button>`) + `<div class="content">
     ${avisoTurmas()}
     ${escolas.length ? `<div class="grid2">${escolas.map(cardEscola).join('')}</div>` : podeEscola ? `<div class="card"><div class="card-b" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:240px"><h2>Comece pela escola</h2><p style="margin:6px 0 0;color:var(--fg2);font-size:13px">A escola agrupa professores e turmas. O coordenador adiciona os professores pelo e-mail da conta deles no app; eles passam a criar turmas e atividades aqui.</p></div><button class="btn btn-primary" data-a="nova-escola">${I.plus}Criar escola</button></div></div>` : ''}
+    ${admin ? `<div class="card"><div class="card-h"><h2>Segmentos de ensino</h2><span class="right">${D.segmentosErro ? `<span class="pill draft">rode a migration 0012</span>` : `<button class="btn btn-outline btn-sm" data-a="novo-segmento">${I.plus}Segmento</button>`}</span></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Ativo</th><th>Nome</th><th>Código</th><th>Turmas</th><th></th></tr></thead><tbody>
+        ${D.segmentos.map(s => `<tr><td>${toggle(s.ativo, 'toggle-segmento:' + s.id, 'Segmento ativo')}</td><td><input class="inline-edit" style="min-width:220px" value="${esc(s.nome)}" data-f="segmento.${s.id}.nome" aria-label="Nome do segmento" ${D.segmentosErro ? 'disabled' : ''}></td><td><code>${esc(s.id)}</code></td><td class="num">${T ? T.turmas.filter(t => t.segmento_id === s.id).length : 0}</td><td><button class="btn btn-ghost btn-sm" data-a="excluir-segmento:${s.id}" aria-label="Excluir segmento" ${D.segmentosErro ? 'disabled' : ''}>${I.trash}</button></td></tr>`).join('')}
+      </tbody></table></div>
+      <div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">Cada turma pertence a um segmento. Na questão, marque para quais segmentos ela é indicada; sem marcação, vale para todos. Na busca do professor, o segmento da turma entra como filtro padrão e cada questão mostra o nível e o segmento.</div></div>` : ''}
     <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px"><h2>Turmas</h2><span style="font-size:12px;color:var(--muted)">O aluno entra na turma digitando o código no app (Perfil → Minhas turmas) ou você adiciona pelo e-mail.</span></div>
     ${T && T.turmas.length ? `<div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">${T.turmas.map(cardTurma).join('')}</div>` : '<div class="card"><div class="empty">Nenhuma turma ainda. Clique em "Nova turma", escolha o nome e repasse o código aos alunos.</div></div>'}
   </div>`;
@@ -1019,6 +1035,7 @@ function viewTurma() {
     <div class="card"><div class="card-b" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
       <div class="field" style="flex:1;min-width:180px"><label for="t-nome">Nome da turma</label><input id="t-nome" class="inp sm" value="${esc(t.nome)}" data-f="turma.${t.id}.nome"></div>
       <div class="field"><span class="lab">Código de convite</span><div style="display:flex;gap:6px;align-items:center"><code style="font-size:16px;letter-spacing:.12em;font-family:var(--f-display);font-weight:700;padding:6px 10px">${esc(t.codigo)}</code><button class="btn btn-ghost btn-sm" data-a="copiar-codigo:${esc(t.codigo)}">${I.copy}Copiar</button><button class="btn btn-ghost btn-sm" data-a="novo-codigo:${t.id}">Gerar outro</button></div></div>
+      <div class="field"><label for="t-seg">Segmento</label><select id="t-seg" class="inp sm" data-f="turma.${t.id}.segmento_id"><option value="">Sem segmento</option>${segAtivos().map(s => `<option value="${esc(s.id)}" ${t.segmento_id === s.id ? 'selected' : ''}>${esc(s.nome)}</option>`).join('')}</select></div>
       <div class="field"><span class="lab">Turma ativa</span>${toggle(t.ativa, 'toggle-turma:' + t.id, 'Turma ativa')}</div>
       <button class="btn btn-ghost btn-sm btn-danger" style="border:0;margin-left:auto" data-a="excluir-turma:${t.id}">${I.trash}Excluir turma</button>
     </div></div>
@@ -1073,10 +1090,10 @@ function drawerAtividade() {
   const unidades = B.materia ? todasUnidades().filter(x => x.m.id === B.materia) : [];
   const assuntos = todosAssuntos(B.materia ? D.questoes.filter(q => q.materia_id === B.materia) : D.questoes);
   const txt = (B.texto || '').trim().toLowerCase();
-  const bate = q => (!B.materia || q.materia_id === B.materia) && (!B.unidade || q.unidade_id === B.unidade) && (!B.assunto || temAssunto(q, B.assunto)) && (!txt || textoBusca(q).includes(txt));
+  const bate = q => (!B.materia || q.materia_id === B.materia) && (!B.unidade || q.unidade_id === B.unidade) && (!B.assunto || temAssunto(q, B.assunto)) && (!B.segmento || !(q.segmentos || []).length || q.segmentos.includes(B.segmento)) && (!B.nivel || +(q.dados || {}).dificuldade === +B.nivel) && (!txt || textoBusca(q).includes(txt));
   const pool = D.questoes.filter(q => q.status === 'publicada' && !ids.has(q.id) && bate(q));
   const total = a.questoes.reduce((s, q) => s + (+q.valor || 0), 0);
-  const linhaBanco = q => { const u = unidadeInfo(q.unidade_id); return `<div class="item" style="gap:8px"><span class="pill type" style="font-size:10px">${TIPOS[q.tipo] || q.tipo}</span><span style="flex:1;min-width:0;font-size:13px">${esc(q.enunciado)}<br><span style="font-size:11px;color:var(--muted)">${u ? esc(u.m.sigla) + ' · ' + esc(u.u.titulo) : esc((materiaPorId(q.materia_id) || {}).sigla || '')}${(q.assuntos || []).length ? ' · ' + esc(q.assuntos.join(', ')) : ''}${q.dados && q.dados.dificuldade ? ' · ' + DIFICULDADES[q.dados.dificuldade] : ''}</span></span><button class="btn btn-outline btn-sm" data-a="ativ-add:${q.id}">${I.plus}Usar</button></div>`; };
+  const linhaBanco = q => { const u = unidadeInfo(q.unidade_id); return `<div class="item" style="gap:8px"><span class="pill type" style="font-size:10px">${TIPOS[q.tipo] || q.tipo}</span><span style="flex:1;min-width:0;font-size:13px">${esc(q.enunciado)}<br><span style="font-size:11px;color:var(--muted)">${u ? esc(u.m.sigla) + ' · ' + esc(u.u.titulo) : esc((materiaPorId(q.materia_id) || {}).sigla || '')}${(q.assuntos || []).length ? ' · ' + esc(q.assuntos.join(', ')) : ''}</span><span style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">${nivelPill(q)}${segPills(q)}</span></span><button class="btn btn-outline btn-sm" data-a="ativ-add:${q.id}">${I.plus}Usar</button></div>`; };
   return `<div class="drawer-bg" data-a="fechar-ativ"></div><div class="drawer" role="dialog" aria-modal="true" aria-labelledby="da-t" style="grid-template-columns:1fr;width:min(860px,100%)"><div class="formcol">
     <div class="drawer-h"><h2 id="da-t">${a.id ? 'Editar atividade' : 'Nova atividade'}</h2><span class="pill ${STATUS_ATIV[a.status][1]}">${STATUS_ATIV[a.status][0]}</span><span class="right"><button class="btn btn-ghost" data-a="fechar-ativ" aria-label="Fechar">${I.close}</button></span></div>
     <div class="frow">
@@ -1093,7 +1110,10 @@ function drawerAtividade() {
       <div class="card-b" style="display:flex;flex-direction:column;gap:10px">
         <div class="toolbar"><input class="inp sm" style="min-width:240px;flex:1" placeholder="Assunto, palavra do enunciado…" value="${esc(B.texto)}" data-f="ativBusca.texto" aria-label="Buscar">
           <select class="inp sm" data-f="ativBusca.materia" aria-label="Matéria"><option value="">Todas as matérias</option>${D.materias.map(m => `<option value="${m.id}" ${B.materia === m.id ? 'selected' : ''}>${esc(m.nome)}</option>`).join('')}</select>
-          ${B.materia ? `<select class="inp sm" data-f="ativBusca.unidade" aria-label="Unidade"><option value="">Todas as unidades</option>${unidades.map(x => `<option value="${x.u.id}" ${B.unidade === x.u.id ? 'selected' : ''}>${esc(x.s.titulo)} · ${esc(x.u.titulo)}</option>`).join('')}</select>` : ''}</div>
+          ${B.materia ? `<select class="inp sm" data-f="ativBusca.unidade" aria-label="Unidade"><option value="">Todas as unidades</option>${unidades.map(x => `<option value="${x.u.id}" ${B.unidade === x.u.id ? 'selected' : ''}>${esc(x.s.titulo)} · ${esc(x.u.titulo)}</option>`).join('')}</select>` : ''}
+          <select class="inp sm" data-f="ativBusca.segmento" aria-label="Segmento"><option value="">Todos os segmentos</option>${segAtivos().map(s => `<option value="${esc(s.id)}" ${B.segmento === s.id ? 'selected' : ''}>${esc(s.nome)}</option>`).join('')}</select>
+          <select class="inp sm" data-f="ativBusca.nivel" aria-label="Nível"><option value="">Todos os níveis</option>${Object.entries(DIFICULDADES).map(([k, v]) => `<option value="${k}" ${B.nivel === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+        ${B.segmento ? `<span style="font-size:12px;color:var(--muted)">Mostrando questões indicadas para <b>${esc(segNome(B.segmento))}</b> e as sem indicação de segmento.</span>` : ''}
         ${assuntos.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span style="font-size:12px;color:var(--muted)">Assuntos:</span>${assuntos.slice(0, 60).map(s => `<button class="pill ${B.assunto === s ? 'type' : 'off'}" data-a="ativ-assunto:${esc(s)}">${esc(s)}</button>`).join('')}${assuntos.length > 60 ? `<span style="font-size:12px;color:var(--muted)">+${assuntos.length - 60}: escolha a matéria para ver todos</span>` : ''}</div>` : ''}
         <div class="list" style="max-height:360px;overflow-y:auto;border:1.5px solid var(--line);border-radius:10px">${pool.slice(0, 60).map(linhaBanco).join('') || '<div class="empty">Nada com esses filtros.</div>'}${pool.length > 60 ? '<div class="empty">Mostrando 60. Refine a busca.</div>' : ''}</div>
       </div></div>
@@ -1178,7 +1198,8 @@ function setCampo(path, value) {
     case 'ativBusca': V.ativBusca[p[1]] = value; if (p[1] === 'materia') V.ativBusca.unidade = ''; return 'ui';
     case 'ativFiltroTurma': V.ativFiltroTurma = value; return 'ui';
     case 'ativ': { if (!V.ativ) return 'nada'; if (p[1] === 'questoes') { const q = V.ativ.questoes[+p[2]]; if (q && p[3] === 'valor') q.valor = Math.max(0, +String(value).replace(',', '.') || 0); return 'nada'; } V.ativ[p[1]] = value; return 'nada'; }
-    case 'turma': { const t = turmaPorId(p[1]); if (!t) return 'nada'; t[p[2]] = value; agendar(path, () => db(sb.from('turmas').update({[p[2]]: value}).eq('id', t.id))); return 'dados'; }
+    case 'turma': { const t = turmaPorId(p[1]); if (!t) return 'nada'; const v = p[2] === 'segmento_id' ? (value || null) : value; t[p[2]] = v; agendar(path, () => db(sb.from('turmas').update({[p[2]]: v}).eq('id', t.id))); return 'dados'; }
+    case 'segmento': { const s = D.segmentos.find(s => s.id === p[1]); if (!s) return 'nada'; s[p[2]] = value; agendar(path, () => db(sb.from('segmentos').update({[p[2]]: value}).eq('id', s.id))); return 'dados'; }
     case 'alunos': V.alunos.busca = value; return 'nada';
     case 'notaPub': V.notaPub = value; return 'nada';
     case 'rascunho': setIn(V.rascunho, p.slice(1), value); return 'rascunho';
@@ -1208,7 +1229,7 @@ shell.addEventListener('change', ev => {
   if (f === 'rascunho.materia_id') { const u = todasUnidades().find(x => x.m.id === V.rascunho.materia_id); V.rascunho.unidade_id = u ? u.u.id : null; return render(); }
   if (f.startsWith('rascunho.')) { if (el.tagName === 'SELECT') atualizarPrevia(); return; }
   if (f.startsWith('qf.') || f === 'notaPub' || f.startsWith('alunos.') || f.startsWith('ativBusca.') || f === 'ativFiltroTurma') return;
-  if (f.startsWith('ativ.')) { if (f === 'ativ.turma_id' || f === 'ativ.materia_id' || f === 'ativ.status' || el.type === 'number') render(); return; }
+  if (f.startsWith('ativ.')) { if (f === 'ativ.turma_id') V.ativBusca.segmento = (turmaPorId(V.ativ.turma_id) || {}).segmento_id || ''; if (f === 'ativ.turma_id' || f === 'ativ.materia_id' || f === 'ativ.status' || el.type === 'number') render(); return; }
   if (el.tagName === 'SELECT' || el.type === 'number' || el.type === 'color' || f.startsWith('param.')) render();
 });
 shell.addEventListener('change', ev => { const el = ev.target; if (el.tagName === 'SELECT' && el.dataset.a && el.dataset.a.startsWith('papel:')) act(el.dataset.a, el).catch(e => console.error(e)); });
@@ -1334,9 +1355,10 @@ async function act(a, el) {
     case 'nova-turma': { const escolas = minhasEscolas(); V.modal = {titulo: 'Nova turma', texto: 'A turma ganha um código de 6 letras. Passe o código para os alunos digitarem no app, em Perfil → Minhas turmas.', campos: [
       {k: 'nome', label: 'Nome da turma', placeholder: 'Ex.: 3º ano A · 2026', obrigatorio: true},
       ...(escolas.length ? [{k: 'escola', label: 'Escola', tipo: 'select', opcoes: [['', 'Sem escola'], ...escolas.map(e => [e.id, e.nome])], valor: escolas[0].id}] : []),
+      {k: 'segmento', label: 'Segmento', tipo: 'select', opcoes: [['', 'Sem segmento'], ...segAtivos().map(s => [s.id, s.nome])], valor: (segAtivos()[2] || segAtivos()[0] || {}).id || ''},
       {k: 'materia', label: 'Sua matéria nesta turma', tipo: 'select', opcoes: [['', 'Todas / várias'], ...D.materias.map(m => [m.id, m.nome])]}
     ], ok: 'Criar turma', fn: async v => {
-      const row = await db(sb.rpc('criar_turma', {p_nome: v.nome.trim(), p_escola: v.escola || null, p_materia: v.materia || null})); await carregarTurmas(); V.turma = row.id; V.view = 'turma'; V.turmaAlunos = {lista: [], erro: null}; toast(`Turma criada. Código: ${row.codigo}`);
+      const row = await db(sb.rpc('criar_turma', {p_nome: v.nome.trim(), p_escola: v.escola || null, p_materia: v.materia || null, p_segmento: v.segmento || null})); await carregarTurmas(); V.turma = row.id; V.view = 'turma'; V.turmaAlunos = {lista: [], erro: null}; toast(`Turma criada. Código: ${row.codigo}`);
     }}; return render(); }
     case 'abrir-turma': V.turma = x; V.view = 'turma'; V.turmaAlunos = null; window.scrollTo(0, 0); render(); return carregarAlunosTurma(x);
     case 'copiar-codigo': { (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(x) : Promise.reject()).then(() => toast(`Código ${x} copiado.`)).catch(() => toast('Código: ' + x)); return; }
@@ -1353,8 +1375,15 @@ async function act(a, el) {
     case 'remover-prof': return confirmar('Remover professor da turma?', 'As atividades que ele criou continuam na turma.', async () => { await db(sb.from('turma_professores').delete().eq('turma_id', x).eq('user_id', y)); await carregarTurmas(); }, 'Remover');
 
     /* atividades */
-    case 'nova-ativ': if (!T || !T.turmas.length) return toast('Crie uma turma primeiro.'); V.ativ = novaAtiv(x || V.turma); V.ativBusca = {texto: '', materia: V.ativ.materia_id || '', unidade: '', assunto: ''}; return render();
-    case 'editar-ativ': { const a = T.atividades.find(a => a.id === x); if (!a) return; V.ativ = {id: a.id, turma_id: a.turma_id, materia_id: a.materia_id || '', titulo: a.titulo, descricao: a.descricao || '', prazo: isoLocal(a.prazo), status: a.status, questoes: JSON.parse(JSON.stringify(a.questoes || []))}; V.ativBusca = {texto: '', materia: a.materia_id || '', unidade: '', assunto: ''}; return render(); }
+    case 'nova-ativ': if (!T || !T.turmas.length) return toast('Crie uma turma primeiro.'); V.ativ = novaAtiv(x || V.turma); V.ativBusca = {texto: '', materia: V.ativ.materia_id || '', unidade: '', assunto: '', segmento: (turmaPorId(V.ativ.turma_id) || {}).segmento_id || '', nivel: ''}; return render();
+    case 'editar-ativ': { const a = T.atividades.find(a => a.id === x); if (!a) return; V.ativ = {id: a.id, turma_id: a.turma_id, materia_id: a.materia_id || '', titulo: a.titulo, descricao: a.descricao || '', prazo: isoLocal(a.prazo), status: a.status, questoes: JSON.parse(JSON.stringify(a.questoes || []))}; V.ativBusca = {texto: '', materia: a.materia_id || '', unidade: '', assunto: '', segmento: (turmaPorId(a.turma_id) || {}).segmento_id || '', nivel: ''}; return render(); }
+    case 'rascunho-seg': { const s = V.rascunho.segmentos || (V.rascunho.segmentos = []); const i = s.indexOf(x); if (el.checked && i < 0) s.push(x); if (!el.checked && i >= 0) s.splice(i, 1); return; }
+    case 'novo-segmento': V.modal = {titulo: 'Novo segmento', texto: 'Ex.: Fundamental II, Ensino Médio, Pré-vestibular. As turmas e as questões apontam para um segmento.', campos: [{k: 'nome', label: 'Nome', obrigatorio: true}], ok: 'Criar', fn: async v => {
+      let id = slug(v.nome).slice(0, 12) || 'seg'; const base = id; let n = 1; while (D.segmentos.some(s => s.id === id)) id = base + (++n);
+      const row = await db(sb.from('segmentos').insert({id, nome: v.nome.trim(), ordem: proximaOrdem(D.segmentos), ativo: true}).select().single()); D.segmentos.push(row); toast('Segmento criado.');
+    }}; return render();
+    case 'toggle-segmento': { const s = D.segmentos.find(s => s.id === x); s.ativo = !s.ativo; render(); return db(sb.from('segmentos').update({ativo: s.ativo}).eq('id', s.id)); }
+    case 'excluir-segmento': return confirmar('Excluir segmento?', 'As turmas deste segmento ficam sem segmento; as questões perdem a indicação. Para só esconder, desative.', async () => { await db(sb.from('segmentos').delete().eq('id', x)); D.segmentos = D.segmentos.filter(s => s.id !== x); });
     case 'fechar-ativ': V.ativ = null; V.rascunho = null; return render();
     case 'ativ-add': { const q = D.questoes.find(q => q.id === x); if (q && !V.ativ.questoes.some(z => z.id === q.id)) V.ativ.questoes.push(snapshotQ(q)); return render(); }
     case 'ativ-rm': V.ativ.questoes.splice(+x, 1); return render();
