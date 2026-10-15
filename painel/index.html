@@ -985,6 +985,7 @@ function darRecursos(ids) {
     const moedas = Math.trunc(+v.moedas) || 0, coracoes = Math.trunc(+v.coracoes) || 0;
     if (!moedas && !coracoes) return toast('Informe moedas ou corações.');
     await db(sb.rpc('conceder_recursos', {p_users: ids, p_moedas: moedas, p_coracoes: coracoes}));
+    auditar('recursos', 'alunos', ids.join(','), `Deu ${moedas} moedas e ${coracoes} corações para ${quem}`, {alunos: ids, moedas, coracoes});
     const partes = [];
     if (moedas) partes.push(`${moedas > 0 ? '+' : ''}${moedas} moeda${Math.abs(moedas) === 1 ? '' : 's'}`);
     if (coracoes) partes.push(`${coracoes > 0 ? '+' : ''}${coracoes} coraç${Math.abs(coracoes) === 1 ? 'ão' : 'ões'}`);
@@ -1180,7 +1181,7 @@ function viewResultados() {
 /* =====================================================================
    Auditoria (admin)
    ===================================================================== */
-const ACOES_AUD = {insert: ['Criou', 'pub'], update: ['Alterou', 'draft'], delete: ['Excluiu', ''], login: ['Entrou', 'type'], sair: ['Saiu', 'off'], tela: ['Abriu a tela', 'off'], busca: ['Buscou', 'on'], copia: ['Copiou', 'on'], resultados: ['Viu resultados', 'on'], turma: ['Abriu a turma', 'on'], novo_aluno: ['Criou conta', 'pub'], bloqueio: ['Bloqueou', ''], liberacao: ['Liberou', 'pub']};
+const ACOES_AUD = {insert: ['Criou', 'pub'], update: ['Alterou', 'draft'], delete: ['Excluiu', ''], login: ['Entrou', 'type'], sair: ['Saiu', 'off'], tela: ['Abriu a tela', 'off'], busca: ['Buscou', 'on'], copia: ['Copiou', 'on'], resultados: ['Viu resultados', 'on'], turma: ['Abriu a turma', 'on'], novo_aluno: ['Criou conta', 'pub'], bloqueio: ['Bloqueou', ''], liberacao: ['Liberou', 'pub'], recursos: ['Deu moedas/corações', 'pub'], clique: ['Clicou', 'off']};
 const TABELAS_AUD = {materias: 'Matérias', secoes: 'Seções', unidades: 'Unidades', licoes: 'Lições', questoes: 'Questões', licao_questoes: 'Questões da lição', missoes: 'Missões', itens_loja: 'Loja', parametros: 'Parâmetros', publicacoes: 'Publicações', segmentos: 'Segmentos', escolas: 'Escolas', escola_membros: 'Membros da escola', turmas: 'Turmas', turma_professores: 'Professores da turma', turma_alunos: 'Alunos da turma', atividades: 'Atividades', perfis: 'Perfis', admins: 'Administradores', painel: 'Painel', alunos: 'Alunos', resultados: 'Resultados'};
 function viewAuditoria() {
   const A = V.aud, f = A.f;
@@ -1419,8 +1420,11 @@ async function carregarResultados(aid) {
   if (error) V.resultados.erro = traduzErro(error.message); else V.resultados.data = data;
   render();
 }
+/* Toda ação do painel é registrada; estas já têm um registro mais descritivo em seu próprio código */
+const ACOES_COM_REGISTRO_PROPRIO = new Set(['view', 'sair', 'abrir-turma', 'resultados', 'copiar-notas', 'copiar-json', 'buscar-alunos', 'bloq', 'novo-aluno', 'dar', 'dar-lote']);
 async function act(a, el) {
   const [k, x, y, z] = a.split(':');
+  if (!ACOES_COM_REGISTRO_PROPRIO.has(k)) auditar('clique', 'painel', a, 'Ação no painel: ' + k + (x ? ' · ' + [x, y, z].filter(v => v != null).join(':') : ''), {tela: V.view});
   const M = materiaPorId(V.materia);
   switch (k) {
     case 'view': V.view = x; V.rascunho = null; V.licaoAtribuir = null; V.jsonVersao = null; V.ativ = null; V.modalPrev = null; if (x !== 'turma') V.turma = null; window.scrollTo(0, 0); render(); if (x === 'alunos' && !V.alunos.lista) buscarAlunos(); if (x === 'inicio') carregarMetricas(); if (x === 'auditoria' && !V.aud.lista) carregarAuditoria(false); auditar('tela', 'painel', x, 'Abriu a tela ' + x); return;
