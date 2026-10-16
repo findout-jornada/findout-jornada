@@ -270,9 +270,9 @@ button.card:active{transform:scale(.985)}
 @keyframes chama{from{transform:scaleY(.7)}to{transform:scaleY(1.3)}}
 .mapa .brasa{animation:brasa 1.1s ease-in-out var(--d,0s) infinite alternate}
 @keyframes brasa{from{opacity:.3;transform:translateY(0)}to{opacity:1;transform:translateY(-7px)}}
-.mapatopo{padding:12px 16px 10px;display:flex;align-items:center;gap:12px;color:#fff;background:linear-gradient(180deg,#2E6BB0,#2E6BB0)}
+.mapatopo{padding:8px 14px 8px;display:flex;align-items:center;gap:10px;color:#fff;background:#2E6BB0;flex-shrink:0}
 .mapatopo .avatar{box-shadow:0 0 0 3px rgba(255,255,255,.35)}
-.mapalegenda{display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:center;padding:7px 12px calc(10px + env(safe-area-inset-bottom,0px));font-size:11px;color:rgba(255,255,255,.85);background:#1B4F8F}
+.mapalegenda{display:flex;flex-wrap:wrap;gap:2px 12px;justify-content:center;padding:5px 10px calc(7px + env(safe-area-inset-bottom,0px));font-size:10px;color:rgba(255,255,255,.85);background:#1B4F8F;flex-shrink:0}
 .mapalegenda span{display:inline-flex;align-items:center;gap:5px}
 .mapalegenda i{display:inline-block}
 .lg-ilha{width:10px;height:10px;border-radius:50%;background:#fff;border:2.5px solid #F08A24}
@@ -1391,8 +1391,9 @@ function screenMapa() {
   const tot = L.reduce((n, i) => n + i.total, 0), feit = L.reduce((n, i) => n + i.feitas, 0), pct = tot ? Math.round(feit / tot * 100) : 0;
   const cfg = avatarCfg(S.perfil.avatar) || AV_PADRAO;
   // altura do mapa: preenche o que sobra da tela (topo + faixa de progresso ocupam ~150px), entre 560 e 820 no mapa base
-  const cw = Math.max(300, app.clientWidth || 390), ch = Math.max(420, (app.clientHeight || 760) - 180);
-  const H = Math.round(Math.min(820, Math.max(560, 360 * ch / cw))), sy = H / 600;
+  // o SVG ocupa o espaço que sobra (flex) e se encaixa nele sem rolagem; o viewBox segue a proporção da tela, entre 520 e 820 de altura no mapa base
+  const cw = Math.max(300, app.clientWidth || 390), ch = Math.max(380, (app.clientHeight || 760) - 156);
+  const H = Math.round(Math.min(820, Math.max(520, 360 * ch / cw))), sy = H / 600;
   const pts = L.map(i => [i.x, i.y * sy + 42]); pts.push([180, 282 * sy + 24]);
   const upto = completa ? pts.length - 1 : Math.max(0, cur);
   const poly = p => p.map(([a, b]) => `${a} ${b.toFixed(1)}`).join(' L ');
@@ -1421,9 +1422,9 @@ function screenMapa() {
   const farol = `<g transform="translate(26 ${(252 * sy).toFixed(0)})"><ellipse cx="0" cy="10" rx="16" ry="6" fill="#6B4320"/><ellipse cx="0" cy="7" rx="16" ry="6" fill="#8B5A2B"/><path d="M-6 6 L-4 -18 H4 L6 6Z" fill="#F2F2F2"/><path d="M-5 -2 H5 M-5 -9 H5" stroke="#E0475B" stroke-width="3"/><rect x="-4" y="-24" width="8" height="6" fill="#1B2140"/><circle class="luz" cx="0" cy="-21" r="2.5" fill="#FFD36A"/><path d="M-5 -24 L0 -29 L5 -24Z" fill="#E0475B"/></g>`;
   const baleia = `<g class="baleia" transform="translate(300 ${H - 22})"><path d="M-22 0 Q-20 -12 0 -12 Q18 -12 22 -2 L30 -8 L28 2 L22 2 Q10 6 -8 4 Q-20 4 -22 0Z" fill="#2E6BB0" stroke="rgba(255,255,255,.5)" stroke-width="1.2"/><circle cx="-10" cy="-5" r="1.5" fill="#fff"/><path class="jato" d="M-4 -12 q-3 -8 0 -12 M-4 -12 q3 -8 0 -12" stroke="rgba(255,255,255,.8)" stroke-width="1.5" fill="none" stroke-linecap="round"/></g>`;
   return `<header class="topbar"><button class="iconbtn" data-a="go:materias" aria-label="Voltar">${I.back}</button><h1>Mapa do ENEM</h1></header>
-  <div class="scroll" id="sc" style="background:${marB}">
-    <div class="mapatopo" style="background:${marA}">${avatarSvg(cfg, 44, 'Seu avatar')}<div class="grow"><span class="px" style="font-size:9px;opacity:.85">SEU PROGRESSO · VOLTA AO MUNDO</span><div style="height:9px;border-radius:5px;background:rgba(255,255,255,.2);overflow:hidden;margin-top:5px"><i style="display:block;height:100%;width:${pct}%;background:linear-gradient(90deg,#FFD36A,#F08A24);border-radius:5px;transition:width .6s ease"></i></div><span style="font-size:11.5px;opacity:.9;margin-top:4px;display:block">${completa ? 'Todas as ilhas conquistadas! Agora é revisar e praticar.' : cur >= 0 ? `Ilha atual: <b>${esc(L[cur].nome)}</b>. Conclua as lições dela para içar a bandeira.` : 'Nenhuma lição publicada ainda.'}</span></div><b class="num" style="font-size:22px;color:#FFD36A" data-count="${pct}" data-suf="%" data-delay="200">0%</b></div>
-    <svg class="mapa" viewBox="0 0 360 ${H}" aria-label="Mapa com as ilhas de cada área do ENEM">
+  <div class="scroll" id="sc" style="background:${marB};display:flex;flex-direction:column;overflow:hidden">
+    <div class="mapatopo" style="background:${marA}">${avatarSvg(cfg, 40, 'Seu avatar')}<div class="grow" style="min-width:0"><span class="px" style="font-size:8.5px;opacity:.85;white-space:nowrap">VOLTA AO MUNDO</span><div style="height:8px;border-radius:4px;background:rgba(255,255,255,.2);overflow:hidden;margin-top:4px"><i style="display:block;height:100%;width:${pct}%;background:linear-gradient(90deg,#FFD36A,#F08A24);border-radius:4px;transition:width .6s ease"></i></div><span style="font-size:11px;opacity:.9;margin-top:3px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${completa ? 'Todas as ilhas conquistadas!' : cur >= 0 ? `Ilha atual: <b>${esc(L[cur].nome)}</b> · conclua as lições dela` : 'Nenhuma lição publicada ainda.'}</span></div><b class="num" style="font-size:20px;color:#FFD36A" data-count="${pct}" data-suf="%" data-delay="200">0%</b></div>
+    <svg class="mapa" viewBox="0 0 360 ${H}" preserveAspectRatio="xMidYMid meet" style="flex:1;min-height:0;width:100%;height:auto;background:${marB}" aria-label="Mapa com as ilhas de cada área do ENEM">
       <defs><linearGradient id="mar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${marA}"/><stop offset="1" stop-color="${marB}"/></linearGradient><pattern id="marolas" width="40" height="22" patternUnits="userSpaceOnUse"><path d="M0 11 q10 -8 20 0 t20 0" stroke="rgba(255,255,255,.07)" stroke-width="2" fill="none"/></pattern></defs>
       <rect width="360" height="${H}" fill="url(#mar)"/><rect width="360" height="${H}" fill="url(#marolas)"/>${noite ? `<g fill="#fff">${[[40, 30, 1.2], [120, 18, .8], [200, 40, 1], [250, 14, .9], [300, 70, .7], [20, 90, .8], [340, 110, 1], [160, 80, .6], [80, 130, .9]].map(([x, y, r]) => `<circle class="estrela" cx="${x}" cy="${y}" r="${r}"/>`).join('')}</g><g transform="translate(58 58)"><circle r="16" fill="#FFF3C4"/><circle cx="6" cy="-3" r="13" fill="${marA}"/><circle cx="-6" cy="4" r="2" fill="#F4E4A8"/></g>` : ''}${ondas}
       ${nuvem(70, .6, 55, -20)}${nuvem(360, .45, 70, -48)}${nuvem(520, .5, 62, -10)}${passaro(150, 38, -30)}${passaro(158, 42, -26)}
@@ -1447,6 +1448,8 @@ function sheetIlha() {
     <p class="sub" style="margin:0;font-size:12px">Toque numa matéria para estudar a jornada dela.</p>
     <button class="btn-ghost" data-a="sheet:">Fechar</button></section>`;
 }
+// Se a tela mudar de tamanho (girar o celular, redimensionar a janela), o mapa recalcula a proporção
+window.addEventListener('resize', () => { if (S && V.screen === 'mapa') render(false); });
 // Avisa (uma vez) quando uma ilha nova foi conquistada ou a volta ao mundo foi completada
 function celebrarIlhas() {
   let vistas = []; try { vistas = JSON.parse(localStorage.getItem('fj-ilhas') || '[]'); } catch (e) {}
