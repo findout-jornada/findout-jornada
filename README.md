@@ -35,7 +35,7 @@ O cadastro público está desligado no Supabase (Authentication → Sign In / Up
 
 ## Avatar do aluno
 
-Em **Perfil → Criar avatar** o aluno monta o próprio boneco: pele, cabelo e cor, olhos e cor, boca, rosto (sardas, barba…), óculos, acessório de cabeça, roupa, estampa e fundo, com prévia ao vivo e botão de sortear. O avatar é desenhado em SVG no próprio app (sem imagens) e fica salvo como um JSON curto na coluna `perfis.avatar`, que já existia; não precisa de migration. Aparece no perfil e no ranking da liga (quem ainda não montou continua com as iniciais).
+Em **Perfil → Criar avatar** o aluno monta o próprio boneco em 18 partes: pele, formato do rosto, cabelo (13 estilos) e cor, sobrancelhas, olhos e cor, nariz, boca, detalhes (sardas, barba…), óculos, acessório de cabeça, acessório (brincos, colar, cachecol…), estilo e cor da roupa, estampa, fundo e padrão do fundo. Tem prévia ao vivo, sortear tudo ou só uma parte, desfazer e cancelar. O avatar é desenhado em SVG (sem imagens) e fica salvo como um JSON curto na coluna `perfis.avatar`, que já existia; não precisa de migration. Partes novas que o aluno ainda não escolheu ficam na opção neutra, então avatares antigos continuam válidos. Aparece no perfil, no ranking da liga e na lista de alunos do painel (quem ainda não montou continua com as iniciais). O trecho de desenho fica entre os marcadores `AV-START` e `AV-END` em `app/index.html` e é copiado igual em `painel/index.html`.
 
 ## Professores, turmas e atividades (migration 0011)
 

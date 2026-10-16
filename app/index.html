@@ -1268,24 +1268,32 @@ function sheetTurma() {
     <button class="btn-ghost" data-a="sheet:">Fechar</button></section>`;
 }
 /* ---------- avatar do aluno: montado em camadas e salvo em perfis.avatar ---------- */
+/* AV-START (o painel usa uma cópia deste trecho para desenhar o avatar na lista de alunos) */
 const AV = {
   sk: ['#FFDCC2', '#F5C9A6', '#E8B48C', '#C98E63', '#A66A3F', '#7D4A26', '#5A3219', '#3B2114'],
-  hs: ['Sem cabelo', 'Curto', 'Franja', 'Longo', 'Cacheado', 'Coque', 'Moicano', 'Black power', 'Tranças'],
-  hc: ['#2B1B12', '#5A3A1E', '#8B5A2B', '#C68642', '#E9C46A', '#D7263D', '#503C9D', '#4CC3C1', '#F2F2F2'],
-  es: ['Normais', 'Grandes', 'Felizes', 'Piscadinha', 'Sonolentos'],
-  ec: ['#2B1B12', '#5A3A1E', '#2F6B3A', '#2E6BB0', '#7B5EA7'],
-  mo: ['Sorriso', 'Risada', 'Sério', 'Língua', 'Surpreso'],
-  fc: ['Nada', 'Sardas', 'Bochechas', 'Barba', 'Bigode'],
-  gl: ['Sem óculos', 'Redondos', 'Quadrados', 'Escuros'],
-  ht: ['Nada', 'Boné', 'Gorro', 'Coroa', 'Fones', 'Laço'],
-  sh: ['#503C9D', '#4CC3C1', '#8FB569', '#F08A24', '#E0475B', '#FFD36A', '#2E6BB0', '#1B2140'],
-  sp: ['Lisa', 'Listras', 'Estrela', 'Raio'],
-  bg: ['#EFEAFB', '#DDF3F3', '#EAF3DF', '#FFF8E1', '#FBE4E6', '#E3ECFA', '#F3E6F7', '#1B2140']
+  fm: ['Redondo', 'Quadrado', 'Oval'],
+  hs: ['Sem cabelo', 'Curto', 'Franja', 'Longo', 'Cacheado', 'Coque', 'Moicano', 'Black power', 'Tranças', 'Rabo de cavalo', 'Topete', 'Dreads', 'Ondulado'],
+  hc: ['#2B1B12', '#5A3A1E', '#8B5A2B', '#C68642', '#E9C46A', '#D7263D', '#503C9D', '#4CC3C1', '#F2F2F2', '#F28AB8'],
+  eb: ['Normais', 'Grossas', 'Arqueadas', 'Preocupadas'],
+  es: ['Normais', 'Grandes', 'Felizes', 'Piscadinha', 'Sonolentos', 'Brilhantes', 'Fechados'],
+  ec: ['#2B1B12', '#5A3A1E', '#2F6B3A', '#2E6BB0', '#7B5EA7', '#4CC3C1'],
+  ns: ['Pequeno', 'Redondo', 'Pontudo'],
+  mo: ['Sorriso', 'Risada', 'Sério', 'Língua', 'Surpreso', 'Dentes', 'Assobio'],
+  fc: ['Nada', 'Sardas', 'Bochechas', 'Barba', 'Bigode', 'Cavanhaque'],
+  gl: ['Sem óculos', 'Redondos', 'Quadrados', 'Escuros', 'Coloridos'],
+  ht: ['Nada', 'Boné', 'Gorro', 'Coroa', 'Fones', 'Laço', 'Chapéu de festa', 'Orelhas de gato', 'Boina'],
+  ac: ['Nada', 'Brincos', 'Colar', 'Cachecol', 'Bandana'],
+  st: ['Camiseta', 'Moletom', 'Camisa', 'Uniforme'],
+  sh: ['#503C9D', '#4CC3C1', '#8FB569', '#F08A24', '#E0475B', '#FFD36A', '#2E6BB0', '#1B2140', '#F28AB8', '#F2F2F2'],
+  sp: ['Lisa', 'Listras', 'Estrela', 'Raio', 'Coração', 'Número 1'],
+  bg: ['#EFEAFB', '#DDF3F3', '#EAF3DF', '#FFF8E1', '#FBE4E6', '#E3ECFA', '#F3E6F7', '#1B2140', '#503C9D', '#F08A24'],
+  bp: ['Liso', 'Bolinhas', 'Listras', 'Estrelas', 'Raios de sol']
 };
-const AV_CATS = [['sk', 'Pele'], ['hs', 'Cabelo'], ['hc', 'Cor do cabelo'], ['es', 'Olhos'], ['ec', 'Cor dos olhos'], ['mo', 'Boca'], ['fc', 'Rosto'], ['gl', 'Óculos'], ['ht', 'Cabeça'], ['sh', 'Roupa'], ['sp', 'Estampa'], ['bg', 'Fundo']];
+const AV_CATS = [['sk', 'Pele'], ['fm', 'Rosto'], ['hs', 'Cabelo'], ['hc', 'Cor do cabelo'], ['eb', 'Sobrancelhas'], ['es', 'Olhos'], ['ec', 'Cor dos olhos'], ['ns', 'Nariz'], ['mo', 'Boca'], ['fc', 'Detalhes'], ['gl', 'Óculos'], ['ht', 'Cabeça'], ['ac', 'Acessório'], ['st', 'Roupa'], ['sh', 'Cor da roupa'], ['sp', 'Estampa'], ['bg', 'Fundo'], ['bp', 'Padrão do fundo']];
 const AV_COR = new Set(['sk', 'hc', 'ec', 'sh', 'bg']);
-const AV_PADRAO = {sk: 1, hs: 1, hc: 0, es: 0, ec: 0, mo: 0, fc: 0, gl: 0, ht: 0, sh: 0, sp: 0, bg: 0};
-// perfis.avatar guarda um JSON curto ({"v":1,"sk":2,...}); valores antigos como "raposa" viram null (sem avatar montado)
+const AV_PADRAO = {}; for (const k in AV) AV_PADRAO[k] = 0; AV_PADRAO.sk = 1; AV_PADRAO.hs = 1;
+// perfis.avatar guarda um JSON curto ({"v":1,"sk":2,...}); valores antigos como "raposa" viram null (sem avatar montado).
+// Chaves que não existiam quando o avatar foi salvo ficam no 0 (opção neutra), então avatares antigos continuam válidos.
 function avatarCfg(txt) {
   let c = null; try { c = typeof txt === 'string' && txt[0] === '{' ? JSON.parse(txt) : null; } catch (e) {}
   if (!c || !c.v) return null;
@@ -1293,55 +1301,103 @@ function avatarCfg(txt) {
   return out;
 }
 function avatarTxt(c) { const o = {v: 1}; for (const k in AV) o[k] = c[k]; return JSON.stringify(o); }
-function avatarAleatorio() { const c = {}; for (const k in AV) c[k] = Math.floor(Math.random() * AV[k].length); return c; }
+function avatarAleatorio(base, so) {
+  const c = {...(base || AV_PADRAO)};
+  for (const k in AV) if (!so || so === k) c[k] = Math.floor(Math.random() * AV[k].length);
+  return c;
+}
 const escurece = (hex, f = .8) => { const n = parseInt(hex.slice(1), 16); return `rgb(${Math.round((n >> 16) * f)},${Math.round(((n >> 8) & 255) * f)},${Math.round((n & 255) * f)})`; };
+const clareia = hex => { const n = parseInt(hex.slice(1), 16); const m = v => Math.round(v + (255 - v) * .35); return `rgb(${m(n >> 16)},${m((n >> 8) & 255)},${m(n & 255)})`; };
 function avatarSvg(c, size = 64, alt = 'Avatar') {
   c = c || AV_PADRAO;
-  const sk = AV.sk[c.sk], hc = AV.hc[c.hc], ec = AV.ec[c.ec], sh = AV.sh[c.sh], bg = AV.bg[c.bg], skd = escurece(sk, .82), ink = '#2B1B12', pelo = c.hs ? hc : ink;
+  const sk = AV.sk[c.sk], hc = AV.hc[c.hc], ec = AV.ec[c.ec], sh = AV.sh[c.sh], bg = AV.bg[c.bg], skd = escurece(sk, .82), ink = '#2B1B12', pelo = c.hs ? hc : ink, hcd = escurece(hc, .7);
+  const escuro = c.bg >= 7, ponto = escuro ? 'rgba(255,255,255,.22)' : 'rgba(80,60,157,.14)';
+  // fundo com padrão (os ids se repetem entre avatares, mas o conteúdo é o mesmo, então não há conflito)
+  const fundo = [`<circle cx="50" cy="50" r="50" fill="${bg}"/>`,
+    `<circle cx="50" cy="50" r="50" fill="${bg}"/><g fill="${ponto}">${[[14, 22], [30, 10], [50, 6], [70, 10], [86, 22], [92, 44], [8, 44], [12, 66], [88, 66], [20, 86], [80, 86]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3.5"/>`).join('')}</g>`,
+    `<circle cx="50" cy="50" r="50" fill="${bg}"/><clipPath id="avcl"><circle cx="50" cy="50" r="50"/></clipPath><g clip-path="url(#avcl)" stroke="${ponto}" stroke-width="7">${[-30, -10, 10, 30, 50, 70, 90].map(x => `<path d="M${x} 110 L${x + 60} -10"/>`).join('')}</g>`,
+    `<circle cx="50" cy="50" r="50" fill="${bg}"/><g fill="${ponto}">${[[16, 20, 1], [84, 18, 1.2], [10, 50, .8], [90, 52, .9], [22, 84, 1], [78, 86, .9], [50, 6, .8]].map(([x, y, s]) => `<path transform="translate(${x} ${y}) scale(${s})" d="M0 -5 l1.5 3.4 3.7.4-2.8 2.5.8 3.7L0 3.2l-3.2 1.8.8-3.7-2.8-2.5 3.7-.4Z"/>`).join('')}</g>`,
+    `<circle cx="50" cy="50" r="50" fill="${bg}"/><clipPath id="avcl2"><circle cx="50" cy="50" r="50"/></clipPath><g clip-path="url(#avcl2)" fill="${ponto}">${[0, 45, 90, 135].map(a => `<path transform="rotate(${a} 50 50)" d="M50 50 L-10 36 V64Z M50 50 L110 36 V64Z"/>`).join('')}</g>`][c.bp];
+  // cabeça por formato
+  const cab = [{x: 28, y: 18, w: 44, h: 48, rx: 17, ox: 28}, {x: 28, y: 18, w: 44, h: 48, rx: 9, ox: 28}, {x: 30, y: 16, w: 40, h: 52, rx: 20, ox: 30}][c.fm];
+  const cabeca = `<circle cx="${cab.ox}" cy="44" r="5" fill="${sk}"/><circle cx="${100 - cab.ox}" cy="44" r="5" fill="${sk}"/><rect x="${cab.x}" y="${cab.y}" width="${cab.w}" height="${cab.h}" rx="${cab.rx}" fill="${sk}"/>`;
+  // cabelo: parte de trás (antes da cabeça) e da frente
   const topo = `<path d="M28 38 Q29 15 50 15 Q71 15 72 38 Q62 27 50 28 Q38 27 28 38Z" fill="${hc}"/>`;
   const hairBack = {3: `<path d="M26 44 Q26 12 50 12 Q74 12 74 44 V82 Q74 88 68 88 H32 Q26 88 26 82Z" fill="${hc}"/>`, 7: `<circle cx="50" cy="36" r="31" fill="${hc}"/>`,
-    8: `<path d="M27 40 Q28 13 50 13 Q72 13 73 40 V74 Q73 80 68 80 H62 V46 H38 V80 H32 Q27 80 27 74Z" fill="${hc}"/><path d="M32 50 V78 M36 48 V80 M64 48 V80 M68 50 V78" stroke="${escurece(hc, .7)}" stroke-width="1.5"/>`}[c.hs] || '';
+    8: `<path d="M27 40 Q28 13 50 13 Q72 13 73 40 V74 Q73 80 68 80 H62 V46 H38 V80 H32 Q27 80 27 74Z" fill="${hc}"/><path d="M32 50 V78 M36 48 V80 M64 48 V80 M68 50 V78" stroke="${hcd}" stroke-width="1.5"/>`,
+    9: `<path d="M66 34 Q88 36 80 64 Q84 72 76 76 Q70 60 68 44Z" fill="${hc}"/><path d="M72 48 Q78 56 76 66" stroke="${hcd}" stroke-width="1.5" fill="none"/>`,
+    11: `<g fill="${hc}"><rect x="23" y="30" width="6" height="44" rx="3"/><rect x="30" y="24" width="6" height="52" rx="3"/><rect x="64" y="24" width="6" height="52" rx="3"/><rect x="71" y="30" width="6" height="44" rx="3"/></g>`,
+    12: `<path d="M26 44 Q26 12 50 12 Q74 12 74 44 Q79 54 73 62 Q80 72 72 84 H28 Q20 72 27 62 Q21 54 26 44Z" fill="${hc}"/><path d="M30 50 Q35 58 30 66 Q35 74 31 80 M70 50 Q65 58 70 66 Q65 74 69 80" stroke="${hcd}" stroke-width="1.5" fill="none"/>`}[c.hs] || '';
   const hairFront = {1: topo, 2: `<path d="M27 42 Q28 14 50 14 Q72 14 73 42 L69 32 Q63 38 56 30 Q50 40 44 30 Q37 38 31 32Z" fill="${hc}"/>`, 3: topo,
     4: `<g fill="${hc}"><circle cx="31" cy="34" r="8"/><circle cx="39" cy="24" r="8"/><circle cx="50" cy="20" r="9"/><circle cx="61" cy="24" r="8"/><circle cx="69" cy="34" r="8"/><circle cx="34" cy="44" r="6"/><circle cx="66" cy="44" r="6"/></g>`,
-    5: `${topo}<circle cx="50" cy="12" r="9" fill="${hc}"/>`, 6: `<path d="M42 32 L46 8 H54 L58 32 Q50 27 42 32Z" fill="${hc}"/>`, 7: topo, 8: topo}[c.hs] || '';
+    5: `${topo}<circle cx="50" cy="12" r="9" fill="${hc}"/>`, 6: `<path d="M42 32 L46 8 H54 L58 32 Q50 27 42 32Z" fill="${hc}"/>`, 7: topo, 8: topo, 9: topo,
+    10: `<path d="M28 38 Q30 20 44 17 Q54 2 70 14 Q73 20 72 38 Q62 27 50 28 Q38 27 28 38Z" fill="${hc}"/>`, 11: topo, 12: topo}[c.hs] || '';
+  // sobrancelhas, olhos, nariz, boca
+  const sobr = [`<path d="M35 35 Q41 32 47 35 M53 35 Q59 32 65 35" stroke="${pelo}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+    `<path d="M35 35 Q41 31 47 35 M53 35 Q59 31 65 35" stroke="${pelo}" stroke-width="3.6" fill="none" stroke-linecap="round"/>`,
+    `<path d="M35 36 Q40 28 47 34 M53 34 Q60 28 65 36" stroke="${pelo}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+    `<path d="M35 32 Q41 34 47 37 M53 37 Q59 34 65 32" stroke="${pelo}" stroke-width="2" fill="none" stroke-linecap="round"/>`][c.eb];
   const olho = (x, tipo) => {
     if (tipo === 2) return `<path d="M${x - 5} 44 Q${x} 38 ${x + 5} 44" stroke="${ink}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
-    const r = tipo === 1 ? 6.5 : 5, pr = tipo === 1 ? 3.6 : 2.8;
-    return `<ellipse cx="${x}" cy="43" rx="${r}" ry="${r + .6}" fill="#fff"/><circle cx="${x}" cy="43.5" r="${pr}" fill="${ec}"/><circle cx="${x + 1.2}" cy="42" r="1" fill="#fff"/>${tipo === 4 ? `<path d="M${x - r - .5} 43 A${r + .5} ${r + 1} 0 0 1 ${x + r + .5} 43Z" fill="${sk}"/>` : ''}`;
+    if (tipo === 6) return `<path d="M${x - 5} 42 Q${x} 47 ${x + 5} 42" stroke="${ink}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
+    const r = tipo === 1 ? 6.5 : 5, pr = tipo === 1 ? 3.6 : tipo === 5 ? 3.4 : 2.8;
+    return `<ellipse cx="${x}" cy="43" rx="${r}" ry="${r + .6}" fill="#fff"/><circle cx="${x}" cy="43.5" r="${pr}" fill="${ec}"/><circle cx="${x + 1.2}" cy="42" r="1" fill="#fff"/>${tipo === 5 ? `<circle cx="${x - 1.4}" cy="44.8" r=".7" fill="#fff"/><path d="M${x + 3.5} 38 l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6Z" fill="#fff"/>` : ''}${tipo === 4 ? `<path d="M${x - r - .5} 43 A${r + .5} ${r + 1} 0 0 1 ${x + r + .5} 43Z" fill="${sk}"/>` : ''}`;
   };
   const olhos = c.es === 3 ? olho(41, 0) + olho(59, 2) : olho(41, c.es) + olho(59, c.es);
-  const sobr = `<path d="M35 35 Q41 32 47 35 M53 35 Q59 32 65 35" stroke="${pelo}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+  const nariz = [`<path d="M50 46 Q48 51 51.5 51" stroke="${skd}" stroke-width="1.6" fill="none" stroke-linecap="round"/>`, `<ellipse cx="50" cy="50" rx="2.8" ry="2.2" fill="${skd}"/>`, `<path d="M50 44 L46.5 51.5 H52.5Z" fill="${skd}"/>`][c.ns];
   const boca = [`<path d="M43 55 Q50 62 57 55" stroke="${ink}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`,
     `<path d="M42 54 Q50 66 58 54Z" fill="#7A2E3A"/><path d="M45 58 Q50 63 55 58 Q50 60 45 58Z" fill="#F08A9B"/>`,
     `<path d="M44 57 H56" stroke="${ink}" stroke-width="2.4" stroke-linecap="round"/>`,
     `<path d="M43 55 Q50 62 57 55" stroke="${ink}" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M47 58 Q50 66 53 58Z" fill="#F08A9B"/>`,
-    `<ellipse cx="50" cy="57" rx="3.5" ry="4.5" fill="#7A2E3A"/>`][c.mo];
-  const rosto = ['', `<g fill="${skd}"><circle cx="36" cy="50" r="1"/><circle cx="40" cy="52" r="1"/><circle cx="33" cy="53" r="1"/><circle cx="64" cy="50" r="1"/><circle cx="60" cy="52" r="1"/><circle cx="67" cy="53" r="1"/></g>`,
+    `<ellipse cx="50" cy="57" rx="3.5" ry="4.5" fill="#7A2E3A"/>`,
+    `<path d="M42 54 Q50 64 58 54Z" fill="#7A2E3A"/><path d="M44.5 54.5 H55.5 V56.5 Q50 58.5 44.5 56.5Z" fill="#fff"/>`,
+    `<circle cx="50" cy="57" r="2.6" fill="#7A2E3A"/><path d="M61 52 V45.5 L66 44.5 V50" stroke="${ink}" stroke-width="1.4" fill="none"/><circle cx="59.8" cy="52.3" r="1.6" fill="${ink}"/><circle cx="64.8" cy="50.3" r="1.6" fill="${ink}"/>`][c.mo];
+  const detalhes = ['', `<g fill="${skd}"><circle cx="36" cy="50" r="1"/><circle cx="40" cy="52" r="1"/><circle cx="33" cy="53" r="1"/><circle cx="64" cy="50" r="1"/><circle cx="60" cy="52" r="1"/><circle cx="67" cy="53" r="1"/></g>`,
     `<ellipse cx="36" cy="51" rx="5" ry="3" fill="#F08A9B" opacity=".55"/><ellipse cx="64" cy="51" rx="5" ry="3" fill="#F08A9B" opacity=".55"/>`,
     `<path d="M31 50 Q33 68 50 70 Q67 68 69 50 Q66 66 50 65 Q34 66 31 50Z" fill="${pelo}"/>`,
-    `<path d="M41 52 Q46 49 50 52 Q54 49 59 52 Q55 55 50 53 Q45 55 41 52Z" fill="${pelo}"/>`][c.fc];
+    `<path d="M41 52 Q46 49 50 52 Q54 49 59 52 Q55 55 50 53 Q45 55 41 52Z" fill="${pelo}"/>`,
+    `<path d="M45 61 Q50 68 55 61 Q50 64 45 61Z" fill="${pelo}"/>`][c.fc];
   const oculos = ['', `<g stroke="${ink}" stroke-width="2" fill="none"><circle cx="41" cy="43" r="7.5"/><circle cx="59" cy="43" r="7.5"/><path d="M48.5 43 H51.5 M33.5 42 H28 M66.5 42 H72"/></g>`,
     `<g stroke="${ink}" stroke-width="2" fill="none"><rect x="33" y="37" width="15" height="12" rx="3"/><rect x="52" y="37" width="15" height="12" rx="3"/><path d="M48 43 H52 M33 42 H28 M67 42 H72"/></g>`,
-    `<g stroke="${ink}" stroke-width="2" fill="#1B2140"><rect x="33" y="37" width="15" height="12" rx="4"/><rect x="52" y="37" width="15" height="12" rx="4"/><path d="M48 43 H52 M33 42 H28 M67 42 H72"/></g>`][c.gl];
-  const cabeca = ['', `<path d="M27 32 Q28 10 50 10 Q72 10 73 32Z" fill="#E0475B"/><path d="M27 32 H78 Q80 36 76 37 H27Z" fill="#B8313F"/>`,
+    `<g stroke="${ink}" stroke-width="2" fill="#1B2140"><rect x="33" y="37" width="15" height="12" rx="4"/><rect x="52" y="37" width="15" height="12" rx="4"/><path d="M48 43 H52 M33 42 H28 M67 42 H72"/></g>`,
+    `<g stroke="#503C9D" stroke-width="2"><rect x="33" y="37" width="15" height="12" rx="4" fill="rgba(76,195,193,.55)"/><rect x="52" y="37" width="15" height="12" rx="4" fill="rgba(242,138,184,.55)"/><path d="M48 43 H52 M33 42 H28 M67 42 H72" fill="none"/></g>`][c.gl];
+  const chapeu = ['', `<path d="M27 32 Q28 10 50 10 Q72 10 73 32Z" fill="#E0475B"/><path d="M27 32 H78 Q80 36 76 37 H27Z" fill="#B8313F"/>`,
     `<path d="M26 36 Q27 8 50 8 Q73 8 74 36Z" fill="#4CC3C1"/><rect x="25" y="32" width="50" height="8" rx="3" fill="#0B6E6C"/><circle cx="50" cy="8" r="4" fill="#DDF3F3"/>`,
     `<path d="M30 30 L30 14 L40 22 L50 10 L60 22 L70 14 L70 30Z" fill="#FFD36A" stroke="#8A6207" stroke-width="1.5"/><circle cx="50" cy="22" r="2.5" fill="#E0475B"/>`,
     `<path d="M26 44 Q26 12 50 12 Q74 12 74 44" stroke="#1B2140" stroke-width="4" fill="none"/><rect x="21" y="38" width="10" height="16" rx="4" fill="#1B2140"/><rect x="69" y="38" width="10" height="16" rx="4" fill="#1B2140"/>`,
-    `<path d="M62 18 L74 10 L72 22Z M62 18 L74 26 L72 14Z" fill="#E0475B"/><circle cx="62" cy="18" r="3" fill="#B8313F"/>`][c.ht];
-  const estampa = ['', `<path d="M22 86 H78 M22 94 H78" stroke="rgba(255,255,255,.45)" stroke-width="3"/>`, `<path d="M50 76 l2.4 5 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8Z" fill="rgba(255,255,255,.75)"/>`, `<path d="M52 74 L45 86 H50 L48 95 L56 82 H51Z" fill="rgba(255,255,255,.8)"/>`][c.sp];
-  return `<svg class="avatar" width="${size}" height="${size}" viewBox="0 0 100 100" role="img" aria-label="${esc(alt)}" style="border-radius:50%;flex-shrink:0;display:block"><circle cx="50" cy="50" r="50" fill="${bg}"/><rect x="42" y="58" width="16" height="14" fill="${skd}"/><path d="M20 100 V86 Q20 70 36 68 H64 Q80 70 80 86 V100Z" fill="${sh}"/>${estampa}${hairBack}<circle cx="28" cy="44" r="5" fill="${sk}"/><circle cx="72" cy="44" r="5" fill="${sk}"/><rect x="28" y="18" width="44" height="48" rx="17" fill="${sk}"/>${sobr}${olhos}${rosto}${boca}${hairFront}${oculos}${cabeca}</svg>`;
+    `<path d="M62 18 L74 10 L72 22Z M62 18 L74 26 L72 14Z" fill="#E0475B"/><circle cx="62" cy="18" r="3" fill="#B8313F"/>`,
+    `<path d="M40 24 L50 2 L60 24Z" fill="#F08A24"/><path d="M44.5 14 H55.5 M42 19.5 H58" stroke="#FFF8E1" stroke-width="2"/><circle cx="50" cy="2.5" r="2.5" fill="#E0475B"/>`,
+    `<path d="M30 26 L32 8 L45 18Z M70 26 L68 8 L55 18Z" fill="${c.hs ? hc : '#8B5A2B'}"/><path d="M33 23 L34 13 L42 19Z M67 23 L66 13 L58 19Z" fill="#F28AB8"/>`,
+    `<path d="M25 30 Q28 8 56 11 Q78 13 75 30Z" fill="#B8313F"/><rect x="26" y="27" width="48" height="5" rx="2.5" fill="#8C2430"/><circle cx="56" cy="10" r="2" fill="#8C2430"/>`][c.ht];
+  // corpo: roupa por estilo, estampa e acessórios
+  const corpo = `<path d="M20 100 V86 Q20 70 36 68 H64 Q80 70 80 86 V100Z" fill="${sh}"/>`;
+  const roupa = [corpo,
+    `${corpo}<path d="M34 70 Q50 84 66 70 Q50 76 34 70Z" fill="${escurece(sh, .7)}"/><path d="M45 76 V90 M55 76 V90" stroke="${clareia(sh)}" stroke-width="2" stroke-linecap="round"/>`,
+    `${corpo}<path d="M41 68 L50 80 L59 68 L55 68 L50 75 L45 68Z" fill="#fff"/><circle cx="50" cy="84" r="1.4" fill="${escurece(sh, .6)}"/><circle cx="50" cy="91" r="1.4" fill="${escurece(sh, .6)}"/>`,
+    `${corpo}<path d="M40 68 L50 82 L60 68 Z" fill="#fff"/><path d="M47 68 H53 L54 73 L50 90 L46 73Z" fill="#1B2140"/><path d="M20 86 Q24 78 34 72 M80 86 Q76 78 66 72" stroke="${escurece(sh, .75)}" stroke-width="2.5" fill="none"/>`][c.st];
+  const estampa = ['', `<path d="M22 86 H78 M22 94 H78" stroke="rgba(255,255,255,.45)" stroke-width="3"/>`, `<path d="M50 76 l2.4 5 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8Z" fill="rgba(255,255,255,.75)"/>`, `<path d="M52 74 L45 86 H50 L48 95 L56 82 H51Z" fill="rgba(255,255,255,.8)"/>`,
+    `<path d="M50 92 L42 84 Q39 80 42 77 Q46 74 50 79 Q54 74 58 77 Q61 80 58 84Z" fill="rgba(255,255,255,.8)"/>`, `<path d="M47 80 L51 76 V93" stroke="rgba(255,255,255,.85)" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`][c.st === 1 || c.st === 3 ? 0 : c.sp];
+  const acess = ['', `<circle cx="${cab.ox - 1}" cy="49" r="2" fill="#FFD36A"/><circle cx="${101 - cab.ox}" cy="49" r="2" fill="#FFD36A"/>`,
+    `<path d="M40 70 Q50 82 60 70" stroke="#FFD36A" stroke-width="1.6" fill="none"/><circle cx="50" cy="78" r="2.4" fill="#FFD36A"/>`,
+    `<rect x="36" y="63" width="28" height="9" rx="4.5" fill="#E0475B"/><path d="M58 70 L62 86 H54Z" fill="#E0475B"/><path d="M40 67.5 H60" stroke="#B8313F" stroke-width="1.2" stroke-dasharray="3 2"/>`,
+    `<path d="M38 65 H62 L50 78Z" fill="#2E6BB0"/><path d="M42 68 H58" stroke="#E3ECFA" stroke-width="1.2" stroke-dasharray="2 2"/>`][c.ac];
+  return `<svg class="avatar" width="${size}" height="${size}" viewBox="0 0 100 100" role="img" aria-label="${esc(alt)}" style="border-radius:50%;flex-shrink:0;display:block">${fundo}<rect x="42" y="58" width="16" height="14" fill="${skd}"/>${roupa}${estampa}${acess}${hairBack}${cabeca}${sobr}${olhos}${nariz}${detalhes}${boca}${hairFront}${oculos}${chapeu}</svg>`;
 }
+/* AV-END */
 function sheetAvatar() {
   const A = V.avatarEdit; if (!A) return '';
-  const cat = A.cat, cfg = A.cfg;
+  const cat = A.cat, cfg = A.cfg, nomeCat = (AV_CATS.find(([k]) => k === cat) || [])[1] || '';
   const opts = AV[cat].map((o, i) => AV_COR.has(cat)
     ? `<button class="avopt swatch" data-a="av-set:${cat}:${i}" aria-pressed="${cfg[cat] === i}" aria-label="Cor ${i + 1}" style="background:${o}"></button>`
     : `<button class="avopt" data-a="av-set:${cat}:${i}" aria-pressed="${cfg[cat] === i}" aria-label="${esc(o)}">${avatarSvg({...cfg, [cat]: i}, 56, '')}<span>${esc(o)}</span></button>`).join('');
+  const mudou = avatarTxt(cfg) !== A.inicialTxt;
   return `<div class="sheet-bg" data-key="bg:avatar" data-a="av-cancel"></div><section class="sheet" data-key="sh:avatar" role="dialog" aria-modal="true" aria-labelledby="avt" style="max-height:92%;min-height:74%"><span class="grab" aria-hidden="true"></span>
-    <div style="display:flex;align-items:center;gap:14px">${avatarSvg(cfg, 92, 'Prévia do avatar')}<div class="grow"><h1 id="avt" style="margin:0;font-family:var(--f-display);font-size:20px;font-weight:700">Meu avatar</h1><span class="sub">Monte do seu jeito. Ele aparece no perfil e na liga.</span></div><button class="chipbtn" data-a="av-random" aria-label="Sortear um avatar" title="Sortear">${I.redo}</button></div>
+    <div style="display:flex;align-items:center;gap:14px"><span class="pop" data-key="prev:${A.n}">${avatarSvg(cfg, 92, 'Prévia do avatar')}</span><div class="grow"><h1 id="avt" style="margin:0;font-family:var(--f-display);font-size:20px;font-weight:700">Meu avatar</h1><span class="sub">Monte do seu jeito. Ele aparece no perfil e na liga.</span></div>
+      <div style="display:flex;flex-direction:column;gap:6px"><button class="chipbtn" data-a="av-random" aria-label="Sortear tudo" title="Sortear tudo">${I.redo}</button><button class="chipbtn" data-a="av-undo" aria-label="Desfazer" title="Desfazer" ${A.hist.length ? '' : 'disabled'} style="${A.hist.length ? '' : 'opacity:.4'}">${I.back}</button></div></div>
     <div class="avcats" role="tablist" aria-label="Partes do avatar">${AV_CATS.map(([k, l]) => `<button role="tab" aria-selected="${cat === k}" data-a="av-cat:${k}">${l}</button>`).join('')}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span class="sub" style="font-size:12px"><b style="color:var(--ink)">${esc(nomeCat)}</b> · ${AV[cat].length} opções</span><button class="btn-ghost" style="height:auto;font-size:12px" data-a="av-random:${cat}">Sortear só ${esc(nomeCat.toLowerCase())}</button></div>
     <div class="avgrid ${AV_COR.has(cat) ? 'cores' : ''}" data-key="avgrid:${cat}">${opts}</div>
-    <div style="display:flex;gap:10px"><button class="btn btn-outline" style="flex:1" data-a="av-cancel">Cancelar</button><button class="btn btn-primary pxbtn" style="flex:2" data-a="av-save" ${A.salvando ? 'disabled' : ''}>${A.salvando ? 'Salvando…' : 'Salvar avatar'}</button></div></section>`;
+    <div style="display:flex;gap:10px"><button class="btn btn-outline" style="flex:1" data-a="av-cancel">Cancelar</button><button class="btn btn-primary pxbtn" style="flex:2" data-a="av-save" ${A.salvando || !mudou ? 'disabled' : ''}>${A.salvando ? 'Salvando…' : mudou ? 'Salvar avatar' : 'Sem mudanças'}</button></div></section>`;
 }
 async function salvarAvatar() {
   const A = V.avatarEdit; if (!A || A.salvando) return;
@@ -1441,10 +1497,11 @@ async function act(a) {
     case 'tier': V.tier = +x; return render();
     case 'share': if (navigator.share) navigator.share({title: 'Findout Jornada', text: `Estou com ${streak()} dias de ofensiva na Findout Jornada!`, url: location.origin + location.pathname}).catch(() => {}); return;
     case 'edit-nome': V.editNome = true; return render();
-    case 'avatar': V.avatarEdit = {cfg: avatarCfg(S.perfil.avatar) || avatarAleatorio(), cat: 'sk', salvando: false}; V.sheet = 'avatar'; V.editNome = false; return render();
+    case 'avatar': { const atual = avatarCfg(S.perfil.avatar); V.avatarEdit = {cfg: atual || avatarAleatorio(), inicialTxt: atual ? avatarTxt(atual) : '', cat: 'sk', salvando: false, hist: [], n: 0}; V.sheet = 'avatar'; V.editNome = false; return render(); }
     case 'av-cat': if (V.avatarEdit) V.avatarEdit.cat = x; return render();
-    case 'av-set': if (V.avatarEdit && AV[x] && +y < AV[x].length) { V.avatarEdit.cfg[x] = +y; vib(8); } return render();
-    case 'av-random': if (V.avatarEdit) { V.avatarEdit.cfg = avatarAleatorio(); vib([10, 20, 10]); } return render();
+    case 'av-set': { const A = V.avatarEdit; if (A && AV[x] && +y < AV[x].length && A.cfg[x] !== +y) { A.hist.push({...A.cfg}); if (A.hist.length > 40) A.hist.shift(); A.cfg[x] = +y; A.n++; vib(8); } return render(); }
+    case 'av-random': { const A = V.avatarEdit; if (A) { A.hist.push({...A.cfg}); if (A.hist.length > 40) A.hist.shift(); A.cfg = avatarAleatorio(A.cfg, x && AV[x] ? x : null); A.n++; vib([10, 20, 10]); } return render(); }
+    case 'av-undo': { const A = V.avatarEdit; if (A && A.hist.length) { A.cfg = A.hist.pop(); A.n++; vib(8); } return render(); }
     case 'av-cancel': return fecharSheet(() => { V.avatarEdit = null; });
     case 'av-save': return salvarAvatar();
     case 'after': { const r = lastResult; if (r && r.streakUp) { go('ofensiva', {celebrate: true}); SND.streak(); vib([40, 50, 40, 50, 120]); confetti(70); return; } if (r && r.mode === 'atividade') return go('turma'); if (r && ['errors', 'unitreview', 'flash'].includes(r.mode)) return go('praticar'); abrirAtual(); return go('jornada', {scrollTo: true, justDone: r ? r.justDone : null}); }
