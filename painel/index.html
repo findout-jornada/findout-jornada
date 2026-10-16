@@ -234,6 +234,15 @@ pre.json{margin:0;background:var(--navy);color:#C5C9E3;padding:14px;border-radiu
 .sep{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px}.sep::before,.sep::after{content:"";flex:1;height:1px;background:var(--line)}
 .link{background:none;border:0;color:var(--primary);text-decoration:underline;padding:0;font-size:13px}
 .modal{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 32px));z-index:30;padding:20px;display:flex;flex-direction:column;gap:14px}
+.modal.wide{width:min(760px,calc(100% - 32px));top:50%;max-height:calc(100vh - 32px);overflow-y:auto}
+.resp{border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.resp.ok{border-color:var(--green);background:var(--green-l)}.resp.erro{border-color:var(--red);background:var(--red-l)}
+.resp .enun{font-size:14px;font-weight:600;line-height:1.4;display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.resp .lin{display:grid;grid-template-columns:110px 1fr;gap:6px 10px;font-size:13px;line-height:1.45}
+.resp .lin b{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.03em;padding-top:1px}
+.resp .lin ol{margin:0;padding-left:18px}.resp .lin ol li{margin:1px 0}
+.resp .slotv{display:inline-block;padding:0 6px;border-radius:6px;background:var(--surface);border:1px solid var(--line);font-weight:700}
+@media (max-width:520px){.resp .lin{grid-template-columns:1fr}}
 
 @media (max-width:760px){
   #shell{grid-template-columns:1fr;grid-template-rows:auto 1fr;align-content:start}
@@ -336,6 +345,7 @@ const I = {
   close: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
   check: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
   warn: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20z"/><path d="M12 9v5M12 17h.01"/></svg>',
+  eye: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
   copy: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
   moon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
   sun: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
@@ -1168,9 +1178,9 @@ function viewResultados() {
       <div class="tile"><span class="lbl">Acerto médio</span><span class="val num">${(() => { const e = d.alunos.filter(x => x.entregueEm); const tot = e.reduce((s, x) => s + (x.total || 0), 0); return tot ? pct(e.reduce((s, x) => s + (x.acertos || 0), 0), tot) + '%' : '—'; })()}</span></div>
     </div>
     <div class="grid2">
-      <div class="card"><div class="card-h"><h2>Alunos</h2><span class="right"><button class="btn btn-ghost btn-sm" data-a="copiar-notas">${I.copy}Copiar notas</button></span></div><div class="tbl-wrap tbl-wide"><table><thead><tr><th>Aluno</th><th>Nota</th><th>Acertos</th><th>Entregue</th></tr></thead><tbody>
-        ${d.alunos.map(x => `<tr><td><b>${esc(x.nome)}</b><br><span style="font-size:12px;color:var(--muted)">${esc(x.email || '')}</span></td><td class="num" style="font-weight:700;color:${x.entregueEm ? (x.nota >= 6 ? 'var(--green-d)' : 'var(--red-d)') : 'var(--muted)'}">${x.entregueEm ? fmtNota(x.nota) : '—'}</td><td class="num">${x.entregueEm ? `${x.acertos} / ${x.total}` : '—'}</td><td style="font-size:12px;white-space:nowrap">${x.entregueEm ? fmtData(x.entregueEm) + (x.tempo_s ? ` · ${Math.max(1, Math.round(x.tempo_s / 60))} min` : '') : x.iniciadaEm ? '<span class="pill draft">começou</span>' : '<span class="pill off">não fez</span>'}</td></tr>`).join('')}
-        ${d.alunos.length ? '' : '<tr><td colspan="4" class="empty">A turma ainda não tem alunos.</td></tr>'}
+      <div class="card"><div class="card-h"><h2>Alunos</h2><span class="right"><button class="btn btn-ghost btn-sm" data-a="copiar-notas">${I.copy}Copiar notas</button></span></div><div class="tbl-wrap tbl-wide"><table><thead><tr><th>Aluno</th><th>Nota</th><th>Acertos</th><th>Entregue</th><th></th></tr></thead><tbody>
+        ${d.alunos.map(x => `<tr><td><b>${esc(x.nome)}</b><br><span style="font-size:12px;color:var(--muted)">${esc(x.email || '')}</span></td><td class="num" style="font-weight:700;color:${x.entregueEm ? (x.nota >= 6 ? 'var(--green-d)' : 'var(--red-d)') : 'var(--muted)'}">${x.entregueEm ? fmtNota(x.nota) : '—'}</td><td class="num">${x.entregueEm ? `${x.acertos} / ${x.total}` : '—'}</td><td style="font-size:12px;white-space:nowrap">${x.entregueEm ? fmtData(x.entregueEm) + (x.tempo_s ? ` · ${Math.max(1, Math.round(x.tempo_s / 60))} min` : '') : x.iniciadaEm ? '<span class="pill draft">começou</span>' : '<span class="pill off">não fez</span>'}</td><td style="white-space:nowrap">${x.entregueEm ? `<button class="btn btn-outline btn-sm" data-a="ver-respostas:${x.user_id}" title="Ver o que ${esc(x.nome)} respondeu em cada questão">${I.eye}Ver respostas</button>` : ''}</td></tr>`).join('')}
+        ${d.alunos.length ? '' : '<tr><td colspan="5" class="empty">A turma ainda não tem alunos.</td></tr>'}
       </tbody></table></div></div>
       <div class="card"><div class="card-h"><h2>Questões: onde a turma mais errou</h2></div><div class="card-b bars">
         ${d.questoes.map((q, i) => { const tot = q.acertos + q.erros; return `<div class="barrow" style="grid-template-columns:1fr"><span style="font-size:13px"><b class="num" style="color:var(--muted)">${i + 1}.</b> ${esc(q.enunciado)} <span class="pill type" style="font-size:10px">${TIPOS[q.tipo] || q.tipo}</span></span><span style="display:grid;grid-template-columns:1fr 60px;gap:8px;align-items:center"><span class="bar"><i style="width:${pct(q.erros, tot)}%;background:${pct(q.erros, tot) >= 50 ? 'var(--red)' : 'var(--orange)'}"></i></span><b class="num" style="text-align:right;font-size:12px;color:${pct(q.erros, tot) >= 50 ? 'var(--red-d)' : 'var(--fg2)'}">${tot ? pct(q.erros, tot) + '% erro' : '—'}</b></span></div>`; }).join('') || '<div class="empty">Sem questões.</div>'}
@@ -1181,7 +1191,7 @@ function viewResultados() {
 /* =====================================================================
    Auditoria (admin)
    ===================================================================== */
-const ACOES_AUD = {insert: ['Criou', 'pub'], update: ['Alterou', 'draft'], delete: ['Excluiu', ''], login: ['Entrou', 'type'], sair: ['Saiu', 'off'], tela: ['Abriu a tela', 'off'], busca: ['Buscou', 'on'], copia: ['Copiou', 'on'], resultados: ['Viu resultados', 'on'], turma: ['Abriu a turma', 'on'], novo_aluno: ['Criou conta', 'pub'], bloqueio: ['Bloqueou', ''], liberacao: ['Liberou', 'pub'], recursos: ['Deu moedas/corações', 'pub'], clique: ['Clicou', 'off']};
+const ACOES_AUD = {insert: ['Criou', 'pub'], update: ['Alterou', 'draft'], delete: ['Excluiu', ''], login: ['Entrou', 'type'], sair: ['Saiu', 'off'], tela: ['Abriu a tela', 'off'], busca: ['Buscou', 'on'], copia: ['Copiou', 'on'], resultados: ['Viu resultados', 'on'], turma: ['Abriu a turma', 'on'], novo_aluno: ['Criou conta', 'pub'], bloqueio: ['Bloqueou', ''], liberacao: ['Liberou', 'pub'], recursos: ['Deu moedas/corações', 'pub'], respostas: ['Viu respostas', 'on'], clique: ['Clicou', 'off']};
 const TABELAS_AUD = {materias: 'Matérias', secoes: 'Seções', unidades: 'Unidades', licoes: 'Lições', questoes: 'Questões', licao_questoes: 'Questões da lição', missoes: 'Missões', itens_loja: 'Loja', parametros: 'Parâmetros', publicacoes: 'Publicações', segmentos: 'Segmentos', escolas: 'Escolas', escola_membros: 'Membros da escola', turmas: 'Turmas', turma_professores: 'Professores da turma', turma_alunos: 'Alunos da turma', atividades: 'Atividades', perfis: 'Perfis', admins: 'Administradores', painel: 'Painel', alunos: 'Alunos', resultados: 'Resultados'};
 function viewAuditoria() {
   const A = V.aud, f = A.f;
@@ -1239,6 +1249,41 @@ function modalPrevHtml() {
   return `<div class="drawer-bg" data-a="fechar-prev"></div><div class="card modal" role="dialog" aria-modal="true" style="width:min(380px,calc(100% - 32px));align-items:center"><h2 style="align-self:flex-start">Prévia da questão</h2>${previaCelular(rascunhoDe(q))}<div style="display:flex;gap:8px;justify-content:flex-end;width:100%"><button class="btn btn-ghost" data-a="fechar-prev">Fechar</button></div></div>`;
 }
 
+/* Respostas de um aluno numa atividade: o que marcou, o que era o certo, acertou ou errou */
+function modalRespostasHtml() {
+  const R = V.resultados, a = R && T.atividades.find(x => x.id === R.id), d = R && R.data;
+  const al = d && d.alunos.find(x => x.user_id === V.respostas.uid);
+  if (!a || !al) { V.respostas = null; return ''; }
+  const resp = Array.isArray(al.respostas) ? al.respostas : [];
+  const porId = {}; resp.forEach(r => { porId[r.id] = r; });
+  const TF = v => v === true ? 'Verdadeiro' : v === false ? 'Falso' : null;
+  const lista = v => Array.isArray(v) && v.length ? `<ol>${v.map(i => `<li>${esc(String(i))}</li>`).join('')}</ol>` : null;
+  const frase = (p, w) => Array.isArray(p) && p.length ? `${esc(p[0] || '')}<span class="slotv">${esc((w && w[0]) || '…')}</span>${esc(p[1] || '')}<span class="slotv">${esc((w && w[1]) || '…')}</span>${esc(p[2] || '')}` : null;
+  const linha = (rot, html, cor) => html == null ? '' : `<div class="lin"><b>${rot}</b><span${cor ? ` style="color:${cor}"` : ''}>${html}</span></div>`;
+  const blocos = (a.questoes || []).map((q, i) => {
+    const r = porId[q.id], dd = q.dados || {}, rv = r ? r.resposta : undefined;
+    const respondeu = r && rv !== null && rv !== undefined;
+    let marcou = null, certo = null, extra = '';
+    if (q.tipo === 'mc') { const o = dd.opts || []; marcou = respondeu && o[rv] != null ? esc(o[rv]) : null; certo = o[dd.a] != null ? esc(o[dd.a]) : null; }
+    else if (q.tipo === 'tf') { extra = dd.stmt ? `<div class="lin"><b>Afirmação</b><span>${esc(dd.stmt)}</span></div>` : ''; marcou = respondeu ? TF(rv) : null; certo = TF(dd.a); }
+    else if (q.tipo === 'bank') { marcou = respondeu ? frase(dd.parts, rv) : null; certo = frase(dd.parts, dd.a); }
+    else if (q.tipo === 'order') { marcou = respondeu ? lista(rv) : null; certo = lista(dd.items); }
+    else if (q.tipo === 'match') { marcou = respondeu ? (rv === true ? 'Ligou todos os pares sem errar' : 'Errou ao ligar os pares') : null; certo = Array.isArray(dd.pairs) ? dd.pairs.map(p => `${esc(p[0])} → ${esc(p[1])}`).join('<br>') : null; }
+    const ok = !!(r && r.acertou);
+    return `<div class="resp ${!r ? '' : ok ? 'ok' : 'erro'}">
+      <div class="enun"><b class="num" style="color:var(--muted)">${i + 1}.</b><span style="flex:1;min-width:0">${esc(q.enunciado)}</span><span class="pill type" style="font-size:10px">${TIPOS[q.tipo] || q.tipo}</span><span class="pill ${!r ? 'off' : ok ? 'pub' : ''}" style="font-size:10px;${!r || ok ? '' : 'background:var(--red-l);color:var(--red-d)'}">${!r ? 'sem resposta' : ok ? 'acertou' : 'errou'}</span></div>
+      ${extra}
+      ${linha('Marcou', !respondeu ? '<i style="color:var(--muted)">Não respondeu</i>' : marcou == null ? esc(JSON.stringify(rv)) : marcou, ok ? 'var(--green-d)' : 'var(--red-d)')}
+      ${ok ? '' : linha('Resposta certa', certo)}
+      ${q.explicacao ? linha('Explicação', esc(q.explicacao), 'var(--fg2)') : ''}
+    </div>`;
+  }).join('');
+  return `<div class="drawer-bg" data-a="fechar-respostas"></div><div class="card modal wide" role="dialog" aria-modal="true" aria-label="Respostas de ${esc(al.nome)}">
+    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap"><div style="flex:1;min-width:0"><h2 style="margin:0">Respostas de ${esc(al.nome)}</h2><p style="margin:4px 0 0;font-size:13px;color:var(--muted)">${esc(a.titulo)} · nota <b class="num" style="color:${al.nota >= 6 ? 'var(--green-d)' : 'var(--red-d)'}">${String(al.nota ?? '—').replace('.', ',')}</b> · ${al.acertos} de ${al.total} acertos${al.entregueEm ? ' · entregue ' + fmtData(al.entregueEm) : ''}</p></div><button class="btn btn-ghost btn-sm" data-a="fechar-respostas" aria-label="Fechar">${I.close}</button></div>
+    ${blocos || '<div class="empty">Esta atividade não tem questões.</div>'}
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" data-a="fechar-respostas">Fechar</button></div></div>`;
+}
+
 /* =====================================================================
    Modais
    ===================================================================== */
@@ -1263,7 +1308,7 @@ function render() {
   const focado = document.activeElement, fkey = focado && focado.dataset ? focado.dataset.f : null, sel = focado && focado.selectionStart;
   const scroll = window.scrollY;
   shell.className = '';
-  shell.innerHTML = sidebar() + `<main>${VIEWS[V.view]()}</main>` + (V.ativ ? drawerAtividade() : '') + (V.rascunho ? drawerQuestao() : '') + (V.licaoAtribuir ? drawerAtribuir() : '') + (V.modalPrev ? modalPrevHtml() : '') + (V.modal ? modalHtml() : '') + (V.confirmar ? confirmHtml() : '');
+  shell.innerHTML = sidebar() + `<main>${VIEWS[V.view]()}</main>` + (V.ativ ? drawerAtividade() : '') + (V.rascunho ? drawerQuestao() : '') + (V.licaoAtribuir ? drawerAtribuir() : '') + (V.modalPrev ? modalPrevHtml() : '') + (V.respostas ? modalRespostasHtml() : '') + (V.modal ? modalHtml() : '') + (V.confirmar ? confirmHtml() : '');
   window.scrollTo(0, scroll);
   if (fkey) { const el = shell.querySelector(`[data-f="${fkey}"]`); if (el && el.tagName !== 'SELECT' && el.type !== 'radio' && el.type !== 'color') { el.focus(); try { el.setSelectionRange(sel, sel); } catch (e) {} } }
   if (V.modal) { const first = shell.querySelector('#f-modal input'); if (first) first.focus(); }
@@ -1421,18 +1466,20 @@ async function carregarResultados(aid) {
   render();
 }
 /* Toda ação do painel é registrada; estas já têm um registro mais descritivo em seu próprio código */
-const ACOES_COM_REGISTRO_PROPRIO = new Set(['view', 'sair', 'abrir-turma', 'resultados', 'copiar-notas', 'copiar-json', 'buscar-alunos', 'bloq', 'novo-aluno', 'dar', 'dar-lote']);
+const ACOES_COM_REGISTRO_PROPRIO = new Set(['view', 'sair', 'abrir-turma', 'resultados', 'copiar-notas', 'copiar-json', 'buscar-alunos', 'bloq', 'novo-aluno', 'dar', 'dar-lote', 'ver-respostas']);
 async function act(a, el) {
   const [k, x, y, z] = a.split(':');
   if (!ACOES_COM_REGISTRO_PROPRIO.has(k)) auditar('clique', 'painel', a, 'Ação no painel: ' + k + (x ? ' · ' + [x, y, z].filter(v => v != null).join(':') : ''), {tela: V.view});
   const M = materiaPorId(V.materia);
   switch (k) {
-    case 'view': V.view = x; V.rascunho = null; V.licaoAtribuir = null; V.jsonVersao = null; V.ativ = null; V.modalPrev = null; if (x !== 'turma') V.turma = null; window.scrollTo(0, 0); render(); if (x === 'alunos' && !V.alunos.lista) buscarAlunos(); if (x === 'inicio') carregarMetricas(); if (x === 'auditoria' && !V.aud.lista) carregarAuditoria(false); auditar('tela', 'painel', x, 'Abriu a tela ' + x); return;
+    case 'view': V.view = x; V.rascunho = null; V.licaoAtribuir = null; V.jsonVersao = null; V.ativ = null; V.modalPrev = null; V.respostas = null; if (x !== 'turma') V.turma = null; window.scrollTo(0, 0); render(); if (x === 'alunos' && !V.alunos.lista) buscarAlunos(); if (x === 'inicio') carregarMetricas(); if (x === 'auditoria' && !V.aud.lista) carregarAuditoria(false); auditar('tela', 'painel', x, 'Abriu a tela ' + x); return;
     case 'aud-recarregar': return carregarAuditoria(false);
     case 'aud-mais': return carregarAuditoria(true);
     case 'aud-abrir': V.aud.aberto[x] = !V.aud.aberto[x]; return render();
     case 'prev-q': { const q = D.questoes.find(q => q.id === x); if (q) V.modalPrev = q; return render(); }
     case 'fechar-prev': V.modalPrev = null; return render();
+    case 'ver-respostas': { const d = V.resultados && V.resultados.data, al = d && d.alunos.find(z => z.user_id === x); if (!al) return; V.respostas = {uid: x}; auditar('respostas', 'resultados', V.resultados.id, 'Viu as respostas de ' + al.nome, {aluno: x, nota: al.nota}); return render(); }
+    case 'fechar-respostas': V.respostas = null; return render();
     case 'papel': { const a = (V.alunos.lista || []).find(t => t.user_id === x); const novo = el.value; if (!a || a.papel === novo) return; await db(sb.rpc('definir_papel', {p_user: x, p_papel: novo})); a.papel = novo; toast(`${a.nome} agora é ${PAPEIS[novo].toLowerCase()}.`); return render(); }
 
     /* escolas e turmas */
@@ -1490,7 +1537,7 @@ async function act(a, el) {
     }
     case 'excluir-ativ': return confirmar('Excluir atividade?', 'As entregas e notas dos alunos também são apagadas.', async () => { await db(sb.from('atividades').delete().eq('id', x)); T.atividades = T.atividades.filter(a => a.id !== x); V.ativ = null; if (V.view === 'resultados') V.view = 'atividades'; toast('Atividade excluída.'); });
     case 'status-ativ': { const a = T.atividades.find(a => a.id === x); if (!a) return; const row = await db(sb.from('atividades').update({status: y, atualizada_em: agora()}).eq('id', x).select().single()); Object.assign(a, row); toast(y === 'aberta' ? 'Atividade aberta para a turma.' : 'Atividade encerrada.'); render(); if (V.view === 'resultados') return carregarResultados(x); return; }
-    case 'resultados': { const a = T.atividades.find(a => a.id === x); V.resultados = {id: x, data: null, erro: null}; V.view = 'resultados'; V.ativ = null; window.scrollTo(0, 0); render(); auditar('resultados', 'resultados', x, 'Viu os resultados de ' + (a ? a.titulo : x)); return carregarResultados(x); }
+    case 'resultados': { const a = T.atividades.find(a => a.id === x); V.resultados = {id: x, data: null, erro: null}; V.respostas = null; V.view = 'resultados'; V.ativ = null; window.scrollTo(0, 0); render(); auditar('resultados', 'resultados', x, 'Viu os resultados de ' + (a ? a.titulo : x)); return carregarResultados(x); }
     case 'copiar-notas': { const d = V.resultados && V.resultados.data; if (!d) return; auditar('copia', 'resultados', V.resultados.id, 'Copiou as notas da atividade', {alunos: d.alunos.length}); const txt = d.alunos.map(a => `${a.nome}\t${a.email || ''}\t${a.entregueEm ? String(a.nota).replace('.', ',') : ''}\t${a.entregueEm ? a.acertos + '/' + a.total : 'não entregou'}`).join('\n'); (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText('Aluno\tE-mail\tNota\tAcertos\n' + txt) : Promise.reject()).then(() => toast('Notas copiadas. Cole numa planilha.')).catch(() => toast('Não deu para copiar neste navegador.')); return; }
 
     case 'sair': auditar('sair', 'painel', null, 'Saiu do painel'); return sb.auth.signOut();
@@ -1647,7 +1694,7 @@ shell.addEventListener('click', ev => {
 });
 document.addEventListener('keydown', ev => {
   if (ev.key !== 'Escape' || !D) return;
-  if (V.modal || V.confirmar || V.modalPrev) { V.modal = null; V.confirmar = null; V.modalPrev = null; return render(); }
+  if (V.modal || V.confirmar || V.modalPrev || V.respostas) { V.modal = null; V.confirmar = null; V.modalPrev = null; V.respostas = null; return render(); }
   if (V.rascunho || V.licaoAtribuir) { V.rascunho = null; V.licaoAtribuir = null; return render(); }
   if (V.ativ) { V.ativ = null; return render(); }
 });
