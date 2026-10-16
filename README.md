@@ -33,6 +33,10 @@ O cadastro público está desligado no Supabase (Authentication → Sign In / Up
 - **Código:** `git push` na `main` (ou Commit + Push no GitHub Desktop). A Vercel publica em 1 a 2 minutos.
 - **Conteúdo:** no painel, botão **Publicar**. O app baixa a versão nova na próxima abertura.
 
+## Avatar do aluno
+
+Em **Perfil → Criar avatar** o aluno monta o próprio boneco: pele, cabelo e cor, olhos e cor, boca, rosto (sardas, barba…), óculos, acessório de cabeça, roupa, estampa e fundo, com prévia ao vivo e botão de sortear. O avatar é desenhado em SVG no próprio app (sem imagens) e fica salvo como um JSON curto na coluna `perfis.avatar`, que já existia; não precisa de migration. Aparece no perfil e no ranking da liga (quem ainda não montou continua com as iniciais).
+
 ## Professores, turmas e atividades (migration 0011)
 
 Papéis além de aluno e admin: **professor** (cria turmas e atividades no painel) e **coordenador** (cria escolas, coloca professores e vê todas as turmas da escola). O admin define o papel na aba **Alunos** do painel. Quem é só aluno não entra no painel.
