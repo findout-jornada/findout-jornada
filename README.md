@@ -41,7 +41,7 @@ Fluxo:
 
 1. **Turma:** o professor cria em **Turmas → Nova turma**. A turma ganha um código de 6 letras. O aluno entra pelo app em **Perfil → Minhas turmas → Entrar**, ou o professor adiciona pelo e-mail da conta.
 2. **Atividade:** em **Atividades → Nova atividade**, o professor escolhe turma, matéria, prazo e as questões: busca no banco por assunto, matéria, unidade ou texto, ou cria questões próprias (ficam só na atividade). Cada questão tem um valor; a nota vai de 0 a 10 proporcional aos pontos.
-3. **Aluno:** vê a atividade em **Treinar → Atividades da turma** (e um aviso na trilha). Responde uma vez, sem gastar coração, e recebe a nota na hora. Ganha XP (parâmetro `xpAtividade` + 2 por acerto), e conta para ofensiva, missões e liga.
+3. **Aluno:** vê a atividade na aba **Turma** da barra de baixo (com um contador de pendentes e um aviso na trilha). Responde uma vez, sem gastar coração, e recebe a nota na hora. Ganha XP (parâmetro `xpAtividade` + 2 por acerto), e conta para ofensiva, missões e liga.
 4. **Resultados:** o professor vê quem entregou, a nota de cada um, a média e as questões que a turma mais errou, e copia as notas para uma planilha. O botão **Ver respostas** ao lado de cada aluno abre questão por questão: o que ele marcou, a resposta certa (quando errou) e a explicação. Coordenador e admin veem o mesmo; cada consulta fica na auditoria.
 
 As questões recebem o campo **assuntos** (separados por vírgula no editor) para a busca por assunto. A correção é feita no servidor (`entregar_atividade`) a partir da cópia das questões guardada na atividade, então editar a questão no banco depois não muda a atividade.

@@ -95,8 +95,8 @@ input{font:inherit}
 .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0}
 .pad{padding:16px 20px 24px;display:flex;flex-direction:column;gap:14px}
 .footer{flex-shrink:0;padding:10px 20px;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--bg);display:flex;flex-direction:column;gap:10px}
-.nav{flex-shrink:0;margin:8px 12px calc(10px + env(safe-area-inset-bottom,0px));border-radius:22px;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);box-shadow:0 10px 30px rgba(1,15,46,.14),0 2px 6px rgba(1,15,46,.06);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:6px;position:relative;z-index:6}
-.nav button{height:56px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10.5px;font-weight:600;color:var(--muted);transition:background-color .15s,color .15s,transform .1s}
+.nav{flex-shrink:0;margin:8px 12px calc(10px + env(safe-area-inset-bottom,0px));border-radius:22px;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);box-shadow:0 10px 30px rgba(1,15,46,.14),0 2px 6px rgba(1,15,46,.06);display:grid;grid-template-columns:repeat(6,minmax(0,1fr));padding:5px;position:relative;z-index:6}
+.nav button{height:56px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px;padding:0 2px;font-weight:600;color:var(--muted);transition:background-color .15s,color .15s,transform .1s}
 .nav button:active{transform:scale(.95)}
 .nav button[aria-current="page"]{color:var(--primary);font-weight:700;background:var(--lav)}
 .nav button[aria-current="page"] svg{filter:drop-shadow(0 2px 0 rgba(80,60,157,.25))}
@@ -361,6 +361,7 @@ const I = {
   path: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M6 7.5v3a3 3 0 0 0 3 3h6a3 3 0 0 1 3 3"/></svg>',
   train: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
   user: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+  users: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16 15.5a5 5 0 0 1 5.5 4.5"/></svg>',
   share: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>',
   google: '<svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.4z"/><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"/><path fill="#FBBC05" d="M6.4 14a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9z"/><path fill="#EA4335" d="M12 6c1.5 0 2.8.5 3.8 1.5l2.8-2.8A10 10 0 0 0 3.1 7.5L6.4 10c.8-2.3 3-4 5.6-4z"/></svg>'
 };
@@ -810,15 +811,15 @@ function screenJornada() {
   }).join('');
   const vazio = !T.units.length;
   const np = pendentes().length, prox = pendentes()[0];
-  const aviso = np ? `<button class="card row" data-key="aviso-ativ" style="margin:12px 20px 0;width:auto;text-align:left;border-color:var(--primary);background:var(--lav)" data-a="tab:praticar"><span class="tile" style="width:40px;height:40px;background:var(--primary);color:#fff">${I.target(20)}</span><div class="grow"><span class="t15" style="font-size:14px">${np === 1 ? '1 atividade da turma pendente' : np + ' atividades da turma pendentes'}</span><span class="sub" style="font-size:12px">${esc(prox.titulo)} · ${fmtPrazo(prox.prazo)}</span></div>${I.chevR}</button>` : '';
+  const aviso = np ? `<button class="card row" data-key="aviso-ativ" style="margin:12px 20px 0;width:auto;text-align:left;border-color:var(--primary);background:var(--lav)" data-a="tab:turma"><span class="tile" style="width:40px;height:40px;background:var(--primary);color:#fff">${I.target(20)}</span><div class="grow"><span class="t15" style="font-size:14px">${np === 1 ? '1 atividade da turma pendente' : np + ' atividades da turma pendentes'}</span><span class="sub" style="font-size:12px">${esc(prox.titulo)} · ${fmtPrazo(prox.prazo)}</span></div>${I.chevR}</button>` : '';
   return headerJornada(m) + `<div class="scroll" id="sc">${aviso}${vazio ? `<div class="pad" style="align-items:center;text-align:center;padding-top:40px">${mascot(120)}<p class="sub" style="max-width:280px">${esc(m.nome)} ainda não tem lições publicadas. Escolha outra matéria.</p><button class="chipbtn" data-a="go:materias">Trocar de matéria</button></div>` : `<div class="trail">${rows}${T.cur < 0 && T.total ? `<div class="pad" style="align-items:center;text-align:center">${mascot(90)}<p class="sub">Você concluiu tudo que foi publicado em ${esc(m.nome)}. Pratique as lições para ganhar coroas ou troque de matéria.</p></div>` : ''}</div>`}</div>
   <button class="fab pxbtn" data-key="fab" data-a="go:praticar" aria-label="Praticar">${I.dumbbell}</button>
   ${nav('jornada')}`;
 }
 function nav(cur) {
-  const items = [['jornada', 'Jornada', I.path], ['praticar', 'Treinar', I.train], ['missoes', 'Missões', I.target()], ['ligas', 'Ligas', I.shield()], ['perfil', 'Perfil', I.user]];
+  const items = [['jornada', 'Jornada', I.path], ['praticar', 'Treinar', I.train], ['turma', 'Turma', I.users], ['missoes', 'Missões', I.target()], ['ligas', 'Ligas', I.shield()], ['perfil', 'Perfil', I.user]];
   const np = pendentes().length;
-  return `<nav class="nav" data-key="nav" aria-label="Navegação principal">${items.map(([id, lbl, ic]) => `<button data-a="tab:${id}" ${cur === id ? 'aria-current="page"' : ''} style="position:relative">${ic}${lbl}${id === 'praticar' && np ? `<span class="navbadge num" aria-label="${np} atividades pendentes">${np}</span>` : ''}</button>`).join('')}</nav>`;
+  return `<nav class="nav" data-key="nav" aria-label="Navegação principal">${items.map(([id, lbl, ic]) => `<button data-a="tab:${id}" ${cur === id ? 'aria-current="page"' : ''} style="position:relative">${ic}${lbl}${id === 'turma' && np ? `<span class="navbadge num" aria-label="${np} atividades pendentes">${np}</span>` : ''}</button>`).join('')}</nav>`;
 }
 
 /* ---------- matérias ---------- */
@@ -1214,20 +1215,29 @@ function screenPraticar() {
     {a: S.economia.relampagoHoje ? 'toast:O desafio relâmpago grátis de hoje já foi usado. Volte amanhã.' : 'flash', title: 'Desafio relâmpago', desc: S.economia.relampagoHoje ? 'Já jogado hoje · volta amanhã' : `${Math.round((+E().segundosRelampago || 120) / 60)} minutos, XP ×${E().multiplicadorRelampago} · 1 grátis por dia`, xp: `×${E().multiplicadorRelampago} XP`, bg: 'var(--gold-l)', fg: 'var(--gold-d)', ic: I.bolt()},
     {a: 'review', title: 'Revisão diária', desc: 'Mistura de todas as matérias, priorizando seus erros', xp: `+${(PM().revisao || {}).xp || E().xpRevisao} XP`, bg: 'var(--teal-l)', fg: 'var(--teal-d)', ic: I.books}
   ].filter(Boolean);
-  const ativs = atividades(), pend = ativs.filter(a => a.status === 'pendente'), feitas = ativs.filter(a => a.status !== 'pendente').slice(0, 6);
-  const temTurma = (S.turmas || []).length > 0;
-  const secAtiv = temTurma || ativs.length ? `<div style="display:flex;justify-content:space-between;align-items:baseline"><h2 class="h2">Atividades da turma</h2><span class="num" style="font-size:12px;color:var(--muted)">${pend.length ? pend.length + ' pendente' + (pend.length > 1 ? 's' : '') : 'nada pendente'}</span></div>
-    ${pend.map(cardAtividade).join('')}
-    ${!pend.length ? `<div class="card row"><span class="tile" style="background:var(--green-l);color:var(--green-dd)">${I.check(22, 3)}</span><div class="grow"><span class="t15">Tudo entregue</span><span class="sub">Quando o professor passar uma atividade nova, ela aparece aqui.</span></div></div>` : ''}
-    ${feitas.length ? `<h2 class="h2" style="font-size:13px;color:var(--muted)">Entregues e encerradas</h2>${feitas.map(cardAtividade).join('')}` : ''}` : '';
   return `<header class="topbar"><h1>Treinar</h1><span style="display:flex;align-items:center;gap:4px;padding-right:8px;font-family:var(--f-display);font-weight:700;font-size:15px;color:var(--red-d)">${I.heart(18)}${heartsTxt()}</span></header>
   <div class="scroll"><div class="pad">
-    ${secAtiv}
     <h2 class="h2">Prática personalizada</h2>
     ${cards.map(c => `<button class="card row" style="text-align:left;width:100%" data-a="${c.a}"><span class="tile" style="background:${c.bg};color:${c.fg}">${c.ic}</span><div class="grow"><span class="t15">${esc(c.title)}</span><span class="sub">${esc(c.desc)}</span></div><span class="px" style="font-size:9px;color:var(--primary);white-space:nowrap">${c.xp}</span></button>`).join('')}
     <h2 class="h2">Erros que mais se repetem</h2>
     <div class="card">${topics.length ? topics.map(([u, n]) => { const [ab, t] = unidadeNome(u); return `<div class="row" style="padding:11px 14px"><span class="px" style="font-size:9px;color:var(--primary);width:28px">${esc(ab)}</span><span style="flex:1;font-size:14px">${esc(t)}</span><span class="num" style="font-size:12px;color:var(--red-d);font-weight:600">${n} erro${n > 1 ? 's' : ''}</span></div>`; }).join('') : `<div class="row"><span class="sub">Nenhum erro ainda. Quando você errar um exercício, ele aparece aqui para revisar.</span></div>`}</div>
-  </div></div>${V.sheet === 'ativ' ? sheetAtiv() : ''}${nav('praticar')}`;
+  </div></div>${nav('praticar')}`;
+}
+/* ---------- turma: atividades passadas pelo professor ---------- */
+function screenTurma() {
+  const ativs = atividades(), pend = ativs.filter(a => a.status === 'pendente'), feitas = ativs.filter(a => a.status !== 'pendente').slice(0, 12);
+  const ts = S.turmas || [];
+  const urgentes = pend.filter(a => a.prazo && new Date(a.prazo) - Date.now() < 24 * HOUR).length;
+  return `<header class="topbar"><h1>Turma</h1><button class="chipbtn" data-a="turmas" style="margin-right:10px">${ts.length ? 'Minhas turmas' : 'Entrar na turma'}</button></header>
+  <div class="scroll"><div class="pad">
+    ${!ts.length ? `<div class="pad" style="padding:20px 0 6px;align-items:center;text-align:center">${mascot(110)}<h2 class="h2" style="font-size:18px">Você ainda não está numa turma</h2><p class="sub" style="max-width:280px;margin:0">Peça o código de 6 letras ao seu professor e entre pelo botão acima. As atividades que ele passar aparecem aqui.</p><button class="btn btn-primary pxbtn" data-a="turmas" style="margin-top:6px">Entrar com o código</button></div>` : `
+    <div class="card row" data-key="turma-info"><span class="tile" style="background:var(--lav);color:var(--primary)">${I.users}</span><div class="grow"><span class="t15">${ts.map(t => esc(t.nome)).join(' · ')}</span><span class="sub">${ts.length === 1 ? (ts[0].escola ? esc(ts[0].escola) : 'Turma do professor') : ts.length + ' turmas'}</span></div></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 class="h2">Atividades pendentes</h2><span class="num" style="font-size:12px;color:${urgentes ? 'var(--orange-d)' : 'var(--muted)'}">${pend.length ? pend.length + ' pendente' + (pend.length > 1 ? 's' : '') + (urgentes ? ' · ' + urgentes + ' vence hoje' : '') : 'nada pendente'}</span></div>
+    ${pend.map(cardAtividade).join('')}
+    ${!pend.length ? `<div class="card row"><span class="tile" style="background:var(--green-l);color:var(--green-dd)">${I.check(22, 3)}</span><div class="grow"><span class="t15">Tudo entregue</span><span class="sub">Quando o professor passar uma atividade nova, ela aparece aqui.</span></div></div>` : ''}
+    ${feitas.length ? `<h2 class="h2">Entregues e encerradas</h2>${feitas.map(cardAtividade).join('')}` : ''}
+    <p class="sub" style="margin:4px 0 0;font-size:12px">Atividades não gastam corações. A nota sai na hora e o professor vê o que você respondeu.</p>`}
+  </div></div>${V.sheet === 'ativ' ? sheetAtiv() : ''}${V.sheet === 'turma' ? sheetTurma() : ''}${nav('turma')}`;
 }
 function sheetAtiv() {
   const a = atividades().find(x => x.id === V.ativ); if (!a) return '';
@@ -1272,9 +1282,9 @@ function screenPerfil() {
 /* =====================================================================
    Render e ações
    ===================================================================== */
-const SCREENS = {jornada: screenJornada, materias: screenMaterias, secoes: screenSecoes, licao: screenLicao, fim: screenFim, ofensiva: screenOfensiva, missoes: screenMissoes, ligas: screenLigas, loja: screenLoja, praticar: screenPraticar, perfil: screenPerfil};
+const SCREENS = {jornada: screenJornada, materias: screenMaterias, secoes: screenSecoes, licao: screenLicao, fim: screenFim, ofensiva: screenOfensiva, missoes: screenMissoes, ligas: screenLigas, loja: screenLoja, praticar: screenPraticar, turma: screenTurma, perfil: screenPerfil};
 let lastScreen = null;
-const TABS = new Set(['jornada', 'praticar', 'missoes', 'ligas', 'perfil']);
+const TABS = new Set(['jornada', 'praticar', 'turma', 'missoes', 'ligas', 'perfil']);
 function go(screen, extra = {}) { V = {...V, screen, sheet: null, editNome: false, justDone: null, ...extra}; render(true); }
 function abrirAtual() { const m = materiaAtual(); const T = m && trilha(m); V.open = T && T.cur >= 0 ? 'L' + T.flat[T.cur].lic.id : null; }
 // reset=true: tela nova (recria tudo e anima a entrada). reset=false: mesma tela (só atualiza o que mudou).
@@ -1335,7 +1345,7 @@ async function act(a) {
     case 'tier': V.tier = +x; return render();
     case 'share': if (navigator.share) navigator.share({title: 'Findout Jornada', text: `Estou com ${streak()} dias de ofensiva na Findout Jornada!`, url: location.origin + location.pathname}).catch(() => {}); return;
     case 'edit-nome': V.editNome = true; return render();
-    case 'after': { const r = lastResult; if (r && r.streakUp) { go('ofensiva', {celebrate: true}); SND.streak(); vib([40, 50, 40, 50, 120]); confetti(70); return; } if (r && ['errors', 'unitreview', 'flash', 'atividade'].includes(r.mode)) return go('praticar'); abrirAtual(); return go('jornada', {scrollTo: true, justDone: r ? r.justDone : null}); }
+    case 'after': { const r = lastResult; if (r && r.streakUp) { go('ofensiva', {celebrate: true}); SND.streak(); vib([40, 50, 40, 50, 120]); confetti(70); return; } if (r && r.mode === 'atividade') return go('turma'); if (r && ['errors', 'unitreview', 'flash'].includes(r.mode)) return go('praticar'); abrirAtual(); return go('jornada', {scrollTo: true, justDone: r ? r.justDone : null}); }
     case 'atividade': return startAtividade(x);
     case 'ver-ativ': V.sheet = 'ativ'; V.ativ = x; return render();
     case 'turmas': V.sheet = 'turma'; V.codigoErro = ''; return render();
