@@ -891,9 +891,9 @@ function screenMaterias() {
     ${escolhendo ? '' : `<div style="display:flex;justify-content:space-between;align-items:baseline"><h2 class="h2">Jornadas por matéria</h2><span class="num" style="font-size:12px;color:var(--muted)">toque para trocar</span></div>`}
     <div class="card" style="overflow:hidden">
       ${materias().map(m => { const a = m.id === S.perfil.materia; const T = trilha(m); const p = T.total ? Math.round(T.done / T.total * 100) : 0; const onde = !T.total ? 'Sem lições ainda' : T.cur < 0 ? 'Concluída' : T.done === 0 ? 'Ainda não começou' : `Seção ${T.curUnit.si + 1} · Unidade ${T.curUnit.n}`; return `
-      <button data-a="${materiaBloqueada(m.id) ? 'bloq-mat:' + m.id : 'subject:' + m.id}" aria-pressed="${a}" aria-disabled="${materiaBloqueada(m.id)}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--lav);background:${a ? 'var(--lav)' : '#fff'};width:100%;text-align:left;opacity:${materiaBloqueada(m.id) ? .5 : 1}">
+      <button data-a="subject:${m.id}" aria-pressed="${a}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--lav);background:${a ? 'var(--lav)' : '#fff'};width:100%;text-align:left">
         <span class="px" style="width:44px;height:44px;border-radius:12px;background:${a ? 'var(--primary)' : 'var(--lav)'};color:${a ? '#fff' : 'var(--primary)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px">${esc(m.sigla)}</span>
-        <div class="grow" style="gap:5px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:15px;font-weight:600">${esc(m.nome)}</span><span class="num" style="font-size:11px;color:var(--muted);white-space:nowrap;display:inline-flex;align-items:center;gap:3px">${materiaBloqueada(m.id) ? I.lock(12) + 'Bloqueada' : onde}</span></div>
+        <div class="grow" style="gap:5px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:15px;font-weight:600">${esc(m.nome)}</span><span class="num" style="font-size:11px;color:var(--muted);white-space:nowrap">${onde}</span></div>
         <div class="bar" style="height:6px"><i style="width:${p}%;background:${p ? 'var(--primary)' : 'var(--line2)'}"></i></div></div>
         <span style="width:26px;height:26px;border-radius:50%;border:2px solid var(--primary);background:${a ? 'var(--primary)' : '#fff'};color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0">${a ? I.check(14) : ''}</span>
       </button>`; }).join('') || '<div class="row"><span class="sub">Nenhuma matéria publicada ainda.</span></div>'}
@@ -1320,28 +1320,40 @@ function sheetTurma() {
 // Matérias fora dessas listas caem na ilha "Atualidades". A ordem da lista é a ordem da viagem.
 const ILHAS = [
   // x/y no mapa base de 360×600 (o y é esticado conforme a altura da tela); barco: âncora do barco em relação ao pino, para não cobrir rótulos
-  {id: 'ling', nome: 'Linguagens', mats: ['por', 'ing', 'esp'], cor: '#F08A24', cor2: '#C8571D', x: 78, y: 112, decor: 'piramide', forma: 0, barco: [74, -8], icone: 'M4 5h16v10H9l-5 4z'},
+  // idiomas: na viagem o aluno escolhe um deles (como no ENEM); só o escolhido conta para a ilha
+  {id: 'ling', nome: 'Linguagens', mats: ['por', 'ing', 'esp'], idiomas: ['ing', 'esp'], cor: '#F08A24', cor2: '#C8571D', x: 78, y: 112, decor: 'piramide', forma: 0, barco: [74, -8], icone: 'M4 5h16v10H9l-5 4z'},
   {id: 'hum', nome: 'Humanas', mats: ['his', 'geo', 'fil'], cor: '#8FB569', cor2: '#2F5A14', x: 262, y: 96, decor: 'templo', forma: 1, barco: [-80, -8], icone: 'M3 20h18M5 9h14M7 9v10M12 9v10M17 9v10M12 3l8 5H4z'},
   {id: 'nat', nome: 'Natureza', mats: ['bio', 'qui', 'fis'], cor: '#4CC3C1', cor2: '#0B6E6C', x: 292, y: 262, decor: 'foguete', forma: 2, barco: [46, -78], icone: 'M20 4c-8 0-14 4-14 12 0 2 .5 4 1 4 6-1 13-6 13-16zM6 20c2-6 6-9 10-11'},
   {id: 'mat', nome: 'Matemática', mats: ['mat'], cor: '#A985F5', cor2: '#503C9D', x: 62, y: 322, decor: 'predios', forma: 1, barco: [80, 12], icone: 'M6 3h12v18H6zM9 7h6M9 12h2M13 12h2M9 16h2M13 16h2'},
   {id: 'red', nome: 'Redação', mats: ['red'], cor: '#E0475B', cor2: '#8C2430', x: 126, y: 474, decor: 'vulcao', forma: 2, barco: [68, -22], icone: 'M4 20l4-1L19 8l-3-3L5 16zM14 7l3 3'},
   {id: 'extra', nome: 'Atualidades', mats: [], cor: '#5AA9E6', cor2: '#1B3F6E', x: 272, y: 452, decor: 'neve', forma: 0, barco: [64, -26], icone: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3.5 9.5h17M3.5 14.5h17M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18'}
 ];
+// Idioma escolhido para a viagem (fica no aparelho); null = ainda não escolheu
+function idiomaViagem() {
+  let v = null; try { v = localStorage.getItem('fj-idioma'); } catch (e) {}
+  return v && materias().some(m => m.id === v) ? v : null;
+}
 function ilhas() {
-  const ms = materias(), usados = new Set();
-  const lista = ILHAS.map(i => ({...i, materias: i.mats.map(id => ms.find(m => m.id === id)).filter(Boolean)}));
-  lista.forEach(i => i.materias.forEach(m => usados.add(m.id)));
-  lista.find(i => i.id === 'extra').materias = ms.filter(m => !usados.has(m.id));
-  const out = lista.filter(i => i.materias.length);
-  out.forEach(i => { let d = 0, t = 0; i.materias.forEach(m => { const T = trilha(m); d += T.done; t += T.total; }); i.feitas = d; i.total = t; i.pct = t ? Math.round(d / t * 100) : 0; i.completa = t > 0 && d >= t; });
+  const ms = materias(), usados = new Set(), idioma = idiomaViagem();
+  const lista = ILHAS.map(i => {
+    const todas = i.mats.map(id => ms.find(m => m.id === id)).filter(Boolean);
+    const opcoes = i.idiomas ? todas.filter(m => i.idiomas.includes(m.id)) : [];
+    // com idiomas: Português sempre conta; do idioma, só o escolhido (se só existe um publicado, ele vale sem perguntar)
+    const escolhido = opcoes.some(m => m.id === idioma) ? idioma : opcoes.length === 1 ? opcoes[0].id : null;
+    const materias = i.idiomas ? todas.filter(m => !i.idiomas.includes(m.id) || m.id === escolhido) : todas;
+    return {...i, materias, opcoesIdioma: opcoes, precisaEscolher: opcoes.length > 1 && !escolhido, todasMaterias: todas};
+  });
+  lista.forEach(i => i.todasMaterias.forEach(m => usados.add(m.id)));
+  const extra = lista.find(i => i.id === 'extra'); extra.materias = ms.filter(m => !usados.has(m.id)); extra.todasMaterias = extra.materias;
+  const out = lista.filter(i => i.todasMaterias.length);
+  out.forEach(i => { let d = 0, t = 0; i.materias.forEach(m => { const T = trilha(m); d += T.done; t += T.total; }); i.feitas = d; i.total = t; i.pct = t ? Math.round(d / t * 100) : 0; i.completa = t > 0 && d >= t && !i.precisaEscolher; });
   // viagem sequencial: só a ilha atual (primeira não concluída) e as anteriores estão liberadas
-  const cur = out.findIndex(i => !i.completa && i.total > 0);
+  const cur = out.findIndex(i => !i.completa && (i.total > 0 || i.precisaEscolher));
   out.forEach((i, k) => { i.bloqueada = cur >= 0 && k > cur; });
   return out;
 }
-// Matéria de uma ilha bloqueada não pode ser escolhida. Exceção: a matéria que o aluno já está estudando continua liberada.
+// Na viagem, matéria de ilha bloqueada não abre pelo mapa (em "Suas matérias" tudo é livre)
 function materiaBloqueada(id) {
-  if (!id || id === S.perfil.materia) return false;
   const i = ilhas().find(z => z.materias.some(m => m.id === id));
   return !!(i && i.bloqueada);
 }
@@ -1368,7 +1380,7 @@ const DECOR_ILHA = {
 function ilhaSvg(i, idx, atual, sy) {
   const w = 122, {x, cor, cor2} = i, y = i.y * sy;
   const verde = i.completa ? '#8FB569' : '#A9CF7E';
-  const siglas = i.materias.map(m => (m.sigla || m.nome.slice(0, 3)).toUpperCase()).join(' · ');
+  const siglas = (i.precisaEscolher ? i.todasMaterias : i.materias).map(m => (m.sigla || m.nome.slice(0, 3)).toUpperCase()).join(' · ');
   const bloq = i.bloqueada ? ' class="bloq"' : '';
   return `<g class="ilha${atual ? ' atual' : ''}" data-a="ilha:${i.id}" role="button" tabindex="0" aria-label="Ilha de ${esc(i.nome)}: ${i.bloqueada ? 'bloqueada' : i.pct + '% concluído'}" style="--d:${(idx * .45).toFixed(2)}s;transform-origin:${x}px ${y}px">
     <g transform="translate(${x} ${y})"${bloq}>
@@ -1383,11 +1395,11 @@ function ilhaSvg(i, idx, atual, sy) {
       ${i.completa ? `<g class="bandeira" style="transform-origin:44px -26px"><path d="M44 -26 V-56" stroke="#5A3A1E" stroke-width="2"/><path d="M45 -56 H64 L59 -50 L64 -44 H45Z" fill="#FFD36A"/></g>` : ''}
     </g>
     <g class="pino">${atual ? `<circle class="halo" cx="${x}" cy="${y + 42}" r="10" fill="${cor}" style="transform-origin:${x}px ${y + 42}px"/>` : ''}<circle cx="${x}" cy="${y + 42}" r="9" fill="#fff" stroke="${i.bloqueada ? '#8A93AD' : cor}" stroke-width="3"/>${i.completa ? `<path d="M${x - 4} ${y + 42} l3 3 5 -6" stroke="${cor2}" stroke-width="2.5" fill="none" stroke-linecap="round"/>` : i.bloqueada ? `<path d="M${x - 2.5} ${y + 41} v-2 a2.5 2.5 0 0 1 5 0 v2" stroke="#5A6386" stroke-width="1.6" fill="none"/><rect x="${x - 4}" y="${y + 41}" width="8" height="5.5" rx="1.2" fill="#5A6386"/>` : `<circle cx="${x}" cy="${y + 42}" r="3.5" fill="${cor}"/>`}</g>
-    <g transform="translate(${x - 66} ${y + 54})"${bloq}><rect width="132" height="46" rx="12" fill="rgba(12,20,56,.86)" stroke="${cor}" stroke-width="1.5"/><circle cx="19" cy="23" r="12" fill="${cor}"/><g transform="translate(11 15) scale(.66)" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="${i.icone}"/></g><text x="38" y="18" fill="#fff" font-weight="700" font-size="12" style="font-family:var(--f-display)">${esc(i.nome)}</text><text x="38" y="29" fill="rgba(255,255,255,.8)" font-size="8.5" font-weight="600">${esc(siglas)}</text><rect x="38" y="35" width="58" height="5" rx="2.5" fill="rgba(255,255,255,.2)"/><rect x="38" y="35" width="${Math.round(58 * i.pct / 100)}" height="5" rx="2.5" fill="${cor}"/><text x="124" y="41" text-anchor="end" fill="${cor}" font-weight="700" font-size="${i.bloqueada ? 8 : 10.5}" class="num">${i.bloqueada ? 'BLOQUEADA' : i.pct + '%'}</text></g>
+    <g transform="translate(${x - 66} ${y + 54})"${bloq}><rect width="132" height="46" rx="12" fill="rgba(12,20,56,.86)" stroke="${cor}" stroke-width="1.5"/><circle cx="19" cy="23" r="12" fill="${cor}"/><g transform="translate(11 15) scale(.66)" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="${i.icone}"/></g><text x="38" y="18" fill="#fff" font-weight="700" font-size="12" style="font-family:var(--f-display)">${esc(i.nome)}</text><text x="38" y="29" fill="rgba(255,255,255,.8)" font-size="8.5" font-weight="600">${esc(siglas)}</text><rect x="38" y="35" width="58" height="5" rx="2.5" fill="rgba(255,255,255,.2)"/><rect x="38" y="35" width="${Math.round(58 * i.pct / 100)}" height="5" rx="2.5" fill="${cor}"/><text x="124" y="41" text-anchor="end" fill="${cor}" font-weight="700" font-size="${i.bloqueada || i.precisaEscolher ? 8 : 10.5}" class="num">${i.bloqueada ? 'BLOQUEADA' : i.precisaEscolher ? 'ESCOLHA O IDIOMA' : i.pct + '%'}</text></g>
   </g>`;
 }
 function screenMapa() {
-  const L = ilhas(); const cur = L.findIndex(i => !i.completa && i.total > 0); const completa = L.length > 0 && cur < 0;
+  const L = ilhas(); const cur = L.findIndex(i => !i.completa && (i.total > 0 || i.precisaEscolher)); const completa = L.length > 0 && cur < 0;
   const tot = L.reduce((n, i) => n + i.total, 0), feit = L.reduce((n, i) => n + i.feitas, 0), pct = tot ? Math.round(feit / tot * 100) : 0;
   const cfg = avatarCfg(S.perfil.avatar) || AV_PADRAO;
   // altura do mapa: preenche o que sobra da tela (topo + faixa de progresso ocupam ~150px), entre 560 e 820 no mapa base
@@ -1423,7 +1435,7 @@ function screenMapa() {
   const baleia = `<g class="baleia" transform="translate(300 ${H - 22})"><path d="M-22 0 Q-20 -12 0 -12 Q18 -12 22 -2 L30 -8 L28 2 L22 2 Q10 6 -8 4 Q-20 4 -22 0Z" fill="#2E6BB0" stroke="rgba(255,255,255,.5)" stroke-width="1.2"/><circle cx="-10" cy="-5" r="1.5" fill="#fff"/><path class="jato" d="M-4 -12 q-3 -8 0 -12 M-4 -12 q3 -8 0 -12" stroke="rgba(255,255,255,.8)" stroke-width="1.5" fill="none" stroke-linecap="round"/></g>`;
   return `<header class="topbar"><button class="iconbtn" data-a="go:materias" aria-label="Voltar">${I.back}</button><h1>Mapa do ENEM</h1></header>
   <div class="scroll" id="sc" style="background:${marB};display:flex;flex-direction:column;overflow:hidden">
-    <div class="mapatopo" style="background:${marA}">${avatarSvg(cfg, 40, 'Seu avatar')}<div class="grow" style="min-width:0"><span class="px" style="font-size:8.5px;opacity:.85;white-space:nowrap">VOLTA AO MUNDO</span><div style="height:8px;border-radius:4px;background:rgba(255,255,255,.2);overflow:hidden;margin-top:4px"><i style="display:block;height:100%;width:${pct}%;background:linear-gradient(90deg,#FFD36A,#F08A24);border-radius:4px;transition:width .6s ease"></i></div><span style="font-size:11px;opacity:.9;margin-top:3px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${completa ? 'Todas as ilhas conquistadas!' : cur >= 0 ? `Ilha atual: <b>${esc(L[cur].nome)}</b> · conclua as lições dela` : 'Nenhuma lição publicada ainda.'}</span></div><b class="num" style="font-size:20px;color:#FFD36A" data-count="${pct}" data-suf="%" data-delay="200">0%</b></div>
+    <div class="mapatopo" style="background:${marA}">${avatarSvg(cfg, 40, 'Seu avatar')}<div class="grow" style="min-width:0"><span class="px" style="font-size:8.5px;opacity:.85;white-space:nowrap">VOLTA AO MUNDO</span><div style="height:8px;border-radius:4px;background:rgba(255,255,255,.2);overflow:hidden;margin-top:4px"><i style="display:block;height:100%;width:${pct}%;background:linear-gradient(90deg,#FFD36A,#F08A24);border-radius:4px;transition:width .6s ease"></i></div><span style="font-size:11px;opacity:.9;margin-top:3px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${completa ? 'Todas as ilhas conquistadas!' : cur >= 0 ? L[cur].precisaEscolher ? `Ilha atual: <b>${esc(L[cur].nome)}</b> · toque nela e escolha o idioma` : `Ilha atual: <b>${esc(L[cur].nome)}</b> · conclua as lições dela` : 'Nenhuma lição publicada ainda.'}</span></div><b class="num" style="font-size:20px;color:#FFD36A" data-count="${pct}" data-suf="%" data-delay="200">0%</b></div>
     <svg class="mapa" viewBox="0 0 360 ${H}" preserveAspectRatio="xMidYMid meet" style="flex:1;min-height:0;width:100%;height:auto;background:${marB}" aria-label="Mapa com as ilhas de cada área do ENEM">
       <defs><linearGradient id="mar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${marA}"/><stop offset="1" stop-color="${marB}"/></linearGradient><pattern id="marolas" width="40" height="22" patternUnits="userSpaceOnUse"><path d="M0 11 q10 -8 20 0 t20 0" stroke="rgba(255,255,255,.07)" stroke-width="2" fill="none"/></pattern></defs>
       <rect width="360" height="${H}" fill="url(#mar)"/><rect width="360" height="${H}" fill="url(#marolas)"/>${noite ? `<g fill="#fff">${[[40, 30, 1.2], [120, 18, .8], [200, 40, 1], [250, 14, .9], [300, 70, .7], [20, 90, .8], [340, 110, 1], [160, 80, .6], [80, 130, .9]].map(([x, y, r]) => `<circle class="estrela" cx="${x}" cy="${y}" r="${r}"/>`).join('')}</g><g transform="translate(58 58)"><circle r="16" fill="#FFF3C4"/><circle cx="6" cy="-3" r="13" fill="${marA}"/><circle cx="-6" cy="4" r="2" fill="#F4E4A8"/></g>` : ''}${ondas}
@@ -1444,6 +1456,7 @@ function sheetIlha() {
   return `<div class="sheet-bg" data-key="bg:ilha" data-a="sheet:"></div><section class="sheet" data-key="sh:ilha" role="dialog" aria-modal="true" aria-labelledby="il-t"><span class="grab" aria-hidden="true"></span>
     <div style="display:flex;align-items:center;gap:12px"><span class="tile" style="background:${i.bloqueada ? 'var(--line2)' : i.cor};color:${i.bloqueada ? 'var(--muted)' : '#fff'}">${i.completa ? I.check(24, 3) : i.bloqueada ? I.lock(22) : I.path}</span><div class="grow"><h1 id="il-t" style="margin:0;font-family:var(--f-display);font-size:20px;font-weight:700">Ilha de ${esc(i.nome)}</h1><span class="sub">${i.completa ? 'Conquistada! Bandeira içada.' : i.bloqueada ? 'Bloqueada por enquanto' : i.total ? `${i.feitas} de ${i.total} lições · ${i.pct}%` : 'Ainda sem lições publicadas'}</span></div></div>
     ${i.bloqueada && atual ? `<div class="msg" style="background:var(--gold-l);color:var(--gold-d)">A viagem é em ordem: conclua a ilha de <b>${esc(atual.nome)}</b> (${atual.pct}%) para liberar esta.</div>` : ''}
+    ${i.opcoesIdioma.length > 1 ? `<div><span class="px" style="font-size:9px;color:var(--primary)">IDIOMA DA VIAGEM</span><p class="sub" style="margin:2px 0 8px">Como no ENEM, escolha uma língua estrangeira. Só ela conta para conquistar a ilha; a outra continua livre em Suas matérias.</p><div style="display:flex;gap:8px">${i.opcoesIdioma.map(m => `<button class="chipbtn" style="flex:1;justify-content:center;${idiomaViagem() === m.id ? 'background:var(--primary);color:#fff' : ''}" data-a="idioma:${m.id}" aria-pressed="${idiomaViagem() === m.id}">${esc(m.nome)}</button>`).join('')}</div></div>` : ''}
     <div class="card">${i.materias.map(m => { const T = trilha(m); const p = T.total ? Math.round(T.done / T.total * 100) : 0; const trava = materiaBloqueada(m.id); return `<button class="row" style="width:100%;text-align:left${trava ? ';opacity:.5' : ''}" data-a="${trava ? 'bloq-mat:' + m.id : 'subject:' + m.id}" aria-disabled="${trava}" ${T.total ? '' : 'disabled'}><span class="px" style="font-size:9px;color:${i.cor2};width:32px">${esc((m.sigla || '').toUpperCase())}</span><div class="grow"><span class="t15">${esc(m.nome)}</span><span class="sub">${T.total ? (T.done >= T.total ? 'Concluída · ' : '') + `${T.done} de ${T.total} lições · ${p}%` : 'Sem lições publicadas'}</span>${T.total ? `<span style="display:block;height:6px;border-radius:3px;background:var(--lav);overflow:hidden;margin-top:6px"><i style="display:block;height:100%;width:${p}%;background:${i.cor};border-radius:3px"></i></span>` : ''}</div>${T.total ? I.chevR : ''}</button>`; }).join('')}</div>
     <p class="sub" style="margin:0;font-size:12px">Toque numa matéria para estudar a jornada dela.</p>
     <button class="btn-ghost" data-a="sheet:">Fechar</button></section>`;
@@ -1687,8 +1700,9 @@ async function act(a) {
     case 'comprar': { const d = await rpcEstado('comprar', {p_codigo: x}); if (d) { SND.coin(); toast(x === 'congelador' ? 'Congelador equipado.' : 'Corações recarregados!'); } return; }
     case 'refill': { const d = await rpcEstado('comprar', {p_codigo: 'recarga'}); if (d && L) { V.sheet = null; SND.coin(); toast('Corações recarregados. Continue a lição!'); return next(); } return; }
     case 'hearts': return plus() ? toast('Findout+ ativo: corações ilimitados.') : hearts() >= maxHearts() ? toast(`Corações cheios: ${maxHearts()} de ${maxHearts()}. Cada erro custa um.`) : toast(`${hearts()} de ${maxHearts()} corações. O próximo volta em ${hms(nextHeartMs())}.`);
-    case 'bloq-mat': { const c = ilhas().find(z => !z.completa && z.total > 0); vib([30, 40, 30]); toast(c ? `A viagem é em ordem: conclua a ilha de ${c.nome} para liberar esta matéria.` : 'Matéria bloqueada por enquanto.'); return; }
-    case 'subject': { if (materiaBloqueada(x)) return act('bloq-mat:' + x); S.perfil.materia = x; V.open = null; sb.from('perfis').update({materia_atual: x}).eq('user_id', sessao.user.id).then(() => {}); const T = trilha(materiaAtual()); if (T.cur >= 0) V.open = 'L' + T.flat[T.cur].lic.id; return go('jornada', {scrollTo: true}); }
+    case 'bloq-mat': { const c = ilhas().find(z => !z.completa && (z.total > 0 || z.precisaEscolher)); vib([30, 40, 30]); toast(c ? `Na viagem a ordem vale: conclua a ilha de ${c.nome} primeiro. Fora da viagem, abra qualquer matéria em Suas matérias.` : 'Ilha bloqueada por enquanto.'); return; }
+    case 'idioma': { try { localStorage.setItem('fj-idioma', x); } catch (e) {} const m = materias().find(z => z.id === x); vib(8); toast(`Idioma da viagem: ${m ? m.nome : x}.`); return render(); }
+    case 'subject': { S.perfil.materia = x; V.open = null; sb.from('perfis').update({materia_atual: x}).eq('user_id', sessao.user.id).then(() => {}); const T = trilha(materiaAtual()); if (T.cur >= 0) V.open = 'L' + T.flat[T.cur].lic.id; return go('jornada', {scrollTo: true}); }
     case 'tier': V.tier = +x; return render();
     case 'share': if (navigator.share) navigator.share({title: 'Findout Jornada', text: `Estou com ${streak()} dias de ofensiva na Findout Jornada!`, url: location.origin + location.pathname}).catch(() => {}); return;
     case 'edit-nome': V.editNome = true; return render();
