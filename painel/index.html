@@ -476,6 +476,10 @@ let V = {view: 'inicio', qf: {materia: '', unidade: '', tipo: '', status: '', bu
   aud: {lista: null, usuarios: [], carregando: false, erro: null, fim: false, aberto: {}, f: {user: '', origem: '', tabela: '', acao: '', periodo: '7', busca: ''}}};
 const PAPEIS = {aluno: 'Aluno', professor: 'Professor', coordenador: 'Coordenador'};
 const educador = () => admin || papel === 'professor' || papel === 'coordenador';
+let disciplina = null;                                   // disciplina do professor logado (perfis.disciplina_id)
+const restrito = () => !admin && papel === 'professor' && !!disciplina;   // professor com disciplina: vê só a dele
+const materiasPermitidas = () => restrito() ? D.materias.filter(m => m.id === disciplina) : D.materias;
+const discNome = id => id ? ((D && D.materias.find(m => m.id === id)) || {}).nome || id : '';
 let toastTimer;
 function toast(m) {
   let t = document.getElementById('toast');
@@ -705,15 +709,17 @@ async function rota(s) {
   if (!s) { sessao = null; D = null; admin = false; const h = new URLSearchParams((location.hash || '').replace(/^#/, '')), q = new URLSearchParams(location.search); const e = h.get('error_description') || q.get('error_description') || h.get('error') || q.get('error'); if (e) { try { history.replaceState(null, '', location.pathname); } catch (x) {} } return telaLogin(e ? `<div class="msg err">Não foi possível entrar: ${esc(e.replace(/\+/g, ' '))}</div>` : ''); }
   sessao = s;
   telaAuth('<div class="msg">Verificando permissões…</div>');
-  const [ra, rp] = await Promise.all([sb.from('admins').select('user_id').eq('user_id', s.user.id).maybeSingle(), sb.from('perfis').select('papel').eq('user_id', s.user.id).maybeSingle()]);
+  const [ra, rp] = await Promise.all([sb.from('admins').select('user_id').eq('user_id', s.user.id).maybeSingle(), sb.from('perfis').select('papel,disciplina_id').eq('user_id', s.user.id).maybeSingle()]);
   admin = !!ra.data && !ra.error;
   papel = rp.data && rp.data.papel ? rp.data.papel : 'aluno';
+  disciplina = rp.data && rp.data.disciplina_id ? rp.data.disciplina_id : null;
   if (!educador()) {
     telaAuth(`<div class="msg err">Login ok, mas <b>${esc(s.user.email)}</b> não é administrador, professor nem coordenador.<br><br>Peça a um administrador para definir seu papel na aba <b>Alunos</b> do painel. Para criar o primeiro admin, rode no SQL Editor do Supabase:<br><code>insert into public.admins (user_id) select id from auth.users where email = '${esc(s.user.email)}' on conflict do nothing;</code></div><button class="btn btn-outline full" id="sair">Sair</button>`);
     document.getElementById('sair').onclick = () => sb.auth.signOut();
     return;
   }
   if (!admin) { autoPub = false; V.view = 'turmas'; }
+  if (restrito()) V.qf.materia = disciplina;
   telaAuth('<div class="msg">Carregando conteúdo…</div>');
   try { await carregar(); await carregarTurmas(); }
   catch (e) {
@@ -844,7 +850,7 @@ function viewQuestoes() {
       ${assuntos.length ? `<select class="inp sm" data-f="qf.assunto" aria-label="Assunto"><option value="">Todos os assuntos</option>${assuntos.map(a => `<option value="${esc(a)}" ${f.assunto === a ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select>` : ''}
       <select class="inp sm" data-f="qf.segmento" aria-label="Segmento"><option value="">Todos os segmentos</option>${segAtivos().map(s => `<option value="${esc(s.id)}" ${f.segmento === s.id ? 'selected' : ''}>${esc(s.nome)}</option>`).join('')}</select>
       <select class="inp sm" data-f="qf.nivel" aria-label="Nível"><option value="">Todos os níveis</option>${Object.entries(DIFICULDADES).map(([k, v]) => `<option value="${k}" ${f.nivel === k ? 'selected' : ''}>${v}</option>`).join('')}</select>
-      <select class="inp sm" data-f="qf.materia" aria-label="Matéria"><option value="">Todas as matérias</option>${D.materias.map(m => `<option value="${m.id}" ${f.materia === m.id ? 'selected' : ''}>${esc(m.nome)}</option>`).join('')}</select>
+      <select class="inp sm" data-f="qf.materia" aria-label="Matéria" ${restrito() ? 'disabled' : ''}>${restrito() ? '' : '<option value="">Todas as matérias</option>'}${materiasPermitidas().map(m => `<option value="${m.id}" ${f.materia === m.id ? 'selected' : ''}>${esc(m.nome)}</option>`).join('')}</select>
       ${f.materia ? `<select class="inp sm" data-f="qf.unidade" aria-label="Unidade"><option value="">Todas as unidades</option>${unidadesFiltro.map(x => `<option value="${x.u.id}" ${f.unidade === x.u.id ? 'selected' : ''}>${esc(x.s.titulo)} · ${esc(x.u.titulo)}</option>`).join('')}</select>` : ''}
       <select class="inp sm" data-f="qf.tipo" aria-label="Tipo"><option value="">Todos os tipos</option>${Object.entries(TIPOS).map(([k, v]) => `<option value="${k}" ${f.tipo === k ? 'selected' : ''}>${v}</option>`).join('')}</select>
       <select class="inp sm" data-f="qf.status" aria-label="Status"><option value="">Todos os status</option><option value="publicada" ${f.status === 'publicada' ? 'selected' : ''}>Publicadas</option><option value="rascunho" ${f.status === 'rascunho' ? 'selected' : ''}>Rascunhos</option></select>
@@ -1084,6 +1090,7 @@ function viewAlunos() {
           ${a.admin ? (a.user_id === sessao.user.id ? '<span style="font-size:12px;color:var(--muted);padding:0 4px">você</span>' : `<button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="admin:${a.user_id}:0">Tirar acesso</button>`) : `<button class="btn btn-ghost btn-sm" data-a="admin:${a.user_id}:1">Tornar admin</button>`}
           ${a.user_id === sessao.user.id ? '' : a.banido ? `<button class="btn btn-outline btn-sm" data-a="bloq:${a.user_id}:0">Liberar</button>` : `<button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="bloq:${a.user_id}:1">Bloquear</button>`}
           <select class="inp sm" style="width:auto;height:30px;font-size:12px" data-a="papel:${a.user_id}" aria-label="Papel de ${esc(a.nome)}">${Object.entries(PAPEIS).map(([k, v]) => `<option value="${k}" ${(a.papel || 'aluno') === k ? 'selected' : ''}>${v}</option>`).join('')}</select>
+          ${a.papel === 'professor' ? `<select class="inp sm" style="width:auto;height:30px;font-size:12px" data-a="disciplina:${a.user_id}" aria-label="Disciplina de ${esc(a.nome)}"><option value="" ${a.disciplina_id ? '' : 'selected'}>Disciplina…</option>${D.materias.map(m => `<option value="${m.id}" ${a.disciplina_id === m.id ? 'selected' : ''}>${esc(m.nome)}</option>`).join('')}</select>` : ''}
         </div>
       </div>`).join('')}
       ${!A.carregando && A.lista && !A.lista.length ? '<div class="empty">Nenhum aluno encontrado.</div>' : ''}
@@ -1097,6 +1104,9 @@ async function buscarAlunos() {
   const {data, error} = await sb.rpc('alunos_admin', {p_busca: V.alunos.busca.trim(), p_limite: 100});
   V.alunos.carregando = false;
   if (error) { V.alunos.erro = traduzErro(error.message); V.alunos.lista = []; } else V.alunos.lista = data || [];
+  // disciplina dos professores (coluna da migration 0016; se não existir, segue sem)
+  const profs = V.alunos.lista.filter(a => a.papel === 'professor').map(a => a.user_id);
+  if (profs.length) { const r = await sb.from('perfis').select('user_id,disciplina_id').in('user_id', profs); if (!r.error) (r.data || []).forEach(p => { const a = V.alunos.lista.find(x => x.user_id === p.user_id); if (a) a.disciplina_id = p.disciplina_id; }); }
   render();
 }
 function darRecursos(ids) {
@@ -1159,13 +1169,13 @@ function viewTurmas() {
   const podeEscola = admin || papel === 'coordenador';
   const cardEscola = e => { const membros = T.membros.filter(m => m.escola_id === e.id); const turmas = T.turmas.filter(t => t.escola_id === e.id); const coord = souCoord(e.id);
     return `<div class="card"><div class="card-h"><h2>${esc(e.nome)}</h2><span class="pill type">${turmas.length} turma${turmas.length === 1 ? '' : 's'}</span><span class="right">${coord ? `<button class="btn btn-outline btn-sm" data-a="add-membro:${e.id}:professor">${I.plus}Professor</button><button class="btn btn-ghost btn-sm" data-a="add-membro:${e.id}:coordenador">${I.plus}Coordenador</button>` : ''}</span></div>
-      <div class="list">${membros.map(m => `<div class="item"><span class="av" style="width:32px;height:32px;border-radius:9px;background:var(--primary-l);color:var(--primary);display:inline-flex;align-items:center;justify-content:center;font-weight:700">${esc(nomeDe(m.user_id).charAt(0).toUpperCase())}</span><span style="flex:1;min-width:0"><b>${esc(nomeDe(m.user_id))}</b> <span class="pill ${m.papel === 'coordenador' ? 'type' : 'on'}" style="font-size:10px">${PAPEIS[m.papel]}</span><br><span style="font-size:12px;color:var(--muted)">${esc((T.pessoas[m.user_id] || {}).email || '')}</span></span>${coord && m.user_id !== sessao.user.id ? `<button class="btn btn-ghost btn-sm" data-a="remover-membro:${e.id}:${m.user_id}" aria-label="Remover da escola">${I.trash}</button>` : ''}</div>`).join('') || '<div class="empty">Ainda sem professores. Adicione pelo e-mail da conta.</div>'}</div></div>`; };
+      <div class="list">${membros.map(m => `<div class="item"><span class="av" style="width:32px;height:32px;border-radius:9px;background:var(--primary-l);color:var(--primary);display:inline-flex;align-items:center;justify-content:center;font-weight:700">${esc(nomeDe(m.user_id).charAt(0).toUpperCase())}</span><span style="flex:1;min-width:0"><b>${esc(nomeDe(m.user_id))}</b> <span class="pill ${m.papel === 'coordenador' ? 'type' : 'on'}" style="font-size:10px">${PAPEIS[m.papel]}</span>${(T.pessoas[m.user_id] || {}).disciplina ? ` <span class="pill type" style="font-size:10px">${esc(discNome((T.pessoas[m.user_id] || {}).disciplina))}</span>` : ''}<br><span style="font-size:12px;color:var(--muted)">${esc((T.pessoas[m.user_id] || {}).email || '')}</span></span>${coord && m.user_id !== sessao.user.id ? `<button class="btn btn-ghost btn-sm" data-a="remover-membro:${e.id}:${m.user_id}" aria-label="Remover da escola">${I.trash}</button>` : ''}</div>`).join('') || '<div class="empty">Ainda sem professores. Adicione pelo e-mail da conta.</div>'}</div></div>`; };
   const cardTurma = t => { const na = alunosDaTurma(t.id).length, ativs = T.atividades.filter(a => a.turma_id === t.id), abertas = ativs.filter(a => statusReal(a) === 'aberta').length; const esc_ = escolaPorId(t.escola_id); const profs = profsDaTurma(t.id);
     return `<button class="card" style="text-align:left;padding:16px;display:flex;flex-direction:column;gap:8px;${t.ativa ? '' : 'opacity:.6'}" data-a="abrir-turma:${t.id}">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h2 style="flex:1;min-width:0">${esc(t.nome)}</h2>${t.ativa ? '' : '<span class="pill off">inativa</span>'}<span class="pill type" style="font-family:var(--f-display);letter-spacing:.1em">${esc(t.codigo)}</span></div>
       <span style="font-size:12px;color:var(--muted)">${esc_ ? esc(esc_.nome) : 'Sem escola'}${t.segmento_id ? ' · ' + esc(segNome(t.segmento_id)) : ''} · ${profs.map(p => nomeDe(p.user_id)).join(', ') || 'sem professor'}</span>
       <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="stat s-li">${I.users}<span class="num">${na}</span>&nbsp;aluno${na === 1 ? '' : 's'}</span><span class="stat s-xp">${I.bolt}<span class="num">${abertas}</span>&nbsp;aberta${abertas === 1 ? '' : 's'}</span><span class="stat">${I.book}<span class="num">${ativs.length}</span>&nbsp;atividade${ativs.length === 1 ? '' : 's'}</span></div></button>`; };
-  return topbar('Turmas', admin ? 'Todas as escolas e turmas cadastradas' : papel === 'coordenador' ? 'Suas escolas, os professores e todas as turmas delas' : 'As turmas em que você dá aula', `${podeEscola ? `<button class="btn btn-outline" data-a="nova-escola">${I.plus}Nova escola</button>` : ''}<button class="btn btn-primary" data-a="nova-turma">${I.plus}Nova turma</button>`) + `<div class="content">
+  return topbar('Turmas', admin ? 'Todas as escolas e turmas cadastradas' : papel === 'coordenador' ? 'Suas escolas, os professores e todas as turmas delas' : 'As turmas em que você dá aula' + (disciplina ? ' · sua disciplina: ' + discNome(disciplina) : ''), `${podeEscola ? `<button class="btn btn-outline" data-a="nova-escola">${I.plus}Nova escola</button>` : ''}<button class="btn btn-primary" data-a="nova-turma">${I.plus}Nova turma</button>`) + `<div class="content">
     ${avisoTurmas()}
     ${escolas.length ? `<div class="grid2">${escolas.map(cardEscola).join('')}</div>` : podeEscola ? `<div class="card"><div class="card-b" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:240px"><h2>Comece pela escola</h2><p style="margin:6px 0 0;color:var(--fg2);font-size:13px">A escola agrupa professores e turmas. O coordenador adiciona os professores pelo e-mail da conta deles no app; eles passam a criar turmas e atividades aqui.</p></div><button class="btn btn-primary" data-a="nova-escola">${I.plus}Criar escola</button></div></div>` : ''}
     ${admin ? `<div class="card"><div class="card-h"><h2>Segmentos de ensino</h2><span class="right">${D.segmentosErro ? `<span class="pill draft">rode a migration 0012</span>` : `<button class="btn btn-outline btn-sm" data-a="novo-segmento">${I.plus}Segmento</button>`}</span></div>
@@ -1223,7 +1233,7 @@ function viewAtividades() {
 function novaAtiv(turmaId) {
   const t = turmaId ? turmaPorId(turmaId) : (T.turmas[0] || null);
   const meu = t ? profsDaTurma(t.id).find(p => p.user_id === sessao.user.id) : null;
-  return {id: null, turma_id: t ? t.id : '', materia_id: (meu && meu.materia_id) || (D.materias[0] ? D.materias[0].id : ''), titulo: '', descricao: '', prazo: '', status: 'rascunho', questoes: []};
+  return {id: null, turma_id: t ? t.id : '', materia_id: restrito() ? disciplina : (meu && meu.materia_id) || disciplina || (D.materias[0] ? D.materias[0].id : ''), titulo: '', descricao: '', prazo: '', status: 'rascunho', questoes: []};
 }
 function snapshotQ(q) { return {id: q.id, tipo: q.tipo, enunciado: q.enunciado, dados: q.dados, explicacao: q.explicacao || '', imagem: q.imagem_url || null, materia: q.materia_id, valor: 1, origem: 'banco'}; }
 function validarAtiv(a) {
@@ -1250,7 +1260,7 @@ function drawerAtividade() {
     <div class="frow">
       <div class="field" style="grid-column:1/-1"><label for="a-tit">Título</label><input id="a-tit" class="inp" value="${esc(a.titulo)}" data-f="ativ.titulo" placeholder="Ex.: Lista 3 · Porcentagem e juros"></div>
       <div class="field"><label for="a-turma">Turma</label><select id="a-turma" class="inp" data-f="ativ.turma_id">${turmas.map(t => `<option value="${t.id}" ${a.turma_id === t.id ? 'selected' : ''}>${esc(t.nome)}</option>`).join('')}${turmas.length ? '' : '<option value="">Crie uma turma primeiro</option>'}</select></div>
-      <div class="field"><label for="a-mat">Matéria</label><select id="a-mat" class="inp" data-f="ativ.materia_id"><option value="">Várias</option>${D.materias.map(m => `<option value="${m.id}" ${a.materia_id === m.id ? 'selected' : ''}>${esc(m.nome)}</option>`).join('')}</select></div>
+      <div class="field"><label for="a-mat">Matéria</label><select id="a-mat" class="inp" data-f="ativ.materia_id" ${restrito() ? 'disabled title="Sua disciplina no cadastro"' : ''}>${restrito() ? '' : '<option value="">Várias</option>'}${materiasPermitidas().map(m => `<option value="${m.id}" ${a.materia_id === m.id ? 'selected' : ''}>${esc(m.nome)}</option>`).join('')}</select></div>
       <div class="field"><label for="a-prazo">Prazo (opcional)</label><input id="a-prazo" type="datetime-local" class="inp" value="${esc(a.prazo)}" data-f="ativ.prazo"></div>
     </div>
     <div class="field"><label for="a-desc">Orientações para o aluno (opcional)</label><textarea id="a-desc" class="inp" data-f="ativ.descricao" placeholder="Ex.: Revise o capítulo 4 antes. Vale ponto na média.">${esc(a.descricao)}</textarea></div>
@@ -1260,7 +1270,7 @@ function drawerAtividade() {
     <div class="card"><div class="card-h"><h2>Buscar no banco de questões</h2><span class="right" style="font-size:12px;color:var(--muted)">${pool.length} encontrada${pool.length === 1 ? '' : 's'}</span></div>
       <div class="card-b" style="display:flex;flex-direction:column;gap:10px">
         <div class="toolbar"><input class="inp sm" style="min-width:240px;flex:1" placeholder="Assunto, palavra do enunciado…" value="${esc(B.texto)}" data-f="ativBusca.texto" aria-label="Buscar">
-          <select class="inp sm" data-f="ativBusca.materia" aria-label="Matéria"><option value="">Todas as matérias</option>${D.materias.map(m => `<option value="${m.id}" ${B.materia === m.id ? 'selected' : ''}>${esc(m.nome)}</option>`).join('')}</select>
+          <select class="inp sm" data-f="ativBusca.materia" aria-label="Matéria" ${restrito() ? 'disabled' : ''}>${restrito() ? '' : '<option value="">Todas as matérias</option>'}${materiasPermitidas().map(m => `<option value="${m.id}" ${B.materia === m.id ? 'selected' : ''}>${esc(m.nome)}</option>`).join('')}</select>
           ${B.materia ? `<select class="inp sm" data-f="ativBusca.unidade" aria-label="Unidade"><option value="">Todas as unidades</option>${unidades.map(x => `<option value="${x.u.id}" ${B.unidade === x.u.id ? 'selected' : ''}>${esc(x.s.titulo)} · ${esc(x.u.titulo)}</option>`).join('')}</select>` : ''}
           <select class="inp sm" data-f="ativBusca.segmento" aria-label="Segmento"><option value="">Todos os segmentos</option>${segAtivos().map(s => `<option value="${esc(s.id)}" ${B.segmento === s.id ? 'selected' : ''}>${esc(s.nome)}</option>`).join('')}</select>
           <select class="inp sm" data-f="ativBusca.nivel" aria-label="Nível"><option value="">Todos os níveis</option>${Object.entries(DIFICULDADES).map(([k, v]) => `<option value="${k}" ${B.nivel === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
@@ -1306,7 +1316,7 @@ function viewResultados() {
 /* =====================================================================
    Auditoria (admin)
    ===================================================================== */
-const ACOES_AUD = {insert: ['Criou', 'pub'], update: ['Alterou', 'draft'], delete: ['Excluiu', ''], login: ['Entrou', 'type'], sair: ['Saiu', 'off'], tela: ['Abriu a tela', 'off'], busca: ['Buscou', 'on'], copia: ['Copiou', 'on'], resultados: ['Viu resultados', 'on'], turma: ['Abriu a turma', 'on'], novo_aluno: ['Criou conta', 'pub'], bloqueio: ['Bloqueou', ''], liberacao: ['Liberou', 'pub'], recursos: ['Deu moedas/corações', 'pub'], respostas: ['Viu respostas', 'on'], clique: ['Clicou', 'off']};
+const ACOES_AUD = {insert: ['Criou', 'pub'], update: ['Alterou', 'draft'], delete: ['Excluiu', ''], login: ['Entrou', 'type'], sair: ['Saiu', 'off'], tela: ['Abriu a tela', 'off'], busca: ['Buscou', 'on'], copia: ['Copiou', 'on'], resultados: ['Viu resultados', 'on'], turma: ['Abriu a turma', 'on'], novo_aluno: ['Criou conta', 'pub'], bloqueio: ['Bloqueou', ''], liberacao: ['Liberou', 'pub'], recursos: ['Deu moedas/corações', 'pub'], respostas: ['Viu respostas', 'on'], papel: ['Definiu papel', 'pub'], clique: ['Clicou', 'off']};
 const TABELAS_AUD = {materias: 'Matérias', secoes: 'Seções', unidades: 'Unidades', licoes: 'Lições', questoes: 'Questões', licao_questoes: 'Questões da lição', missoes: 'Missões', itens_loja: 'Loja', parametros: 'Parâmetros', publicacoes: 'Publicações', segmentos: 'Segmentos', escolas: 'Escolas', escola_membros: 'Membros da escola', turmas: 'Turmas', turma_professores: 'Professores da turma', turma_alunos: 'Alunos da turma', atividades: 'Atividades', perfis: 'Perfis', admins: 'Administradores', painel: 'Painel', alunos: 'Alunos', resultados: 'Resultados'};
 function viewAuditoria() {
   const A = V.aud, f = A.f;
@@ -1476,7 +1486,7 @@ shell.addEventListener('change', ev => {
   if (f.startsWith('ativ.')) { if (f === 'ativ.turma_id') V.ativBusca.segmento = (turmaPorId(V.ativ.turma_id) || {}).segmento_id || ''; if (f === 'ativ.turma_id' || f === 'ativ.materia_id' || f === 'ativ.status' || el.type === 'number') render(); return; }
   if (el.tagName === 'SELECT' || el.type === 'number' || el.type === 'color' || f.startsWith('param.')) render();
 });
-shell.addEventListener('change', ev => { const el = ev.target; if (el.tagName === 'SELECT' && el.dataset.a && el.dataset.a.startsWith('papel:')) act(el.dataset.a, el).catch(e => console.error(e)); });
+shell.addEventListener('change', ev => { const el = ev.target; if (el.tagName === 'SELECT' && el.dataset.a && (el.dataset.a.startsWith('papel:') || el.dataset.a.startsWith('disciplina:'))) act(el.dataset.a, el).catch(e => console.error(e)); });
 shell.addEventListener('submit', ev => {
   if (ev.target.id === 'f-alunos') { ev.preventDefault(); buscarAlunos(); }
   if (ev.target.id === 'f-aud') { ev.preventDefault(); carregarAuditoria(false); }
@@ -1595,21 +1605,29 @@ async function act(a, el) {
     case 'fechar-prev': V.modalPrev = null; return render();
     case 'ver-respostas': { const d = V.resultados && V.resultados.data, al = d && d.alunos.find(z => z.user_id === x); if (!al) return; V.respostas = {uid: x}; auditar('respostas', 'resultados', V.resultados.id, 'Viu as respostas de ' + al.nome, {aluno: x, nota: al.nota}); return render(); }
     case 'fechar-respostas': V.respostas = null; return render();
-    case 'papel': { const a = (V.alunos.lista || []).find(t => t.user_id === x); const novo = el.value; if (!a || a.papel === novo) return; await db(sb.rpc('definir_papel', {p_user: x, p_papel: novo})); a.papel = novo; toast(`${a.nome} agora é ${PAPEIS[novo].toLowerCase()}.`); return render(); }
+    case 'papel': { const a = (V.alunos.lista || []).find(t => t.user_id === x); const novo = el.value; if (!a || a.papel === novo) return;
+      if (novo === 'professor') { // professor precisa de disciplina: pergunta antes de gravar
+        el.value = a.papel || 'aluno';
+        V.modal = {titulo: `Disciplina de ${a.nome}`, texto: 'O professor só vê, cria e acompanha atividades da disciplina dele nas turmas em que dá aula.', campos: [{k: 'disciplina', label: 'Disciplina', tipo: 'select', opcoes: D.materias.map(m => [m.id, m.nome]), valor: a.disciplina_id || (D.materias[0] || {}).id}], ok: 'Tornar professor', fn: async v => {
+          await db(sb.rpc('definir_papel', {p_user: x, p_papel: 'professor', p_disciplina: v.disciplina})); a.papel = 'professor'; a.disciplina_id = v.disciplina; auditar('papel', 'perfis', x, `${a.nome} agora é professor de ${discNome(v.disciplina)}`); toast(`${a.nome} agora é professor de ${discNome(v.disciplina)}.`);
+        }}; return render();
+      }
+      await db(sb.rpc('definir_papel', {p_user: x, p_papel: novo, p_disciplina: null})); a.papel = novo; a.disciplina_id = null; toast(`${a.nome} agora é ${PAPEIS[novo].toLowerCase()}.`); return render(); }
+    case 'disciplina': { const a = (V.alunos.lista || []).find(t => t.user_id === x); const d = el.value; if (!a || !d) return; await db(sb.rpc('definir_papel', {p_user: x, p_papel: 'professor', p_disciplina: d})); a.disciplina_id = d; toast(`${a.nome}: disciplina ${discNome(d)}.`); return render(); }
 
     /* escolas e turmas */
     case 'nova-escola': V.modal = {titulo: 'Nova escola', texto: 'Você entra como coordenador dela. Depois adicione os professores pelo e-mail da conta deles.', campos: [{k: 'nome', label: 'Nome da escola', obrigatorio: true}], ok: 'Criar', fn: async v => {
       const row = await db(sb.rpc('criar_escola', {p_nome: v.nome.trim()})); await carregarTurmas(); toast(`Escola ${row.nome} criada.`);
     }}; return render();
-    case 'add-membro': V.modal = {titulo: y === 'coordenador' ? 'Adicionar coordenador' : 'Adicionar professor', texto: 'A pessoa precisa já ter conta no app (mesmo login). Ela passa a entrar neste painel.', campos: [{k: 'email', label: 'E-mail da conta', tipo: 'email', obrigatorio: true}], ok: 'Adicionar', fn: async v => {
-      const r = await db(sb.rpc('adicionar_membro_escola', {p_escola: x, p_email: v.email.trim(), p_papel: y})); await carregarTurmas(); toast(`${r.nome} agora é ${y} da escola.`);
+    case 'add-membro': V.modal = {titulo: y === 'coordenador' ? 'Adicionar coordenador' : 'Adicionar professor', texto: y === 'coordenador' ? 'A pessoa precisa já ter conta no app (mesmo login). O coordenador enxerga todas as turmas e atividades da escola.' : 'A pessoa precisa já ter conta no app (mesmo login). O professor vê só as turmas em que dá aula e as atividades da disciplina dele.', campos: [{k: 'email', label: 'E-mail da conta', tipo: 'email', obrigatorio: true}, ...(y === 'professor' ? [{k: 'disciplina', label: 'Disciplina do professor', tipo: 'select', opcoes: D.materias.map(m => [m.id, m.nome])}] : [])], ok: 'Adicionar', fn: async v => {
+      const r = await db(sb.rpc('adicionar_membro_escola', {p_escola: x, p_email: v.email.trim(), p_papel: y, p_disciplina: y === 'professor' ? v.disciplina : null})); await carregarTurmas(); toast(`${r.nome} agora é ${y} da escola${y === 'professor' ? ' (' + discNome(v.disciplina) + ')' : ''}.`);
     }}; return render();
     case 'remover-membro': return confirmar('Remover da escola?', 'A pessoa continua com as turmas que já tem, mas sai da lista da escola.', async () => { await db(sb.from('escola_membros').delete().eq('escola_id', x).eq('user_id', y)); await carregarTurmas(); });
     case 'nova-turma': { const escolas = minhasEscolas(); V.modal = {titulo: 'Nova turma', texto: 'A turma ganha um código de 6 letras. Passe o código para os alunos digitarem no app, em Perfil → Minhas turmas.', campos: [
       {k: 'nome', label: 'Nome da turma', placeholder: 'Ex.: 3º ano A · 2026', obrigatorio: true},
       ...(escolas.length ? [{k: 'escola', label: 'Escola', tipo: 'select', opcoes: [['', 'Sem escola'], ...escolas.map(e => [e.id, e.nome])], valor: escolas[0].id}] : []),
       {k: 'segmento', label: 'Segmento', tipo: 'select', opcoes: [['', 'Sem segmento'], ...segAtivos().map(s => [s.id, s.nome])], valor: (segAtivos()[2] || segAtivos()[0] || {}).id || ''},
-      {k: 'materia', label: 'Sua matéria nesta turma', tipo: 'select', opcoes: [['', 'Todas / várias'], ...D.materias.map(m => [m.id, m.nome])]}
+      {k: 'materia', label: 'Sua matéria nesta turma', tipo: 'select', opcoes: restrito() ? materiasPermitidas().map(m => [m.id, m.nome]) : [['', 'Todas / várias'], ...D.materias.map(m => [m.id, m.nome])], valor: disciplina || ''}
     ], ok: 'Criar turma', fn: async v => {
       const row = await db(sb.rpc('criar_turma', {p_nome: v.nome.trim(), p_escola: v.escola || null, p_materia: v.materia || null, p_segmento: v.segmento || null})); await carregarTurmas(); V.turma = row.id; V.view = 'turma'; V.turmaAlunos = {lista: [], erro: null}; toast(`Turma criada. Código: ${row.codigo}`);
     }}; return render(); }
@@ -1622,7 +1640,7 @@ async function act(a, el) {
       const r = await db(sb.rpc('adicionar_aluno_turma', {p_turma: x, p_email: v.email.trim()})); await carregarTurmas(); toast(`${r.nome} entrou na turma.`); return carregarAlunosTurma(x);
     }}; return render();
     case 'remover-aluno': return confirmar('Tirar o aluno da turma?', 'As entregas dele ficam guardadas, mas ele deixa de ver as atividades.', async () => { await db(sb.from('turma_alunos').delete().eq('turma_id', x).eq('user_id', y)); await carregarTurmas(); await carregarAlunosTurma(x); }, 'Tirar');
-    case 'add-prof-turma': V.modal = {titulo: 'Adicionar professor à turma', texto: 'Ele passa a criar atividades para esta turma e ver os resultados.', campos: [{k: 'email', label: 'E-mail da conta', tipo: 'email', obrigatorio: true}, {k: 'materia', label: 'Matéria dele nesta turma', tipo: 'select', opcoes: [['', 'Todas / várias'], ...D.materias.map(m => [m.id, m.nome])]}], ok: 'Adicionar', fn: async v => {
+    case 'add-prof-turma': V.modal = {titulo: 'Adicionar professor à turma', texto: 'Ele passa a criar atividades para esta turma e ver os resultados.', campos: [{k: 'email', label: 'E-mail da conta', tipo: 'email', obrigatorio: true}, {k: 'materia', label: 'Matéria dele nesta turma', tipo: 'select', opcoes: [['', 'A disciplina do cadastro dele'], ...D.materias.map(m => [m.id, m.nome])]}], ok: 'Adicionar', fn: async v => {
       const r = await db(sb.rpc('adicionar_professor_turma', {p_turma: x, p_email: v.email.trim(), p_materia: v.materia || null})); await carregarTurmas(); toast(`${r.nome} agora dá aula nesta turma.`);
     }}; return render();
     case 'remover-prof': return confirmar('Remover professor da turma?', 'As atividades que ele criou continuam na turma.', async () => { await db(sb.from('turma_professores').delete().eq('turma_id', x).eq('user_id', y)); await carregarTurmas(); }, 'Remover');

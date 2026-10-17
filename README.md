@@ -45,6 +45,8 @@ Em **Perfil → Criar avatar** o aluno monta o próprio boneco em 18 partes: pel
 
 Papéis além de aluno e admin: **professor** (cria turmas e atividades no painel) e **coordenador** (cria escolas, coloca professores e vê todas as turmas da escola). O admin define o papel na aba **Alunos** do painel. Quem é só aluno não entra no painel.
 
+**Disciplina do professor (migration 0016):** ao tornar alguém professor, o admin (ou o coordenador, ao adicioná-lo à escola) informa a disciplina dele. Com disciplina, o professor vê só as turmas em que dá aula e, nelas, só as atividades da sua disciplina ou criadas por ele; a matéria da atividade, a busca no banco de questões e a matéria dele na turma ficam travadas na disciplina. O coordenador enxerga todas as turmas e atividades da escola, mas continua sem as abas de conteúdo, questões, publicação e auditoria, que são só do admin. As regras valem no banco (RLS), não só na tela.
+
 Fluxo:
 
 1. **Turma:** o professor cria em **Turmas → Nova turma**. A turma ganha um código de 6 letras. O aluno entra pelo app em **Perfil → Minhas turmas → Entrar**, ou o professor adiciona pelo e-mail da conta.
