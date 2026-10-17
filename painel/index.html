@@ -1164,12 +1164,64 @@ function viewPublicar() {
    Escolas e turmas (professor, coordenador e admin)
    ===================================================================== */
 function avisoTurmas() { return T && T.erro ? `<div class="warnbox">${I.warn}<span>Turmas indisponíveis: ${esc(T.erro)}</span></div>` : ''; }
+/* Visão da escola (coordenador/admin): média, entregas e alunos parados por turma */
+function resumoEscola(e) {
+  const turmas = T.turmas.filter(t => t.escola_id === e.id); if (!turmas.length) return '';
+  const fmt = n => n == null ? '—' : n.toFixed(1).replace('.', ',');
+  const linhas = turmas.map(t => {
+    const alunos = alunosDaTurma(t.id), ativs = T.atividades.filter(a => a.turma_id === t.id && a.status !== 'rascunho');
+    const ent = T.entregas.filter(x => x.entregue_em && ativs.some(a => a.id === x.atividade_id));
+    const possiveis = alunos.length * ativs.length, taxa = possiveis ? Math.round(ent.length / possiveis * 100) : null;
+    const media = ent.length ? ent.reduce((s, x) => s + (+x.nota || 0), 0) / ent.length : null;
+    const parados = ativs.length ? alunos.filter(a => !ent.some(x => x.user_id === a.user_id)).length : 0;
+    const porMat = {}; ent.forEach(x => { const a = ativs.find(z => z.id === x.atividade_id); const m = (a && a.materia_id) || '—'; (porMat[m] = porMat[m] || []).push(+x.nota || 0); });
+    return {t, alunos: alunos.length, ativs: ativs.length, taxa, media, parados, porMat};
+  });
+  const totAl = linhas.reduce((s, l) => s + l.alunos, 0), totAt = linhas.reduce((s, l) => s + l.ativs, 0), totPar = linhas.reduce((s, l) => s + l.parados, 0);
+  const todas = T.entregas.filter(x => x.entregue_em && linhas.some(l => T.atividades.some(a => a.id === x.atividade_id && a.turma_id === l.t.id)));
+  const mediaGeral = todas.length ? todas.reduce((s, x) => s + (+x.nota || 0), 0) / todas.length : null;
+  const porMat = {}; linhas.forEach(l => Object.entries(l.porMat).forEach(([m, ns]) => { (porMat[m] = porMat[m] || []).push(...ns); }));
+  const matHtml = Object.entries(porMat).map(([m, ns]) => `<span class="pill type" title="${ns.length} entrega${ns.length === 1 ? '' : 's'}">${esc(m === '—' ? 'Várias' : (materiaPorId(m) || {}).nome || m)} · ${fmt(ns.reduce((s, n) => s + n, 0) / ns.length)}</span>`).join(' ');
+  return `<div class="card-b" style="border-top:1px solid var(--line)"><div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px"><h3 style="margin:0;font-size:14px">Visão da escola</h3><span style="font-size:12px;color:var(--muted)">${totAl} aluno${totAl === 1 ? '' : 's'} · ${totAt} atividade${totAt === 1 ? '' : 's'} · média geral <b class="num" style="color:${mediaGeral == null ? 'var(--muted)' : mediaGeral >= 6 ? 'var(--green-d)' : 'var(--red-d)'}">${fmt(mediaGeral)}</b>${totPar ? ` · <b style="color:var(--red-d)">${totPar} aluno${totPar === 1 ? '' : 's'} sem nenhuma entrega</b>` : ''}</span></div>
+    ${matHtml ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 2px;font-size:12px"><span style="color:var(--muted)">Média por disciplina:</span>${matHtml}</div>` : ''}
+    <div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th>Turma</th><th>Alunos</th><th>Atividades</th><th>Entregas</th><th>Média</th><th>Sem entrega</th></tr></thead><tbody>
+      ${linhas.map(l => `<tr class="rowbtn" data-a="abrir-turma:${l.t.id}"><td><b>${esc(l.t.nome)}</b></td><td class="num">${l.alunos}</td><td class="num">${l.ativs}</td><td class="num">${l.taxa == null ? '—' : l.taxa + '%'}</td><td class="num" style="font-weight:700;color:${l.media == null ? 'var(--muted)' : l.media >= 6 ? 'var(--green-d)' : 'var(--red-d)'}">${fmt(l.media)}</td><td class="num" style="color:${l.parados ? 'var(--red-d)' : 'var(--muted)'}">${l.ativs ? l.parados : '—'}</td></tr>`).join('')}
+    </tbody></table></div></div>`;
+}
+/* Relatório de um aluno dentro da turma: notas por atividade, média, acertos e evolução */
+function modalRelatorioHtml() {
+  const R = V.relatorio; if (!R) return '';
+  const t = turmaPorId(R.turma), al = ((V.turmaAlunos && V.turmaAlunos.lista) || []).find(a => a.user_id === R.uid);
+  if (!t || !al) { V.relatorio = null; return ''; }
+  const ativs = T.atividades.filter(a => a.turma_id === t.id && a.status !== 'rascunho').sort((a, b) => ((a.prazo || a.criada_em) < (b.prazo || b.criada_em) ? -1 : 1));
+  const linhas = ativs.map(a => ({a, e: T.entregas.find(x => x.atividade_id === a.id && x.user_id === al.user_id && x.entregue_em) || null}));
+  const feitas = linhas.filter(l => l.e), notas = feitas.map(l => +l.e.nota || 0);
+  const media = notas.length ? notas.reduce((s, n) => s + n, 0) / notas.length : null;
+  const acertos = feitas.reduce((s, l) => s + (l.e.acertos || 0), 0), total = feitas.reduce((s, l) => s + (l.e.total || 0), 0);
+  const fmt = n => n == null ? '—' : n.toFixed(1).replace('.', ',');
+  const ult = notas.slice(-3), ant = notas.slice(0, -3);
+  const tend = ult.length && ant.length ? (ult.reduce((s, n) => s + n, 0) / ult.length) - (ant.reduce((s, n) => s + n, 0) / ant.length) : null;
+  const cor = n => n == null ? 'var(--muted)' : n >= 6 ? 'var(--green-d)' : 'var(--red-d)';
+  return `<div class="drawer-bg" data-a="fechar-rel"></div><div class="card modal wide" role="dialog" aria-modal="true" aria-label="Relatório de ${esc(al.nome)}">
+    <div style="display:flex;gap:10px;align-items:flex-start"><div style="flex:1;min-width:0"><h2 style="margin:0">${esc(al.nome)}</h2><p style="margin:4px 0 0;font-size:13px;color:var(--muted)">${esc(t.nome)} · ${esc(al.email || '')} · na turma desde ${fmtDia(al.entrou_em)}</p></div><button class="btn btn-ghost btn-sm" data-a="fechar-rel" aria-label="Fechar">${I.close}</button></div>
+    <div class="tiles" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
+      <div class="tile"><span class="lbl">Média</span><span class="val num" style="color:${cor(media)}">${fmt(media)}</span><span class="hint">${tend == null ? 'nota de 0 a 10' : tend > 0.3 ? '↑ melhorando' : tend < -0.3 ? '↓ caindo' : '→ estável'}</span></div>
+      <div class="tile"><span class="lbl">Entregas</span><span class="val num">${feitas.length}<span style="font-size:16px;color:var(--muted)"> / ${ativs.length}</span></span><span class="hint">${ativs.length ? Math.round(feitas.length / ativs.length * 100) + '% das atividades' : 'sem atividades'}</span></div>
+      <div class="tile"><span class="lbl">Acertos</span><span class="val num">${total ? Math.round(acertos / total * 100) + '%' : '—'}</span><span class="hint">${acertos} de ${total} questões</span></div>
+      <div class="tile"><span class="lbl">No app</span><span class="val num">${al.xp}<span style="font-size:14px;color:var(--muted)"> XP</span></span><span class="hint">ofensiva de ${al.ofensiva} dia${al.ofensiva === 1 ? '' : 's'}</span></div>
+    </div>
+    ${notas.length > 1 ? `<div class="card-b" style="padding:0"><div style="display:flex;align-items:flex-end;gap:4px;height:64px;padding:0 4px">${notas.map((n, i) => `<span title="${esc(feitas[i].a.titulo)}: ${fmt(n)}" style="flex:1;max-width:28px;height:${Math.max(4, n * 6)}px;border-radius:4px 4px 0 0;background:${cor(n)}"></span>`).join('')}</div><div style="font-size:11px;color:var(--muted);padding:2px 4px">Notas na ordem das atividades (passe o mouse para ver o título)</div></div>` : ''}
+    <div class="tbl-wrap"><table><thead><tr><th>Atividade</th><th>Prazo</th><th>Nota</th><th>Acertos</th><th></th></tr></thead><tbody>
+      ${linhas.map(({a, e}) => `<tr><td><b>${esc(a.titulo)}</b><br><span style="font-size:12px;color:var(--muted)">${a.materia_id ? esc((materiaPorId(a.materia_id) || {}).nome || a.materia_id) : 'Várias'}</span></td><td style="font-size:12px;white-space:nowrap">${a.prazo ? fmtData(a.prazo) : '—'}</td><td class="num" style="font-weight:700;color:${e ? cor(+e.nota) : 'var(--muted)'}">${e ? String(e.nota).replace('.', ',') : statusReal(a) === 'encerrada' ? '<span class="pill off">não fez</span>' : '<span class="pill draft">pendente</span>'}</td><td class="num">${e ? `${e.acertos} / ${e.total}` : '—'}</td><td>${e ? `<button class="btn btn-ghost btn-sm" data-a="rel-respostas:${a.id}:${al.user_id}">${I.eye}Respostas</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">A turma ainda não tem atividades.</td></tr>'}
+    </tbody></table></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" data-a="fechar-rel">Fechar</button></div></div>`;
+}
 function viewTurmas() {
   const escolas = minhasEscolas();
   const podeEscola = admin || papel === 'coordenador';
   const cardEscola = e => { const membros = T.membros.filter(m => m.escola_id === e.id); const turmas = T.turmas.filter(t => t.escola_id === e.id); const coord = souCoord(e.id);
     return `<div class="card"><div class="card-h"><h2>${esc(e.nome)}</h2><span class="pill type">${turmas.length} turma${turmas.length === 1 ? '' : 's'}</span><span class="right">${coord ? `<button class="btn btn-outline btn-sm" data-a="add-membro:${e.id}:professor">${I.plus}Professor</button><button class="btn btn-ghost btn-sm" data-a="add-membro:${e.id}:coordenador">${I.plus}Coordenador</button>` : ''}</span></div>
-      <div class="list">${membros.map(m => `<div class="item"><span class="av" style="width:32px;height:32px;border-radius:9px;background:var(--primary-l);color:var(--primary);display:inline-flex;align-items:center;justify-content:center;font-weight:700">${esc(nomeDe(m.user_id).charAt(0).toUpperCase())}</span><span style="flex:1;min-width:0"><b>${esc(nomeDe(m.user_id))}</b> <span class="pill ${m.papel === 'coordenador' ? 'type' : 'on'}" style="font-size:10px">${PAPEIS[m.papel]}</span>${(T.pessoas[m.user_id] || {}).disciplina ? ` <span class="pill type" style="font-size:10px">${esc(discNome((T.pessoas[m.user_id] || {}).disciplina))}</span>` : ''}<br><span style="font-size:12px;color:var(--muted)">${esc((T.pessoas[m.user_id] || {}).email || '')}</span></span>${coord && m.user_id !== sessao.user.id ? `<button class="btn btn-ghost btn-sm" data-a="remover-membro:${e.id}:${m.user_id}" aria-label="Remover da escola">${I.trash}</button>` : ''}</div>`).join('') || '<div class="empty">Ainda sem professores. Adicione pelo e-mail da conta.</div>'}</div></div>`; };
+      <div class="list">${membros.map(m => `<div class="item"><span class="av" style="width:32px;height:32px;border-radius:9px;background:var(--primary-l);color:var(--primary);display:inline-flex;align-items:center;justify-content:center;font-weight:700">${esc(nomeDe(m.user_id).charAt(0).toUpperCase())}</span><span style="flex:1;min-width:0"><b>${esc(nomeDe(m.user_id))}</b> <span class="pill ${m.papel === 'coordenador' ? 'type' : 'on'}" style="font-size:10px">${PAPEIS[m.papel]}</span>${(T.pessoas[m.user_id] || {}).disciplina ? ` <span class="pill type" style="font-size:10px">${esc(discNome((T.pessoas[m.user_id] || {}).disciplina))}</span>` : ''}<br><span style="font-size:12px;color:var(--muted)">${esc((T.pessoas[m.user_id] || {}).email || '')}</span></span>${coord && m.user_id !== sessao.user.id ? `<button class="btn btn-ghost btn-sm" data-a="remover-membro:${e.id}:${m.user_id}" aria-label="Remover da escola">${I.trash}</button>` : ''}</div>`).join('') || '<div class="empty">Ainda sem professores. Adicione pelo e-mail da conta.</div>'}</div>${coord ? resumoEscola(e) : ''}</div>`; };
   const cardTurma = t => { const na = alunosDaTurma(t.id).length, ativs = T.atividades.filter(a => a.turma_id === t.id), abertas = ativs.filter(a => statusReal(a) === 'aberta').length; const esc_ = escolaPorId(t.escola_id); const profs = profsDaTurma(t.id);
     return `<button class="card" style="text-align:left;padding:16px;display:flex;flex-direction:column;gap:8px;${t.ativa ? '' : 'opacity:.6'}" data-a="abrir-turma:${t.id}">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h2 style="flex:1;min-width:0">${esc(t.nome)}</h2>${t.ativa ? '' : '<span class="pill off">inativa</span>'}<span class="pill type" style="font-family:var(--f-display);letter-spacing:.1em">${esc(t.codigo)}</span></div>
@@ -1203,7 +1255,7 @@ function viewTurma() {
     <div class="grid2">
       <div class="card"><div class="card-h"><h2>Alunos</h2><span class="pill type">${nAlunos}</span><span class="right"><button class="btn btn-outline btn-sm" data-a="add-aluno:${t.id}">${I.plus}Adicionar por e-mail</button></span></div>
         ${A === null ? '<div class="empty">Carregando…</div>' : A.erro ? `<div class="warnbox">${I.warn}<span>${esc(A.erro)}</span></div>` : A.lista.length ? `<div class="tbl-wrap tbl-wide"><table><thead><tr><th>Aluno</th><th>XP</th><th>Ofensiva</th><th>Entregas</th><th></th></tr></thead><tbody>
-          ${A.lista.map(a => `<tr><td><b>${esc(a.nome)}</b><br><span style="font-size:12px;color:var(--muted);white-space:nowrap">${esc(a.email)} · desde ${fmtDia(a.entrou_em)}</span></td><td class="num">${a.xp}</td><td class="num">${a.ofensiva} d</td><td class="num">${a.entregas} / ${ativs.filter(x => x.status !== 'rascunho').length}</td><td><button class="btn btn-ghost btn-sm" data-a="remover-aluno:${t.id}:${a.user_id}" aria-label="Tirar da turma">${I.trash}</button></td></tr>`).join('')}
+          ${A.lista.map(a => `<tr style="${a.aceito === false ? 'opacity:.6' : ''}"><td><b>${esc(a.nome)}</b>${a.aceito === false ? ' <span class="pill draft" title="O aluno ainda não aceitou o convite no app">convite pendente</span>' : ''}<br><span style="font-size:12px;color:var(--muted);white-space:nowrap">${esc(a.email)} · ${a.aceito === false ? 'convidado' : 'desde'} ${fmtDia(a.entrou_em)}</span>${a.aceito === false ? '' : `<br><button class="btn btn-ghost btn-sm" style="padding:0;height:auto;font-size:12px" data-a="relatorio:${a.user_id}">${I.eye}Relatório do aluno</button>`}</td><td class="num">${a.xp}</td><td class="num">${a.ofensiva} d</td><td class="num">${a.entregas} / ${ativs.filter(x => x.status !== 'rascunho').length}</td><td><button class="btn btn-ghost btn-sm" data-a="remover-aluno:${t.id}:${a.user_id}" aria-label="Tirar da turma">${I.trash}</button></td></tr>`).join('')}
         </tbody></table></div>` : `<div class="empty">Nenhum aluno ainda. Passe o código <b>${esc(t.codigo)}</b> para a turma digitar no app, ou adicione pelo e-mail.</div>`}</div>
       <div class="card"><div class="card-h"><h2>Professores</h2><span class="right"><button class="btn btn-outline btn-sm" data-a="add-prof-turma:${t.id}">${I.plus}Professor</button></span></div>
         <div class="list">${profs.map(p => `<div class="item"><span style="flex:1;min-width:0"><b>${esc(nomeDe(p.user_id))}</b><br><span style="font-size:12px;color:var(--muted)">${esc((T.pessoas[p.user_id] || {}).email || '')} · ${p.materia_id ? esc((materiaPorId(p.materia_id) || {}).nome || p.materia_id) : 'todas as matérias'}</span></span>${p.user_id === sessao.user.id ? '<span style="font-size:12px;color:var(--muted)">você</span>' : `<button class="btn btn-ghost btn-sm" data-a="remover-prof:${t.id}:${p.user_id}" aria-label="Remover professor">${I.trash}</button>`}</div>`).join('') || '<div class="empty">Sem professores.</div>'}</div>
@@ -1316,7 +1368,7 @@ function viewResultados() {
 /* =====================================================================
    Auditoria (admin)
    ===================================================================== */
-const ACOES_AUD = {insert: ['Criou', 'pub'], update: ['Alterou', 'draft'], delete: ['Excluiu', ''], login: ['Entrou', 'type'], sair: ['Saiu', 'off'], tela: ['Abriu a tela', 'off'], busca: ['Buscou', 'on'], copia: ['Copiou', 'on'], resultados: ['Viu resultados', 'on'], turma: ['Abriu a turma', 'on'], novo_aluno: ['Criou conta', 'pub'], bloqueio: ['Bloqueou', ''], liberacao: ['Liberou', 'pub'], recursos: ['Deu moedas/corações', 'pub'], respostas: ['Viu respostas', 'on'], papel: ['Definiu papel', 'pub'], clique: ['Clicou', 'off']};
+const ACOES_AUD = {insert: ['Criou', 'pub'], update: ['Alterou', 'draft'], delete: ['Excluiu', ''], login: ['Entrou', 'type'], sair: ['Saiu', 'off'], tela: ['Abriu a tela', 'off'], busca: ['Buscou', 'on'], copia: ['Copiou', 'on'], resultados: ['Viu resultados', 'on'], turma: ['Abriu a turma', 'on'], novo_aluno: ['Criou conta', 'pub'], bloqueio: ['Bloqueou', ''], liberacao: ['Liberou', 'pub'], recursos: ['Deu moedas/corações', 'pub'], respostas: ['Viu respostas', 'on'], papel: ['Definiu papel', 'pub'], relatorio: ['Viu relatório', 'on'], clique: ['Clicou', 'off']};
 const TABELAS_AUD = {materias: 'Matérias', secoes: 'Seções', unidades: 'Unidades', licoes: 'Lições', questoes: 'Questões', licao_questoes: 'Questões da lição', missoes: 'Missões', itens_loja: 'Loja', parametros: 'Parâmetros', publicacoes: 'Publicações', segmentos: 'Segmentos', escolas: 'Escolas', escola_membros: 'Membros da escola', turmas: 'Turmas', turma_professores: 'Professores da turma', turma_alunos: 'Alunos da turma', atividades: 'Atividades', perfis: 'Perfis', admins: 'Administradores', painel: 'Painel', alunos: 'Alunos', resultados: 'Resultados'};
 function viewAuditoria() {
   const A = V.aud, f = A.f;
@@ -1378,7 +1430,8 @@ function modalPrevHtml() {
 function modalRespostasHtml() {
   const R = V.resultados, a = R && T.atividades.find(x => x.id === R.id), d = R && R.data;
   const al = d && d.alunos.find(x => x.user_id === V.respostas.uid);
-  if (!a || !al) { V.respostas = null; return ''; }
+  if (!a || (d && !al)) { V.respostas = null; return ''; }
+  if (!d) return '';
   const resp = Array.isArray(al.respostas) ? al.respostas : [];
   const porId = {}; resp.forEach(r => { porId[r.id] = r; });
   const TF = v => v === true ? 'Verdadeiro' : v === false ? 'Falso' : null;
@@ -1433,7 +1486,7 @@ function render() {
   const focado = document.activeElement, fkey = focado && focado.dataset ? focado.dataset.f : null, sel = focado && focado.selectionStart;
   const scroll = window.scrollY;
   shell.className = '';
-  shell.innerHTML = sidebar() + `<main>${VIEWS[V.view]()}</main>` + (V.ativ ? drawerAtividade() : '') + (V.rascunho ? drawerQuestao() : '') + (V.licaoAtribuir ? drawerAtribuir() : '') + (V.modalPrev ? modalPrevHtml() : '') + (V.respostas ? modalRespostasHtml() : '') + (V.modal ? modalHtml() : '') + (V.confirmar ? confirmHtml() : '');
+  shell.innerHTML = sidebar() + `<main>${VIEWS[V.view]()}</main>` + (V.ativ ? drawerAtividade() : '') + (V.rascunho ? drawerQuestao() : '') + (V.licaoAtribuir ? drawerAtribuir() : '') + (V.modalPrev ? modalPrevHtml() : '') + (V.relatorio ? modalRelatorioHtml() : '') + (V.respostas ? modalRespostasHtml() : '') + (V.modal ? modalHtml() : '') + (V.confirmar ? confirmHtml() : '');
   window.scrollTo(0, scroll);
   if (fkey) { const el = shell.querySelector(`[data-f="${fkey}"]`); if (el && el.tagName !== 'SELECT' && el.type !== 'radio' && el.type !== 'color') { el.focus(); try { el.setSelectionRange(sel, sel); } catch (e) {} } }
   if (V.modal) { const first = shell.querySelector('#f-modal input'); if (first) first.focus(); }
@@ -1591,7 +1644,7 @@ async function carregarResultados(aid) {
   render();
 }
 /* Toda ação do painel é registrada; estas já têm um registro mais descritivo em seu próprio código */
-const ACOES_COM_REGISTRO_PROPRIO = new Set(['view', 'sair', 'abrir-turma', 'resultados', 'copiar-notas', 'copiar-json', 'buscar-alunos', 'bloq', 'novo-aluno', 'dar', 'dar-lote', 'ver-respostas']);
+const ACOES_COM_REGISTRO_PROPRIO = new Set(['view', 'sair', 'abrir-turma', 'resultados', 'copiar-notas', 'copiar-json', 'buscar-alunos', 'bloq', 'novo-aluno', 'dar', 'dar-lote', 'ver-respostas', 'relatorio']);
 async function act(a, el) {
   const [k, x, y, z] = a.split(':');
   if (!ACOES_COM_REGISTRO_PROPRIO.has(k)) auditar('clique', 'painel', a, 'Ação no painel: ' + k + (x ? ' · ' + [x, y, z].filter(v => v != null).join(':') : ''), {tela: V.view});
@@ -1605,6 +1658,9 @@ async function act(a, el) {
     case 'fechar-prev': V.modalPrev = null; return render();
     case 'ver-respostas': { const d = V.resultados && V.resultados.data, al = d && d.alunos.find(z => z.user_id === x); if (!al) return; V.respostas = {uid: x}; auditar('respostas', 'resultados', V.resultados.id, 'Viu as respostas de ' + al.nome, {aluno: x, nota: al.nota}); return render(); }
     case 'fechar-respostas': V.respostas = null; return render();
+    case 'relatorio': { const al = ((V.turmaAlunos && V.turmaAlunos.lista) || []).find(a => a.user_id === x); if (!al) return; V.relatorio = {turma: V.turma, uid: x}; auditar('relatorio', 'alunos', x, 'Viu o relatório de ' + al.nome, {turma: V.turma}); return render(); }
+    case 'fechar-rel': V.relatorio = null; return render();
+    case 'rel-respostas': { V.relatorio = null; await act('resultados:' + x); V.respostas = {uid: y}; return render(); }
     case 'papel': { const a = (V.alunos.lista || []).find(t => t.user_id === x); const novo = el.value; if (!a || a.papel === novo) return;
       if (novo === 'professor') { // professor precisa de disciplina: pergunta antes de gravar
         el.value = a.papel || 'aluno';

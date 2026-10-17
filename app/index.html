@@ -1282,18 +1282,39 @@ function screenPraticar() {
   </div></div>${nav('praticar')}`;
 }
 /* ---------- turma: atividades passadas pelo professor ---------- */
+// Ranking semanal dos colegas da turma (rpc ranking_turma); carregado ao abrir a aba
+async function carregarRankingTurma() {
+  const ts = S.turmas || []; if (!ts.length) return;
+  const tid = (V.rank && ts.some(t => t.id === V.rank.turma) ? V.rank.turma : ts[0].id);
+  if (V.rank && V.rank.turma === tid && V.rank.lista && Date.now() - V.rank.em < 60e3) return;
+  V.rank = {turma: tid, lista: null, em: Date.now()};
+  const {data, error} = await sb.rpc('ranking_turma', {p_turma: tid});
+  if (!V.rank || V.rank.turma !== tid) return;
+  V.rank.lista = error ? [] : (data || []); V.rank.erro = error ? traduz(error.message) : null;
+  if (V.screen === 'turma') render(false);
+}
+function rankingTurmaHtml(ts) {
+  if (!ts.length) return '';
+  const R = V.rank, t = ts.find(x => x.id === (R && R.turma)) || ts[0];
+  const lista = (R && R.lista) || [], meu = lista.findIndex(p => p.eu);
+  const pal = ['#503C9D', '#4CC3C1', '#8FB569', '#FFD36A', '#D2BBDB', '#F08A24'];
+  return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><h2 class="h2">Ranking da turma</h2>${ts.length > 1 ? `<select class="inp" style="height:32px;font-size:12px;width:auto;padding:0 8px" data-a="rank-turma" aria-label="Turma">${ts.map(x => `<option value="${x.id}" ${x.id === t.id ? 'selected' : ''}>${esc(x.nome)}</option>`).join('')}</select>` : `<span class="num" style="font-size:12px;color:var(--muted)">XP da semana${meu >= 0 ? ' · você é ' + (meu + 1) + 'º' : ''}</span>`}</div>
+    <div class="card" data-key="rank:${t.id}">${!R || !R.lista ? '<div class="row"><span class="sub">Carregando…</span></div>' : R.erro ? `<div class="row"><span class="sub">${esc(R.erro)}</span></div>` : !lista.length ? '<div class="row"><span class="sub">Ainda sem colegas na turma.</span></div>' : lista.slice(0, 10).map((p, i) => `<div class="row" style="padding:9px 14px;${p.eu ? 'background:var(--lav)' : ''}"><span class="num" style="width:22px;font-weight:700;color:${i < 3 ? 'var(--gold-d)' : 'var(--muted)'}">${i + 1}</span>${avatarCfg(p.avatar) ? avatarSvg(avatarCfg(p.avatar), 34, p.nome) : `<span class="av" style="width:34px;height:34px;font-size:12px;background:${p.eu ? 'var(--primary)' : pal[i % 6]};color:${p.eu || i % 6 === 0 ? '#fff' : 'var(--navy)'}">${p.eu ? 'EU' : esc(p.nome.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase())}</span>`}<span style="flex:1;font-size:14px;font-weight:${p.eu ? 700 : 500}">${esc(p.nome)}${p.eu ? ' (você)' : ''}</span><span class="num" style="font-size:13px;font-weight:700;color:var(--primary)">${p.xp} XP</span></div>`).join('') + (meu >= 10 ? `<div class="row" style="padding:9px 14px;background:var(--lav)"><span class="num" style="width:22px;font-weight:700;color:var(--muted)">${meu + 1}</span><span style="flex:1;font-size:14px;font-weight:700">Você</span><span class="num" style="font-size:13px;font-weight:700;color:var(--primary)">${lista[meu].xp} XP</span></div>` : '')}</div>`;
+}
 function screenTurma() {
   const ativs = atividades(), pend = ativs.filter(a => a.status === 'pendente'), feitas = ativs.filter(a => a.status !== 'pendente').slice(0, 12);
   const ts = S.turmas || [];
   const urgentes = pend.filter(a => a.prazo && new Date(a.prazo) - Date.now() < 24 * HOUR).length;
   return `<header class="topbar"><h1>Turma</h1><button class="chipbtn" data-a="turmas" style="margin-right:10px">${ts.length ? 'Minhas turmas' : 'Entrar na turma'}</button></header>
   <div class="scroll"><div class="pad">
+    ${(S.convites || []).map(c => `<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;border-color:var(--primary);background:var(--lav)" data-key="conv:${c.id}"><div style="display:flex;gap:12px;align-items:center"><span class="tile" style="background:var(--primary);color:#fff">${I.users}</span><div class="grow"><span class="t15">Convite para a turma ${esc(c.nome)}</span><span class="sub">${c.escola ? esc(c.escola) + ' · ' : ''}${c.professor ? 'Prof. ' + esc(c.professor) + ' · ' : ''}${c.alunos} aluno${c.alunos === 1 ? '' : 's'}</span></div></div><div style="display:flex;gap:8px"><button class="btn btn-primary pxbtn" style="flex:2" data-a="convite:${c.id}:1">Aceitar</button><button class="btn btn-outline" style="flex:1" data-a="convite:${c.id}:0">Recusar</button></div></div>`).join('')}
     ${!ts.length ? `<div class="pad" style="padding:20px 0 6px;align-items:center;text-align:center">${mascot(110)}<h2 class="h2" style="font-size:18px">Você ainda não está numa turma</h2><p class="sub" style="max-width:280px;margin:0">Peça o código de 6 letras ao seu professor e entre pelo botão acima. As atividades que ele passar aparecem aqui.</p><button class="btn btn-primary pxbtn" data-a="turmas" style="margin-top:6px">Entrar com o código</button></div>` : `
     <div class="card row" data-key="turma-info"><span class="tile" style="background:var(--lav);color:var(--primary)">${I.users}</span><div class="grow"><span class="t15">${ts.map(t => esc(t.nome)).join(' · ')}</span><span class="sub">${ts.length === 1 ? (ts[0].escola ? esc(ts[0].escola) : 'Turma do professor') : ts.length + ' turmas'}</span></div></div>
     <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 class="h2">Atividades pendentes</h2><span class="num" style="font-size:12px;color:${urgentes ? 'var(--orange-d)' : 'var(--muted)'}">${pend.length ? pend.length + ' pendente' + (pend.length > 1 ? 's' : '') + (urgentes ? ' · ' + urgentes + ' vence hoje' : '') : 'nada pendente'}</span></div>
     ${pend.map(cardAtividade).join('')}
     ${!pend.length ? `<div class="card row"><span class="tile" style="background:var(--green-l);color:var(--green-dd)">${I.check(22, 3)}</span><div class="grow"><span class="t15">Tudo entregue</span><span class="sub">Quando o professor passar uma atividade nova, ela aparece aqui.</span></div></div>` : ''}
     ${feitas.length ? `<h2 class="h2">Entregues e encerradas</h2>${feitas.map(cardAtividade).join('')}` : ''}
+    ${rankingTurmaHtml(ts)}
     <p class="sub" style="margin:4px 0 0;font-size:12px">Atividades não gastam corações. A nota sai na hora e o professor vê o que você respondeu.</p>`}
   </div></div>${V.sheet === 'ativ' ? sheetAtiv() : ''}${V.sheet === 'turma' ? sheetTurma() : ''}${nav('turma')}`;
 }
@@ -1662,6 +1683,7 @@ function render(reset) {
   }
   const sc2 = document.getElementById('sc');
   if (V.screen === 'jornada' && V.scrollTo) { V.scrollTo = false; const n = document.getElementById('cur-node'); if (n && sc2) sc2.scrollTop = Math.max(0, n.offsetTop - sc2.clientHeight / 2 + 40); }
+  if (V.screen === 'turma' && reset) carregarRankingTurma();
   if (V.screen === 'mapa' && reset) { celebrarIlhas(); try { if (V.barcoPos) localStorage.setItem('fj-barco', JSON.stringify(V.barcoPos)); } catch (e) {} }
   if (V.screen === 'ligas' && reset) { const m = document.getElementById('me-row'), s = app.querySelector('.scroll'); if (m && s) s.scrollTop = Math.max(0, m.offsetTop - s.offsetTop - s.clientHeight / 2); }
   if (V.editNome) { const i = document.getElementById('nome-inp'); if (i && document.activeElement !== i) i.focus(); }
@@ -1718,6 +1740,8 @@ async function act(a) {
     case 'atividade': return startAtividade(x);
     case 'ver-ativ': V.sheet = 'ativ'; V.ativ = x; return render();
     case 'turmas': V.sheet = 'turma'; V.codigoErro = ''; return render();
+    case 'convite': { const b = app.querySelector(`[data-a="convite:${x}:${y}"]`); if (b) { b.disabled = true; b.textContent = y === '1' ? 'Entrando…' : 'Recusando…'; } const {data, error} = await sb.rpc('responder_convite', {p_turma: x, p_aceitar: y === '1'}); if (error) { toast(traduz(error.message)); return render(); } S = data.estado; V.rank = null; render(); if (y === '1') { SND.ok(); vib(25); toast(`Você entrou na turma ${data.nome}.`); carregarRankingTurma(); } else toast('Convite recusado.'); return; }
+    case 'rank-turma': V.rank = {turma: x, lista: null, em: 0}; render(); return carregarRankingTurma();
     case 'entrar-turma': {
       const inp = document.getElementById('cod-turma'); const cod = (inp ? inp.value : '').trim().toUpperCase();
       if (cod.length < 4) { V.codigoErro = 'Digite o código que o professor passou.'; return render(); }
@@ -1750,6 +1774,7 @@ async function act(a) {
     case 'next': return next();
   }
 }
+app.addEventListener('change', ev => { const el = ev.target; if (el.tagName === 'SELECT' && el.dataset.a === 'rank-turma') act('rank-turma:' + el.value).catch(e => console.error(e)); });
 app.addEventListener('click', ev => {
   const el = ev.target.closest('[data-a]');
   if (!el || el.disabled || !S) {
