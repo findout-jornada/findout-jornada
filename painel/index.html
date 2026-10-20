@@ -75,6 +75,15 @@ aside{background:linear-gradient(180deg,#070C22 0%,var(--side) 40%,#1A1F4B 100%)
 .navbtn .cnt{margin-left:auto;font-size:11px;background:rgba(255,255,255,.12);padding:2px 7px;border-radius:10px}
 .sidefoot{margin-top:auto;font-size:12px;color:var(--side-fg);padding:10px 12px;border-top:1px solid rgba(255,255,255,.1);display:flex;flex-direction:column;gap:6px}
 .sidefoot button{color:var(--side-fg);text-align:left;text-decoration:underline}
+.navsec{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(197,201,227,.5);padding:14px 12px 4px}
+.who{display:flex;gap:9px;align-items:center;min-width:0}
+.who-av{width:30px;height:30px;border-radius:50%;background:linear-gradient(180deg,var(--teal),#2E9B99);color:var(--navy);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-family:var(--f-display);flex-shrink:0}
+.who-info{min-width:0;display:flex;flex-direction:column;line-height:1.3}
+.who-info b{color:#fff;font-size:12px}
+.who-info span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
+.checkgroup{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px}
+.chk{display:flex;gap:9px;align-items:center;font-size:13px;cursor:pointer}
+.chk input{width:16px;height:16px;accent-color:var(--primary);flex-shrink:0}
 main{min-width:0;display:flex;flex-direction:column}
 .topbar{display:flex;align-items:center;gap:14px;padding:16px 28px;border-bottom:1px solid var(--line);background:var(--topbar);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);position:sticky;top:0;z-index:5;flex-wrap:wrap}
 body{background-image:radial-gradient(700px 300px at 70% -80px,rgba(142,127,207,.16),transparent 70%)}
@@ -255,6 +264,7 @@ pre.json{margin:0;background:var(--navy);color:#C5C9E3;padding:14px;border-radiu
   .brand small{display:none}
   .brand b{font-size:16px}
   .navbtn{width:auto;padding:8px 10px;font-size:13px;flex-shrink:0;white-space:nowrap}.navbtn .cnt{display:none}
+  .navsec{display:none}
   .sidefoot{display:none}
   .topbar{position:static;padding:14px 16px;gap:10px}
   h1{font-size:20px}
@@ -600,7 +610,7 @@ async function carregar() {
   if (!V.materia || !D.materias.some(x => x.id === V.materia)) V.materia = D.materias[0] ? D.materias[0].id : null;
 }
 /* Confere se as migrations estão em dia (tabela schema_versao, migration 0022) */
-const ESQUEMA_ESPERADO = 25;
+const ESQUEMA_ESPERADO = 26;
 async function verificarEsquema() {
   const r = await sb.from('schema_versao').select('versao').order('versao', {ascending: false}).limit(1).maybeSingle();
   const v = r.error || !r.data ? 0 : r.data.versao;
@@ -743,7 +753,7 @@ async function rota(s) {
     document.getElementById('sair').onclick = () => sb.auth.signOut();
     return;
   }
-  if (!admin) { autoPub = false; V.view = 'turmas'; }
+  if (!admin) { autoPub = false; V.view = 'inicio'; }
   if (restrito()) V.qf.materia = disciplina;
   telaAuth('<div class="msg">Carregando conteúdo…</div>');
   try { await carregar(); await carregarTurmas(); }
@@ -761,20 +771,31 @@ async function rota(s) {
 /* =====================================================================
    Layout
    ===================================================================== */
-const NAV_ADMIN = [['inicio', 'Visão geral', I.home], ['trilhas', 'Matérias e trilhas', I.path], ['questoes', 'Questões', I.q], ['missoes', 'Missões', I.target], ['economia', 'Economia e loja', I.coin], ['ligas', 'Ligas', I.shield], ['alunos', 'Alunos', I.users], ['turmas', 'Turmas', I.users], ['atividades', 'Atividades', I.target], ['publicar', 'Publicar', I.up], ['relatorios', 'Relatórios', I.grafico], ['auditoria', 'Auditoria', I.clock]];
+/* Navegação por papel: cada bloco é [título da seção, itens]. Admin vê tudo;
+   professor e coordenador veem só a escola (as turmas que o RLS deixa) e o banco de questões. */
+const NAV_ADMIN = [
+  ['', [['inicio', 'Visão geral', I.home]]],
+  ['Conteúdo', [['trilhas', 'Matérias e trilhas', I.path], ['questoes', 'Questões', I.q], ['missoes', 'Missões', I.target], ['economia', 'Economia e loja', I.coin], ['ligas', 'Ligas', I.shield]]],
+  ['Escola', [['turmas', 'Turmas', I.users], ['atividades', 'Atividades', I.target], ['alunos', 'Alunos', I.users]]],
+  ['Sistema', [['publicar', 'Publicar', I.up], ['relatorios', 'Relatórios', I.grafico], ['auditoria', 'Auditoria', I.clock]]]
+];
 /* Auditoria: eventos do painel (login, tela, busca…) vão para o banco sem travar a tela */
 function auditar(acao, tabela, registro, resumo, dados) {
   try { sb.rpc('auditar_painel', {p_acao: acao, p_tabela: tabela || null, p_registro: registro == null ? null : String(registro), p_resumo: resumo || null, p_dados: dados || null}).then(() => {}, () => {}); } catch (e) {}
 }
-const NAV_PROF = [['turmas', 'Turmas', I.users], ['atividades', 'Atividades', I.target], ['questoes', 'Banco de questões', I.q]];
+const NAV_PROF = [
+  ['', [['inicio', 'Visão geral', I.home]]],
+  ['Escola', [['turmas', 'Turmas', I.users], ['atividades', 'Atividades', I.target]]],
+  ['Conteúdo', [['questoes', 'Banco de questões', I.q]]]
+];
 const navItens = () => admin ? NAV_ADMIN : NAV_PROF;
 function sidebar() {
   const counts = {questoes: D.questoes.length, missoes: D.missoes.filter(m => m.ativa).length, trilhas: D.materias.filter(m => m.ativa).length, turmas: T ? T.turmas.length : null, atividades: T ? T.atividades.filter(a => statusReal(a) === 'aberta').length : null};
   const ult = D.publicacoes[0];
-  return `<aside><div class="brand"><span class="abbr" style="background:var(--primary);width:36px;height:36px;font-size:9px">FJ</span><div><b>Findout</b><small>Painel · ${admin ? 'Jornada' : PAPEIS[papel] || papel}</small></div></div>
-    ${navItens().map(([id, l, ic]) => `<button class="navbtn" data-a="view:${id}" ${V.view === id || (id === 'turmas' && V.view === 'turma') || (id === 'atividades' && V.view === 'resultados') ? 'aria-current="page"' : ''}>${ic}${l}${counts[id] != null ? `<span class="cnt num">${counts[id]}</span>` : ''}</button>`).join('')}
+  return `<aside><div class="brand"><span class="abbr" style="background:var(--primary);width:36px;height:36px;font-size:9px">FJ</span><div><b>Findout</b><small>Painel da Jornada</small></div></div>
+    ${navItens().map(([sec, itens]) => (sec ? `<div class="navsec">${sec}</div>` : '') + itens.map(([id, l, ic]) => `<button class="navbtn" data-a="view:${id}" ${V.view === id || (id === 'turmas' && V.view === 'turma') || (id === 'atividades' && V.view === 'resultados') ? 'aria-current="page"' : ''}>${ic}${l}${counts[id] != null ? `<span class="cnt num">${counts[id]}</span>` : ''}</button>`).join('')).join('')}
     <button class="navbtn" data-a="tema" aria-pressed="${temaAtual() === 'dark'}">${temaAtual() === 'dark' ? I.sun + 'Modo claro' : I.moon + 'Modo escuro'}</button>
-    <div class="sidefoot">${admin ? `<span>Versão publicada: <b class="num" id="versao-pub">${ult ? 'v' + ult.versao : 'nenhuma'}</b></span><span id="status">${statusHtml()}</span>` : `<span>${PAPEIS[papel] || papel}</span>`}<span style="overflow:hidden;text-overflow:ellipsis">${esc(sessao.user.email)}</span><button data-a="sair">Sair</button></div></aside>`;
+    <div class="sidefoot"><div class="who"><span class="who-av">${esc((sessao.user.email || '?').charAt(0).toUpperCase())}</span><span class="who-info"><b>${admin ? 'Administrador' : PAPEIS[papel] || papel}${!admin && disciplina ? ' · ' + esc(discNome(disciplina)) : ''}</b><span>${esc(sessao.user.email)}</span></span></div>${admin ? `<span>Versão publicada: <b class="num" id="versao-pub">${ult ? 'v' + ult.versao : 'nenhuma'}</b></span><span id="status">${statusHtml()}</span>` : ''}<button data-a="sair">Sair</button></div></aside>`;
 }
 function topbar(titulo, sub, acoes = '') { return `<div class="topbar"><div><h1>${titulo}</h1>${sub ? `<div class="sub">${sub}</div>` : ''}</div><div class="actions">${acoes}</div></div>`; }
 const toggle = (on, a, label) => `<button class="toggle" role="switch" aria-checked="${!!on}" aria-label="${esc(label || 'Ativar')}" data-a="${a}"></button>`;
@@ -815,6 +836,38 @@ function viewInicio() {
         ${!faltam.length && !rasc.length ? '<div class="empty">Nada pendente. Tudo pronto para publicar.</div>' : ''}
       </div></div>
   </div></div>`;
+}
+/* Visão geral do professor e do coordenador: só o que o RLS deixa este usuário ver */
+function viewInicioEducador() {
+  const turmas = T ? T.turmas : [], ativas = turmas.filter(t => t.ativa);
+  const alunosUnicos = new Set((T ? T.alunos : []).map(a => a.user_id)).size;
+  const ativs = (T ? T.atividades : []).filter(a => a.status !== 'rascunho');
+  const abertas = (T ? T.atividades : []).filter(a => statusReal(a) === 'aberta');
+  const rascunhos = (T ? T.atividades : []).filter(a => a.status === 'rascunho').length;
+  const entregues = (T ? T.entregas : []).filter(e => e.entregue_em);
+  const media = entregues.length ? entregues.reduce((s, e) => s + (+e.nota || 0), 0) / entregues.length : null;
+  const ent7 = entregues.filter(e => new Date(e.entregue_em) >= Date.now() - 7 * 864e5).length;
+  const fmt = n => n == null ? '—' : n.toFixed(1).replace('.', ',');
+  const escolas = minhasEscolas();
+  const proximas = abertas.slice().sort((a, b) => (a.prazo || '9999') < (b.prazo || '9999') ? -1 : 1).slice(0, 8);
+  const linhaAtiv = a => { const t = turmaPorId(a.turma_id), na = alunosDaTurma(a.turma_id).length, ent = entregasDe(a.id).length, atrasada = a.prazo && new Date(a.prazo) - Date.now() < 2 * 864e5;
+    return `<tr class="rowbtn" data-a="resultados:${a.id}"><td><b>${esc(a.titulo)}</b><br><span style="font-size:12px;color:var(--muted)">${t ? esc(t.nome) : '—'}${a.materia_id ? ' · ' + esc(discNome(a.materia_id)) : ''}</span></td><td style="white-space:nowrap;${atrasada ? 'color:var(--red-d);font-weight:600' : ''}">${a.prazo ? fmtData(a.prazo) : 'sem prazo'}</td><td class="num">${ent} / ${na}</td><td><button class="btn btn-outline btn-sm" data-a="resultados:${a.id}">Resultados</button></td></tr>`; };
+  const meusSegs = papel === 'coordenador' ? [...new Set((T ? T.membros : []).filter(m => m.user_id === sessao.user.id && m.papel === 'coordenador').flatMap(m => m.segmentos || []))] : [];
+  const sub = papel === 'coordenador'
+    ? (meusSegs.length ? 'Coordenação de ' + meusSegs.map(segNome).join(', ') : 'Coordenação · escola inteira')
+    : 'As suas turmas e atividades' + (disciplina ? ' · ' + discNome(disciplina) : '');
+  return topbar('Visão geral', sub, `<button class="btn btn-outline" data-a="view:turmas">${I.users}Turmas</button><button class="btn btn-primary" data-a="nova-ativ" ${turmas.length ? '' : 'disabled'}>${I.plus}Nova atividade</button>`) + `<div class="content">
+    ${avisoTurmas()}
+    <div class="tiles">
+      <div class="tile"><span class="lbl">Turmas</span><span class="val num">${ativas.length}</span><span class="hint">${turmas.length - ativas.length ? (turmas.length - ativas.length) + ' inativa' + (turmas.length - ativas.length === 1 ? '' : 's') : papel === 'coordenador' ? 'nos seus segmentos' : 'em que você dá aula'}</span></div>
+      <div class="tile"><span class="lbl">Alunos</span><span class="val num">${alunosUnicos}</span><span class="hint">nas suas turmas</span></div>
+      <div class="tile"><span class="lbl">Atividades abertas</span><span class="val num">${abertas.length}</span><span class="hint">${ativs.length} no total${rascunhos ? ' · ' + rascunhos + ' em rascunho' : ''}</span></div>
+      <div class="tile"><span class="lbl">Média geral</span><span class="val num" style="color:${media == null ? 'inherit' : media >= 6 ? 'var(--green-d)' : 'var(--red-d)'}">${fmt(media)}</span><span class="hint">${entregues.length} entrega${entregues.length === 1 ? '' : 's'} · ${ent7} na última semana</span></div>
+    </div>
+    <div class="card"><div class="card-h"><h2>Atividades abertas</h2><span class="right"><button class="btn btn-ghost btn-sm" data-a="view:atividades">Ver todas</button></span></div>
+      ${proximas.length ? `<div class="tbl-wrap tbl-wide"><table><thead><tr><th>Atividade</th><th>Prazo</th><th>Entregas</th><th></th></tr></thead><tbody>${proximas.map(linhaAtiv).join('')}</tbody></table></div>` : `<div class="empty">Nenhuma atividade aberta agora. ${turmas.length ? 'Crie uma em "Nova atividade".' : 'Crie uma turma primeiro, na aba Turmas.'}</div>`}</div>
+    ${papel === 'coordenador' ? escolas.map(e => `<div class="card"><div class="card-h"><h2>${esc(e.nome)}</h2><span class="right"><button class="btn btn-ghost btn-sm" data-a="view:turmas">Abrir turmas</button></span></div>${resumoEscola(e) || '<div class="empty">Ainda sem turmas nos seus segmentos.</div>'}</div>`).join('') : ''}
+  </div>`;
 }
 
 /* =====================================================================
@@ -1247,13 +1300,13 @@ function viewTurmas() {
   const podeEscola = admin || papel === 'coordenador';
   const cardEscola = e => { const membros = T.membros.filter(m => m.escola_id === e.id); const turmas = T.turmas.filter(t => t.escola_id === e.id); const coord = souCoord(e.id);
     return `<div class="card"><div class="card-h"><h2>${esc(e.nome)}</h2><span class="pill type">${turmas.length} turma${turmas.length === 1 ? '' : 's'}</span><span class="right">${coord ? `<button class="btn btn-outline btn-sm" data-a="add-membro:${e.id}:professor">${I.plus}Professor</button><button class="btn btn-ghost btn-sm" data-a="add-membro:${e.id}:coordenador">${I.plus}Coordenador</button>` : ''}</span></div>
-      <div class="list">${membros.map(m => `<div class="item"><span class="av" style="width:32px;height:32px;border-radius:9px;background:var(--primary-l);color:var(--primary);display:inline-flex;align-items:center;justify-content:center;font-weight:700">${esc(nomeDe(m.user_id).charAt(0).toUpperCase())}</span><span style="flex:1;min-width:0"><b>${esc(nomeDe(m.user_id))}</b> <span class="pill ${m.papel === 'coordenador' ? 'type' : 'on'}" style="font-size:10px">${PAPEIS[m.papel]}</span>${(T.pessoas[m.user_id] || {}).disciplina ? ` <span class="pill type" style="font-size:10px">${esc(discNome((T.pessoas[m.user_id] || {}).disciplina))}</span>` : ''}<br><span style="font-size:12px;color:var(--muted)">${esc((T.pessoas[m.user_id] || {}).email || '')}</span></span>${coord && m.user_id !== sessao.user.id ? `<button class="btn btn-ghost btn-sm" data-a="remover-membro:${e.id}:${m.user_id}" aria-label="Remover da escola">${I.trash}</button>` : ''}</div>`).join('') || '<div class="empty">Ainda sem professores. Adicione pelo e-mail da conta.</div>'}</div>${coord ? resumoEscola(e) : ''}</div>`; };
+      <div class="list">${membros.map(m => `<div class="item"><span class="av" style="width:32px;height:32px;border-radius:9px;background:var(--primary-l);color:var(--primary);display:inline-flex;align-items:center;justify-content:center;font-weight:700">${esc(nomeDe(m.user_id).charAt(0).toUpperCase())}</span><span style="flex:1;min-width:0"><b>${esc(nomeDe(m.user_id))}</b> <span class="pill ${m.papel === 'coordenador' ? 'type' : 'on'}" style="font-size:10px">${PAPEIS[m.papel]}</span>${(T.pessoas[m.user_id] || {}).disciplina ? ` <span class="pill type" style="font-size:10px">${esc(discNome((T.pessoas[m.user_id] || {}).disciplina))}</span>` : ''}${m.papel === 'coordenador' ? ` <span class="pill ${(m.segmentos || []).length ? 'on' : 'off'}" style="font-size:10px" title="Segmentos que este coordenador gerencia">${(m.segmentos || []).length ? m.segmentos.map(s => esc(segNome(s))).join(' · ') : 'escola inteira'}</span>` : ''}<br><span style="font-size:12px;color:var(--muted)">${esc((T.pessoas[m.user_id] || {}).email || '')}</span></span>${coord && m.papel === 'coordenador' ? `<button class="btn btn-ghost btn-sm" data-a="seg-coord:${e.id}:${m.user_id}" title="Segmentos do coordenador" aria-label="Segmentos de ${esc(nomeDe(m.user_id))}">${I.edit}</button>` : ''}${coord && m.user_id !== sessao.user.id ? `<button class="btn btn-ghost btn-sm" data-a="remover-membro:${e.id}:${m.user_id}" aria-label="Remover da escola">${I.trash}</button>` : ''}</div>`).join('') || '<div class="empty">Ainda sem professores. Adicione pelo e-mail da conta.</div>'}</div>${coord ? resumoEscola(e) : ''}</div>`; };
   const cardTurma = t => { const na = alunosDaTurma(t.id).length, ativs = T.atividades.filter(a => a.turma_id === t.id), abertas = ativs.filter(a => statusReal(a) === 'aberta').length; const esc_ = escolaPorId(t.escola_id); const profs = profsDaTurma(t.id);
     return `<button class="card" style="text-align:left;padding:16px;display:flex;flex-direction:column;gap:8px;${t.ativa ? '' : 'opacity:.6'}" data-a="abrir-turma:${t.id}">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h2 style="flex:1;min-width:0">${esc(t.nome)}</h2>${t.ativa ? '' : '<span class="pill off">inativa</span>'}<span class="pill type" style="font-family:var(--f-display);letter-spacing:.1em;${t.entrada_codigo === false ? 'opacity:.5;text-decoration:line-through' : ''}" title="${t.entrada_codigo === false ? 'Entrada por código fechada' : 'Código de convite (entrada aberta)'}">${esc(t.codigo)}</span></div>
       <span style="font-size:12px;color:var(--muted)">${esc_ ? esc(esc_.nome) : 'Sem escola'}${t.segmento_id ? ' · ' + esc(segNome(t.segmento_id)) : ''} · ${profs.map(p => nomeDe(p.user_id)).join(', ') || 'sem professor'}</span>
       <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="stat s-li">${I.users}<span class="num">${na}</span>&nbsp;aluno${na === 1 ? '' : 's'}</span><span class="stat s-xp">${I.bolt}<span class="num">${abertas}</span>&nbsp;aberta${abertas === 1 ? '' : 's'}</span><span class="stat">${I.book}<span class="num">${ativs.length}</span>&nbsp;atividade${ativs.length === 1 ? '' : 's'}</span></div></button>`; };
-  return topbar('Turmas', admin ? 'Todas as escolas e turmas cadastradas' : papel === 'coordenador' ? 'Suas escolas, os professores e todas as turmas delas' : 'As turmas em que você dá aula' + (disciplina ? ' · sua disciplina: ' + discNome(disciplina) : ''), `${podeEscola ? `<button class="btn btn-outline" data-a="nova-escola">${I.plus}Nova escola</button>` : ''}<button class="btn btn-primary" data-a="nova-turma">${I.plus}Nova turma</button>`) + `<div class="content">
+  return topbar('Turmas', admin ? 'Todas as escolas e turmas cadastradas' : papel === 'coordenador' ? 'Suas escolas e as turmas dos segmentos que você coordena' : 'As turmas em que você dá aula' + (disciplina ? ' · sua disciplina: ' + discNome(disciplina) : ''), `${podeEscola ? `<button class="btn btn-outline" data-a="nova-escola">${I.plus}Nova escola</button>` : ''}<button class="btn btn-primary" data-a="nova-turma">${I.plus}Nova turma</button>`) + `<div class="content">
     ${avisoTurmas()}
     ${escolas.length ? `<div class="grid2">${escolas.map(cardEscola).join('')}</div>` : podeEscola ? `<div class="card"><div class="card-b" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:240px"><h2>Comece pela escola</h2><p style="margin:6px 0 0;color:var(--fg2);font-size:13px">A escola agrupa professores e turmas. O coordenador adiciona os professores pelo e-mail da conta deles no app; eles passam a criar turmas e atividades aqui.</p></div><button class="btn btn-primary" data-a="nova-escola">${I.plus}Criar escola</button></div></div>` : ''}
     ${admin ? `<div class="card"><div class="card-h"><h2>Segmentos de ensino</h2><span class="right">${D.segmentosErro ? `<span class="pill draft">rode a migration 0012</span>` : `<button class="btn btn-outline btn-sm" data-a="novo-segmento">${I.plus}Segmento</button>`}</span></div>
@@ -1395,7 +1448,7 @@ function viewResultados() {
 /* =====================================================================
    Auditoria (admin)
    ===================================================================== */
-const ACOES_AUD = {insert: ['Criou', 'pub'], update: ['Alterou', 'draft'], delete: ['Excluiu', ''], login: ['Entrou', 'type'], sair: ['Saiu', 'off'], tela: ['Abriu a tela', 'off'], busca: ['Buscou', 'on'], copia: ['Copiou', 'on'], resultados: ['Viu resultados', 'on'], turma: ['Abriu a turma', 'on'], novo_aluno: ['Criou conta', 'pub'], bloqueio: ['Bloqueou', ''], liberacao: ['Liberou', 'pub'], recursos: ['Deu moedas/corações', 'pub'], respostas: ['Viu respostas', 'on'], papel: ['Definiu papel', 'pub'], relatorio: ['Viu relatório', 'on'], clique: ['Clicou', 'off'], nota_manual: ['Nota manual', 'draft'], recorrecao: ['Recorrigiu', 'pub']};
+const ACOES_AUD = {insert: ['Criou', 'pub'], update: ['Alterou', 'draft'], delete: ['Excluiu', ''], login: ['Entrou', 'type'], sair: ['Saiu', 'off'], tela: ['Abriu a tela', 'off'], busca: ['Buscou', 'on'], copia: ['Copiou', 'on'], resultados: ['Viu resultados', 'on'], turma: ['Abriu a turma', 'on'], novo_aluno: ['Criou conta', 'pub'], bloqueio: ['Bloqueou', ''], liberacao: ['Liberou', 'pub'], recursos: ['Deu moedas/corações', 'pub'], respostas: ['Viu respostas', 'on'], papel: ['Definiu papel', 'pub'], relatorio: ['Viu relatório', 'on'], clique: ['Clicou', 'off'], nota_manual: ['Nota manual', 'draft'], recorrecao: ['Recorrigiu', 'pub'], segmentos_coord: ['Segmentos do coordenador', 'type']};
 const TABELAS_AUD = {materias: 'Matérias', secoes: 'Seções', unidades: 'Unidades', licoes: 'Lições', questoes: 'Questões', licao_questoes: 'Questões da lição', missoes: 'Missões', itens_loja: 'Loja', parametros: 'Parâmetros', publicacoes: 'Publicações', segmentos: 'Segmentos', escolas: 'Escolas', escola_membros: 'Membros da escola', turmas: 'Turmas', turma_professores: 'Professores da turma', turma_alunos: 'Alunos da turma', atividades: 'Atividades', perfis: 'Perfis', admins: 'Administradores', painel: 'Painel', alunos: 'Alunos', resultados: 'Resultados'};
 /* =====================================================================
    Relatórios de uso (admin): atividade por dia, modos e questões mais erradas
@@ -1534,7 +1587,7 @@ function modalRespostasHtml() {
 function modalHtml() {
   const M = V.modal;
   return `<div class="drawer-bg" data-a="modal-cancelar"></div><form class="card modal" id="f-modal" role="dialog" aria-modal="true"><h2>${esc(M.titulo)}</h2>${M.texto ? `<p style="margin:0;color:var(--fg2);font-size:13px">${M.texto}</p>` : ''}
-    ${M.campos.map(c => `<div class="field"><label for="md-${c.k}">${esc(c.label)}</label>${c.tipo === 'select' ? `<select id="md-${c.k}" class="inp">${c.opcoes.map(([v, l]) => `<option value="${esc(v)}" ${String(c.valor ?? '') === String(v) ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>` : `<input id="md-${c.k}" class="inp" type="${c.tipo || 'text'}" value="${esc(c.valor ?? '')}" placeholder="${esc(c.placeholder || '')}" ${c.maxlength ? `maxlength="${c.maxlength}"` : ''} ${c.obrigatorio ? 'required' : ''}>`}</div>`).join('')}
+    ${M.campos.map(c => `<div class="field">${c.tipo === 'checks' ? `<span class="lab">${esc(c.label)}</span><div class="checkgroup" role="group" aria-label="${esc(c.label)}">${c.opcoes.map(([v, l]) => `<label class="chk"><input type="checkbox" data-md="${c.k}" value="${esc(v)}" ${(c.valores || []).includes(v) ? 'checked' : ''}>${esc(l)}</label>`).join('')}</div>` : `<label for="md-${c.k}">${esc(c.label)}</label>${c.tipo === 'select' ? `<select id="md-${c.k}" class="inp">${c.opcoes.map(([v, l]) => `<option value="${esc(v)}" ${String(c.valor ?? '') === String(v) ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>` : `<input id="md-${c.k}" class="inp" type="${c.tipo || 'text'}" value="${esc(c.valor ?? '')}" placeholder="${esc(c.placeholder || '')}" ${c.maxlength ? `maxlength="${c.maxlength}"` : ''} ${c.obrigatorio ? 'required' : ''}>`}`}</div>`).join('')}
     <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn btn-ghost" data-a="modal-cancelar">Cancelar</button><button type="submit" class="btn btn-primary" data-a="modal-ok">${esc(M.ok || 'Criar')}</button></div></form>`;
 }
 function confirmHtml() {
@@ -1545,10 +1598,10 @@ function confirmHtml() {
 /* =====================================================================
    Render
    ===================================================================== */
-const VIEWS = {inicio: viewInicio, trilhas: viewTrilhas, questoes: viewQuestoes, missoes: viewMissoes, economia: viewEconomia, ligas: viewLigas, alunos: viewAlunos, publicar: viewPublicar, turmas: viewTurmas, turma: viewTurma, atividades: viewAtividades, resultados: viewResultados, auditoria: viewAuditoria, relatorios: viewRelatorios};
+const VIEWS = {inicio: () => admin ? viewInicio() : viewInicioEducador(), trilhas: viewTrilhas, questoes: viewQuestoes, missoes: viewMissoes, economia: viewEconomia, ligas: viewLigas, alunos: viewAlunos, publicar: viewPublicar, turmas: viewTurmas, turma: viewTurma, atividades: viewAtividades, resultados: viewResultados, auditoria: viewAuditoria, relatorios: viewRelatorios};
 function render() {
   if (!D) return;
-  if (!VIEWS[V.view] || (!admin && !['turmas', 'turma', 'atividades', 'resultados', 'questoes'].includes(V.view))) V.view = admin ? 'inicio' : 'turmas';
+  if (!VIEWS[V.view] || (!admin && !['inicio', 'turmas', 'turma', 'atividades', 'resultados', 'questoes'].includes(V.view))) V.view = 'inicio';
   const focado = document.activeElement, fkey = focado && focado.dataset ? focado.dataset.f : null, sel = focado && focado.selectionStart;
   const scroll = window.scrollY;
   shell.className = '';
@@ -1710,13 +1763,13 @@ async function carregarResultados(aid) {
   render();
 }
 /* Toda ação do painel é registrada; estas já têm um registro mais descritivo em seu próprio código */
-const ACOES_COM_REGISTRO_PROPRIO = new Set(['view', 'sair', 'abrir-turma', 'resultados', 'copiar-notas', 'copiar-json', 'buscar-alunos', 'bloq', 'novo-aluno', 'dar', 'dar-lote', 'ver-respostas', 'relatorio', 'csv-notas', 'csv-turma', 'csv-alunos', 'csv-aud', 'csv-erradas', 'nota-manual', 'nota-restaurar', 'recorrigir']);
+const ACOES_COM_REGISTRO_PROPRIO = new Set(['view', 'sair', 'abrir-turma', 'resultados', 'copiar-notas', 'copiar-json', 'buscar-alunos', 'bloq', 'novo-aluno', 'dar', 'dar-lote', 'ver-respostas', 'relatorio', 'csv-notas', 'csv-turma', 'csv-alunos', 'csv-aud', 'csv-erradas', 'nota-manual', 'nota-restaurar', 'recorrigir', 'seg-coord']);
 async function act(a, el) {
   const [k, x, y, z] = a.split(':');
   if (!ACOES_COM_REGISTRO_PROPRIO.has(k)) auditar('clique', 'painel', a, 'Ação no painel: ' + k + (x ? ' · ' + [x, y, z].filter(v => v != null).join(':') : ''), {tela: V.view});
   const M = materiaPorId(V.materia);
   switch (k) {
-    case 'view': V.view = x; V.rascunho = null; V.licaoAtribuir = null; V.jsonVersao = null; V.ativ = null; V.modalPrev = null; V.respostas = null; if (x !== 'turma') V.turma = null; window.scrollTo(0, 0); render(); if (x === 'alunos' && !V.alunos.lista) buscarAlunos(); if (x === 'inicio') carregarMetricas(); if (x === 'auditoria' && !V.aud.lista) carregarAuditoria(false); if (x === 'relatorios' && !V.rel.data) carregarRelatorio(); auditar('tela', 'painel', x, 'Abriu a tela ' + x); return;
+    case 'view': V.view = x; V.rascunho = null; V.licaoAtribuir = null; V.jsonVersao = null; V.ativ = null; V.modalPrev = null; V.respostas = null; if (x !== 'turma') V.turma = null; window.scrollTo(0, 0); render(); if (x === 'alunos' && !V.alunos.lista) buscarAlunos(); if (x === 'inicio' && admin) carregarMetricas(); if (x === 'auditoria' && !V.aud.lista) carregarAuditoria(false); if (x === 'relatorios' && !V.rel.data) carregarRelatorio(); auditar('tela', 'painel', x, 'Abriu a tela ' + x); return;
     case 'rel-recarregar': V.rel.data = null; return carregarRelatorio();
     case 'csv-notas': { const d = V.resultados && V.resultados.data; if (!d) return; const at = T.atividades.find(z => z.id === V.resultados.id); auditar('copia', 'resultados', V.resultados.id, 'Baixou o CSV de notas da atividade', {alunos: d.alunos.length}); return baixarCsv(`notas-${slug((at && at.titulo) || 'atividade')}.csv`, ['Aluno', 'E-mail', 'Nota', 'Acertos', 'Total', 'Entregue em'], d.alunos.map(z => [z.nome, z.email || '', z.entregueEm ? String(z.nota).replace('.', ',') : '', z.entregueEm ? z.acertos : '', z.entregueEm ? z.total : '', z.entregueEm ? fmtData(z.entregueEm) : 'não entregou'])); }
     case 'csv-turma': { const L2 = (V.turmaAlunos && V.turmaAlunos.lista) || []; if (!L2.length) return toast('Nenhum aluno na turma.'); const t2 = turmaPorId(V.turma); auditar('copia', 'turmas', V.turma, 'Baixou o CSV de alunos da turma'); return baixarCsv(`alunos-${slug((t2 && t2.nome) || 'turma')}.csv`, ['Aluno', 'E-mail', 'XP', 'Ofensiva (dias)', 'Entregas', 'Convite aceito', 'Entrou em'], L2.map(z => [z.nome, z.email || '', z.xp, z.ofensiva, z.entregas, z.aceito === false ? 'não' : 'sim', fmtDia(z.entrou_em)])); }
@@ -1778,9 +1831,13 @@ async function act(a, el) {
     case 'nova-escola': V.modal = {titulo: 'Nova escola', texto: 'Você entra como coordenador dela. Depois adicione os professores pelo e-mail da conta deles.', campos: [{k: 'nome', label: 'Nome da escola', obrigatorio: true}], ok: 'Criar', fn: async v => {
       const row = await db(sb.rpc('criar_escola', {p_nome: v.nome.trim()})); await carregarTurmas(); toast(`Escola ${row.nome} criada.`);
     }}; return render();
-    case 'add-membro': V.modal = {titulo: y === 'coordenador' ? 'Adicionar coordenador' : 'Adicionar professor', texto: y === 'coordenador' ? 'A pessoa precisa já ter conta no app (mesmo login). O coordenador enxerga todas as turmas e atividades da escola.' : 'A pessoa precisa já ter conta no app (mesmo login). O professor vê só as turmas em que dá aula e as atividades da disciplina dele.', campos: [{k: 'email', label: 'E-mail da conta', tipo: 'email', obrigatorio: true}, ...(y === 'professor' ? [{k: 'disciplina', label: 'Disciplina do professor', tipo: 'select', opcoes: D.materias.map(m => [m.id, m.nome])}] : [])], ok: 'Adicionar', fn: async v => {
-      const r = await db(sb.rpc('adicionar_membro_escola', {p_escola: x, p_email: v.email.trim(), p_papel: y, p_disciplina: y === 'professor' ? v.disciplina : null})); await carregarTurmas(); toast(`${r.nome} agora é ${y} da escola${y === 'professor' ? ' (' + discNome(v.disciplina) + ')' : ''}.`);
+    case 'add-membro': V.modal = {titulo: y === 'coordenador' ? 'Adicionar coordenador' : 'Adicionar professor', texto: y === 'coordenador' ? 'A pessoa precisa já ter conta no app (mesmo login). O coordenador enxerga as turmas e atividades da escola nos segmentos marcados; sem marcar nenhum, enxerga a escola inteira.' : 'A pessoa precisa já ter conta no app (mesmo login). O professor vê só as turmas em que dá aula e as atividades da disciplina dele.', campos: [{k: 'email', label: 'E-mail da conta', tipo: 'email', obrigatorio: true}, ...(y === 'professor' ? [{k: 'disciplina', label: 'Disciplina do professor', tipo: 'select', opcoes: D.materias.map(m => [m.id, m.nome])}] : [{k: 'segmentos', label: 'Segmentos que ele coordena (vazio = escola inteira)', tipo: 'checks', opcoes: segAtivos().map(s => [s.id, s.nome])}])], ok: 'Adicionar', fn: async v => {
+      const r = await db(sb.rpc('adicionar_membro_escola', {p_escola: x, p_email: v.email.trim(), p_papel: y, p_disciplina: y === 'professor' ? v.disciplina : null, p_segmentos: y === 'coordenador' ? (v.segmentos || []) : null})); await carregarTurmas(); toast(`${r.nome} agora é ${y} da escola${y === 'professor' ? ' (' + discNome(v.disciplina) + ')' : ''}.`);
     }}; return render();
+    case 'seg-coord': { const m = T.membros.find(z => z.escola_id === x && z.user_id === y); if (!m) return;
+      V.modal = {titulo: 'Segmentos de ' + nomeDe(y), texto: 'O coordenador vê e gerencia as turmas da escola nos segmentos marcados (turma sem segmento aparece para todos os coordenadores). Sem marcar nenhum, ele enxerga a escola inteira.', ok: 'Salvar', campos: [{k: 'segmentos', label: 'Segmentos', tipo: 'checks', opcoes: segAtivos().map(s => [s.id, s.nome]), valores: m.segmentos || []}], fn: async v => {
+        await db(sb.rpc('definir_segmentos_coordenador', {p_escola: x, p_user: y, p_segmentos: v.segmentos || []})); m.segmentos = v.segmentos || []; toast('Segmentos do coordenador salvos.');
+      }}; return render(); }
     case 'remover-membro': return confirmar('Remover da escola?', 'A pessoa continua com as turmas que já tem, mas sai da lista da escola.', async () => { await db(sb.from('escola_membros').delete().eq('escola_id', x).eq('user_id', y)); await carregarTurmas(); });
     case 'nova-turma': { const escolas = minhasEscolas(); V.modal = {titulo: 'Nova turma', texto: 'A turma ganha um código de 6 letras. Passe o código para os alunos digitarem no app, em Perfil → Minhas turmas.', campos: [
       {k: 'nome', label: 'Nome da turma', placeholder: 'Ex.: 3º ano A · 2026', obrigatorio: true},
@@ -1971,7 +2028,7 @@ async function act(a, el) {
 
     /* modais */
     case 'modal-cancelar': V.modal = null; return render();
-    case 'modal-ok': { const Mo = V.modal; if (!Mo) return; const v = {}; Mo.campos.forEach(c => { v[c.k] = document.getElementById('md-' + c.k).value; }); if (Mo.campos.some(c => c.obrigatorio && !String(v[c.k]).trim())) return toast('Preencha todos os campos.'); V.modal = null; await Mo.fn(v); return render(); }
+    case 'modal-ok': { const Mo = V.modal; if (!Mo) return; const v = {}; Mo.campos.forEach(c => { v[c.k] = c.tipo === 'checks' ? [...shell.querySelectorAll(`#f-modal input[data-md="${c.k}"]:checked`)].map(i => i.value) : document.getElementById('md-' + c.k).value; }); if (Mo.campos.some(c => c.obrigatorio && !String(v[c.k]).trim())) return toast('Preencha todos os campos.'); V.modal = null; await Mo.fn(v); return render(); }
     case 'confirmar-nao': V.confirmar = null; return render();
     case 'confirmar-sim': { const C = V.confirmar; V.confirmar = null; render(); await C.fn(); return render(); }
   }
