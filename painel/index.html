@@ -285,12 +285,16 @@ pre.json{margin:0;background:var(--navy);color:#C5C9E3;padding:14px;border-radiu
 <body>
 <div id="shell" class="auth"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js" integrity="sha384-2zrRDgDHSYB/GN3nFW3fsZXoxEhKIr3N2h63Tc6DEOB9JJdFIu8xMJT2Cph/gBil" crossorigin="anonymous"></script>
 <script src="config.js"></script>
 <script src="seed.js"></script>
 <script>
 (() => {
 'use strict';
+if (!window.supabase || !window.FJ_CONFIG) {
+  document.body.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;height:100vh;padding:24px;text-align:center;font-family:system-ui,sans-serif"><b style="font-size:18px">Sem conexão</b><p style="margin:0;color:#777;font-size:14px">Não deu para carregar o painel. Verifique a internet e recarregue.</p><button style="padding:10px 20px;border:0;border-radius:10px;background:#503C9D;color:#fff;font-weight:700" onclick="location.reload()">Tentar de novo</button></div>';
+  return;
+}
 const sb = supabase.createClient(FJ_CONFIG.supabaseUrl, FJ_CONFIG.supabaseAnonKey);
 const shell = document.getElementById('shell');
 
@@ -583,6 +587,14 @@ async function carregar() {
   if (seg.error) D.segmentosErro = traduzErro(seg.error.message); else D.segmentos = seg.data || [];
   if (!V.materia || !D.materias.some(x => x.id === V.materia)) V.materia = D.materias[0] ? D.materias[0].id : null;
 }
+/* Confere se as migrations estão em dia (tabela schema_versao, migration 0022) */
+const ESQUEMA_ESPERADO = 22;
+async function verificarEsquema() {
+  const r = await sb.from('schema_versao').select('versao').order('versao', {ascending: false}).limit(1).maybeSingle();
+  const v = r.error || !r.data ? 0 : r.data.versao;
+  V.migPendente = v >= ESQUEMA_ESPERADO ? null : `O banco está ${v ? 'na migration ' + String(v).padStart(4, '0') : 'sem a tabela de versões'} e o painel espera a ${String(ESQUEMA_ESPERADO).padStart(4, '0')}. Rode as migrations pendentes no SQL Editor do Supabase.`;
+  if (V.migPendente) { toast(V.migPendente); if (V.view === 'inicio') render(); }
+}
 async function carregarMetricas() {
   const {data, error} = await sb.rpc('metricas_admin');
   V.metricas = error ? null : data; V.metricasErro = error ? traduzErro(error.message) : null;
@@ -729,7 +741,7 @@ async function rota(s) {
     document.getElementById('sair').onclick = () => sb.auth.signOut();
     return;
   }
-  shell.className = ''; render(); if (admin) carregarMetricas();
+  shell.className = ''; render(); if (admin) { carregarMetricas(); verificarEsquema(); }
   agendarPublicacao();
   auditar('login', 'painel', null, admin ? 'Entrou no painel como admin' : 'Entrou no painel como ' + (PAPEIS[papel] || papel));
 }
@@ -772,6 +784,7 @@ function viewInicio() {
   const vazio = !D.materias.length;
   return topbar('Visão geral', 'O que está no ar no app e o que precisa de atenção', `<button class="btn btn-primary" data-a="nova-q">${I.plus}Nova questão</button><button class="btn btn-outline" data-a="view:publicar">${I.up}Publicar</button>`) + `<div class="content">
   ${vazio ? `<div class="card"><div class="card-b" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:240px"><h2>Banco de conteúdo vazio</h2><p style="margin:6px 0 0;color:var(--fg2);font-size:13px">Importe as matérias, trilhas e questões do protótipo (Matemática, Português e Biologia) para começar a editar.</p></div><button class="btn btn-primary" data-a="importar-seed">Importar conteúdo inicial</button></div></div>` : ''}
+  ${V.migPendente ? `<div class="warnbox">${I.warn}<span>${esc(V.migPendente)}</span></div>` : ''}
   ${V.metricasErro ? `<div class="warnbox">${I.warn}<span>Métricas de alunos indisponíveis: ${esc(V.metricasErro)}</span></div>` : ''}
   <div class="tiles">
     <div class="tile"><span class="lbl">Questões</span><span class="val num">${qs.length}</span><span class="hint">${pub} publicadas · ${qs.length - pub} em rascunho</span></div>
