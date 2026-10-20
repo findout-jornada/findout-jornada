@@ -600,7 +600,7 @@ async function carregar() {
   if (!V.materia || !D.materias.some(x => x.id === V.materia)) V.materia = D.materias[0] ? D.materias[0].id : null;
 }
 /* Confere se as migrations estão em dia (tabela schema_versao, migration 0022) */
-const ESQUEMA_ESPERADO = 24;
+const ESQUEMA_ESPERADO = 25;
 async function verificarEsquema() {
   const r = await sb.from('schema_versao').select('versao').order('versao', {ascending: false}).limit(1).maybeSingle();
   const v = r.error || !r.data ? 0 : r.data.versao;
@@ -1751,7 +1751,13 @@ async function act(a, el) {
       return render();
     }
     case 'recorrigir': {
-      V.confirmar = {titulo: 'Recorrigir entregas', corpo: 'Corrige de novo todas as entregas desta atividade com o gabarito atual (útil depois de consertar uma questão). Notas ajustadas manualmente não mudam; o XP já ganho pelos alunos também não.', sim: 'Recorrigir', fn: async () => { const r = await db(sb.rpc('recorrigir_atividade', {p_atividade: x})); toast(`${r.entregas} entrega${r.entregas === 1 ? '' : 's'} recorrigida${r.entregas === 1 ? '' : 's'}; ${r.mudaram} mudou${r.mudaram === 1 ? '' : '/mudaram'} de nota.`); return carregarResultados(x); }};
+      V.confirmar = {titulo: 'Recorrigir entregas', corpo: 'Atualiza as questões desta atividade com a versão atual do banco (consertou uma questão? ela entra aqui) e corrige todas as entregas de novo. Questões próprias e o valor de cada questão ficam como estão; notas manuais e o XP já ganho não mudam.', sim: 'Recorrigir', fn: async () => {
+        const r = await db(sb.rpc('recorrigir_atividade', {p_atividade: x}));
+        const row = await db(sb.from('atividades').select().eq('id', x).single());
+        const i = T.atividades.findIndex(t => t.id === x); if (i >= 0) T.atividades[i] = row;
+        toast(`${r.entregas} entrega${r.entregas === 1 ? '' : 's'} recorrigida${r.entregas === 1 ? '' : 's'}; ${r.mudaram} mudou${r.mudaram === 1 ? '' : '/mudaram'} de nota.`);
+        return carregarResultados(x);
+      }};
       return render();
     }
     case 'fechar-respostas': V.respostas = null; return render();
