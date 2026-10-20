@@ -490,9 +490,9 @@ function traduzErro(m) {
   m = String(m || '');
   if (/jwt expired/i.test(m)) return 'Sua sessão expirou. Saia e entre de novo.';
   if (/row-level security|permission denied|42501/i.test(m)) return 'Sem permissão para esta ação com o seu papel (' + (PAPEIS[papel] || papel) + (admin ? ', admin' : '') + ').';
-  if (/function .* does not exist|schema cache/i.test(m)) return 'Função não existe no banco. Rode as migrations pendentes (até a 0011) no SQL Editor do Supabase.';
-  if (/relation .* does not exist/i.test(m)) return 'Tabela não existe no banco. Rode a migration 0011 no SQL Editor do Supabase.';
-  if (/column .* does not exist/i.test(m)) return 'Coluna não existe no banco. Rode as migrations pendentes (até a 0011) no SQL Editor do Supabase.';
+  if (/function .* does not exist|schema cache/i.test(m)) return 'Função não existe no banco. Rode as migrations pendentes no SQL Editor do Supabase.';
+  if (/relation .* does not exist/i.test(m)) return 'Tabela não existe no banco. Rode as migrations pendentes no SQL Editor do Supabase.';
+  if (/column .* does not exist/i.test(m)) return 'Coluna não existe no banco. Rode as migrations pendentes no SQL Editor do Supabase.';
   if (/bucket not found/i.test(m)) return 'Bucket de imagens não existe. Rode a migration 0003 no SQL Editor.';
   if (/Só |Sem permissão|Nenhuma conta|Código não|Dê um nome|Papel inválido|Você não/i.test(m)) return m.replace(/^.*?: /, '');
   if (/invalid login/i.test(m)) return 'E-mail ou senha incorretos.';
@@ -528,11 +528,12 @@ async function publicar(nota) {
   if (V.publicando || !alteracoesPendentes()) return;
   V.publicando = true; renderStatus();
   try {
-    const pacote = {...montarPacote(), geradoEm: agora()};
-    const {data: row, error} = await sb.from('publicacoes').insert({pacote, nota: nota || 'Publicado pelo painel', criada_por: sessao.user.id}).select('versao, nota, criada_em').single();
+    // o pacote é montado no servidor a partir do banco (migration 0021); ele só grava versão nova se o conteúdo mudou
+    const {data: row, error} = await sb.rpc('publicar_pacote', {p_nota: nota || 'Publicado pelo painel'});
     if (error) throw error;
-    D.publicacoes.unshift(row); D.ultimoPacote = pacote; V.notaPub = ''; V.jsonVersao = null;
-    toast(`Versão ${row.versao} publicada. O app passa a ler este conteúdo.`);
+    D.ultimoPacote = montarPacote();
+    if (!row.semMudanca) { D.publicacoes.unshift(row); toast(`Versão ${row.versao} publicada. O app passa a ler este conteúdo.`); }
+    V.notaPub = ''; V.jsonVersao = null;
   } catch (e) { console.error(e); toast('Erro ao publicar: ' + traduzErro(e.message)); }
   V.publicando = false;
   if (V.view === 'publicar' || V.view === 'inicio') render(); else renderStatus();
