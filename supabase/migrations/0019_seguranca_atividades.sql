@@ -16,6 +16,10 @@
 --    a resposta certa estava na posição 0 em ~93% do banco.
 --  · auditar_painel só aceita ação com letras minúsculas e _ (fecha o XSS
 --    na tela Auditoria; o painel também passou a escapar esse campo).
+--  · Revoga o EXECUTE das funções que recebem p_user e eram chamáveis por
+--    qualquer um via /rpc (vazavam ofensiva, missões, plus e convites de
+--    qualquer aluno). Elas continuam funcionando por dentro das funções
+--    security definer, que é o único lugar onde o app as usa.
 -- =====================================================================
 
 -- ---------------------------------------------------------------
@@ -161,3 +165,10 @@ begin
   insert into public.auditoria (user_id, origem, acao, tabela, registro, resumo, dados)
     values (u, 'painel', p_acao, left(p_tabela, 60), left(p_registro, 120), left(p_resumo, 200), p_dados);
 end $$;
+
+-- ---------------------------------------------------------------
+-- Funções com p_user não são mais chamáveis direto pela API
+-- (o app só as usa por dentro de estado_aluno e companhia)
+-- ---------------------------------------------------------------
+revoke execute on function public.ofensiva(uuid), public.missoes_do_dia(uuid), public.tem_plus(uuid), public.convites_do_aluno(uuid)
+  from public, anon, authenticated;
