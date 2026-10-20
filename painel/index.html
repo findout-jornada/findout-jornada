@@ -600,7 +600,7 @@ async function carregar() {
   if (!V.materia || !D.materias.some(x => x.id === V.materia)) V.materia = D.materias[0] ? D.materias[0].id : null;
 }
 /* Confere se as migrations estão em dia (tabela schema_versao, migration 0022) */
-const ESQUEMA_ESPERADO = 23;
+const ESQUEMA_ESPERADO = 24;
 async function verificarEsquema() {
   const r = await sb.from('schema_versao').select('versao').order('versao', {ascending: false}).limit(1).maybeSingle();
   const v = r.error || !r.data ? 0 : r.data.versao;
@@ -1372,7 +1372,7 @@ function viewResultados() {
   const t = turmaPorId(a.turma_id), st = statusReal(a), d = R.data;
   const fmtNota = n => n == null ? '—' : String(n).replace('.', ',');
   const pct = (n, tot) => tot ? Math.round(n / tot * 100) : 0;
-  return topbar(esc(a.titulo), `${t ? esc(t.nome) + ' · ' : ''}${a.materia_id ? esc((materiaPorId(a.materia_id) || {}).nome || '') + ' · ' : ''}${(a.questoes || []).length} questões · ${a.prazo ? 'prazo ' + fmtData(a.prazo) : 'sem prazo'}`, `<button class="btn btn-ghost" data-a="view:atividades">← Atividades</button><button class="btn btn-outline" data-a="editar-ativ:${a.id}">${I.edit}Editar</button>${st === 'aberta' ? `<button class="btn btn-outline" data-a="status-ativ:${a.id}:encerrada">Encerrar</button>` : a.status !== 'rascunho' ? `<button class="btn btn-outline" data-a="status-ativ:${a.id}:aberta">Reabrir</button>` : `<button class="btn btn-primary" data-a="status-ativ:${a.id}:aberta">Liberar para a turma</button>`}`) + `<div class="content">
+  return topbar(esc(a.titulo), `${t ? esc(t.nome) + ' · ' : ''}${a.materia_id ? esc((materiaPorId(a.materia_id) || {}).nome || '') + ' · ' : ''}${(a.questoes || []).length} questões · ${a.prazo ? 'prazo ' + fmtData(a.prazo) : 'sem prazo'}`, `<button class="btn btn-ghost" data-a="view:atividades">← Atividades</button><button class="btn btn-outline" data-a="recorrigir:${a.id}" title="Corrige de novo todas as entregas com o gabarito atual; notas manuais não mudam">${I.check}Recorrigir</button><button class="btn btn-outline" data-a="editar-ativ:${a.id}">${I.edit}Editar</button>${st === 'aberta' ? `<button class="btn btn-outline" data-a="status-ativ:${a.id}:encerrada">Encerrar</button>` : a.status !== 'rascunho' ? `<button class="btn btn-outline" data-a="status-ativ:${a.id}:aberta">Reabrir</button>` : `<button class="btn btn-primary" data-a="status-ativ:${a.id}:aberta">Liberar para a turma</button>`}`) + `<div class="content">
     ${R.erro ? `<div class="warnbox">${I.warn}<span>${esc(R.erro)}</span></div>` : ''}
     ${!d ? '<div class="empty">Carregando resultados…</div>' : `
     <div class="tiles">
@@ -1383,7 +1383,7 @@ function viewResultados() {
     </div>
     <div class="grid2">
       <div class="card"><div class="card-h"><h2>Alunos</h2><span class="right"><button class="btn btn-ghost btn-sm" data-a="csv-notas">${I.baixar}Baixar CSV</button><button class="btn btn-ghost btn-sm" data-a="copiar-notas">${I.copy}Copiar notas</button></span></div><div class="tbl-wrap tbl-wide"><table><thead><tr><th>Aluno</th><th>Nota</th><th>Acertos</th><th>Entregue</th><th></th></tr></thead><tbody>
-        ${d.alunos.map(x => `<tr><td><b>${esc(x.nome)}</b><br><span style="font-size:12px;color:var(--muted)">${esc(x.email || '')}</span></td><td class="num" style="font-weight:700;color:${x.entregueEm ? (x.nota >= 6 ? 'var(--green-d)' : 'var(--red-d)') : 'var(--muted)'}">${x.entregueEm ? fmtNota(x.nota) : '—'}</td><td class="num">${x.entregueEm ? `${x.acertos} / ${x.total}` : '—'}</td><td style="font-size:12px;white-space:nowrap">${x.entregueEm ? fmtData(x.entregueEm) + (x.tempo_s ? ` · ${Math.max(1, Math.round(x.tempo_s / 60))} min` : '') : x.iniciadaEm ? '<span class="pill draft">começou</span>' : '<span class="pill off">não fez</span>'}</td><td style="white-space:nowrap">${x.entregueEm ? `<button class="btn btn-outline btn-sm" data-a="ver-respostas:${x.user_id}" title="Ver o que ${esc(x.nome)} respondeu em cada questão">${I.eye}Ver respostas</button>` : ''}</td></tr>`).join('')}
+        ${d.alunos.map(x => `<tr><td><b>${esc(x.nome)}</b><br><span style="font-size:12px;color:var(--muted)">${esc(x.email || '')}</span></td><td class="num" style="font-weight:700;color:${x.entregueEm ? (x.nota >= 6 ? 'var(--green-d)' : 'var(--red-d)') : 'var(--muted)'}">${x.entregueEm ? fmtNota(x.nota) : '—'}${x.notaManual ? ` <span class="pill draft" style="font-size:10px" title="Nota ajustada manualmente${x.notaObs ? ': ' + esc(x.notaObs) : ''}${x.notaOriginal != null ? ' · nota corrigida: ' + fmtNota(x.notaOriginal) : ''}">manual</span>` : ''}</td><td class="num">${x.entregueEm ? `${x.acertos} / ${x.total}` : '—'}</td><td style="font-size:12px;white-space:nowrap">${x.entregueEm ? fmtData(x.entregueEm) + (x.tempo_s ? ` · ${Math.max(1, Math.round(x.tempo_s / 60))} min` : '') : x.iniciadaEm ? '<span class="pill draft">começou</span>' : '<span class="pill off">não fez</span>'}</td><td style="white-space:nowrap">${x.entregueEm ? `<button class="btn btn-outline btn-sm" data-a="ver-respostas:${x.user_id}" title="Ver o que ${esc(x.nome)} respondeu em cada questão">${I.eye}Ver respostas</button> ` : ''}<button class="btn btn-ghost btn-sm" data-a="nota-manual:${x.user_id}" title="${x.entregueEm ? 'Ajustar a nota de ' + esc(x.nome) : 'Lançar nota para quem não entregou pelo app'}">${I.edit}${x.entregueEm ? 'Nota' : 'Lançar nota'}</button>${x.notaManual && x.notaOriginal != null ? ` <button class="btn btn-ghost btn-sm" data-a="nota-restaurar:${x.user_id}" title="Voltar à nota corrigida (${fmtNota(x.notaOriginal)})">Restaurar</button>` : ''}</td></tr>`).join('')}
         ${d.alunos.length ? '' : '<tr><td colspan="5" class="empty">A turma ainda não tem alunos.</td></tr>'}
       </tbody></table></div></div>
       <div class="card"><div class="card-h"><h2>Questões: onde a turma mais errou</h2></div><div class="card-b bars">
@@ -1395,7 +1395,7 @@ function viewResultados() {
 /* =====================================================================
    Auditoria (admin)
    ===================================================================== */
-const ACOES_AUD = {insert: ['Criou', 'pub'], update: ['Alterou', 'draft'], delete: ['Excluiu', ''], login: ['Entrou', 'type'], sair: ['Saiu', 'off'], tela: ['Abriu a tela', 'off'], busca: ['Buscou', 'on'], copia: ['Copiou', 'on'], resultados: ['Viu resultados', 'on'], turma: ['Abriu a turma', 'on'], novo_aluno: ['Criou conta', 'pub'], bloqueio: ['Bloqueou', ''], liberacao: ['Liberou', 'pub'], recursos: ['Deu moedas/corações', 'pub'], respostas: ['Viu respostas', 'on'], papel: ['Definiu papel', 'pub'], relatorio: ['Viu relatório', 'on'], clique: ['Clicou', 'off']};
+const ACOES_AUD = {insert: ['Criou', 'pub'], update: ['Alterou', 'draft'], delete: ['Excluiu', ''], login: ['Entrou', 'type'], sair: ['Saiu', 'off'], tela: ['Abriu a tela', 'off'], busca: ['Buscou', 'on'], copia: ['Copiou', 'on'], resultados: ['Viu resultados', 'on'], turma: ['Abriu a turma', 'on'], novo_aluno: ['Criou conta', 'pub'], bloqueio: ['Bloqueou', ''], liberacao: ['Liberou', 'pub'], recursos: ['Deu moedas/corações', 'pub'], respostas: ['Viu respostas', 'on'], papel: ['Definiu papel', 'pub'], relatorio: ['Viu relatório', 'on'], clique: ['Clicou', 'off'], nota_manual: ['Nota manual', 'draft'], recorrecao: ['Recorrigiu', 'pub']};
 const TABELAS_AUD = {materias: 'Matérias', secoes: 'Seções', unidades: 'Unidades', licoes: 'Lições', questoes: 'Questões', licao_questoes: 'Questões da lição', missoes: 'Missões', itens_loja: 'Loja', parametros: 'Parâmetros', publicacoes: 'Publicações', segmentos: 'Segmentos', escolas: 'Escolas', escola_membros: 'Membros da escola', turmas: 'Turmas', turma_professores: 'Professores da turma', turma_alunos: 'Alunos da turma', atividades: 'Atividades', perfis: 'Perfis', admins: 'Administradores', painel: 'Painel', alunos: 'Alunos', resultados: 'Resultados'};
 /* =====================================================================
    Relatórios de uso (admin): atividade por dia, modos e questões mais erradas
@@ -1710,7 +1710,7 @@ async function carregarResultados(aid) {
   render();
 }
 /* Toda ação do painel é registrada; estas já têm um registro mais descritivo em seu próprio código */
-const ACOES_COM_REGISTRO_PROPRIO = new Set(['view', 'sair', 'abrir-turma', 'resultados', 'copiar-notas', 'copiar-json', 'buscar-alunos', 'bloq', 'novo-aluno', 'dar', 'dar-lote', 'ver-respostas', 'relatorio', 'csv-notas', 'csv-turma', 'csv-alunos', 'csv-aud', 'csv-erradas']);
+const ACOES_COM_REGISTRO_PROPRIO = new Set(['view', 'sair', 'abrir-turma', 'resultados', 'copiar-notas', 'copiar-json', 'buscar-alunos', 'bloq', 'novo-aluno', 'dar', 'dar-lote', 'ver-respostas', 'relatorio', 'csv-notas', 'csv-turma', 'csv-alunos', 'csv-aud', 'csv-erradas', 'nota-manual', 'nota-restaurar', 'recorrigir']);
 async function act(a, el) {
   const [k, x, y, z] = a.split(':');
   if (!ACOES_COM_REGISTRO_PROPRIO.has(k)) auditar('clique', 'painel', a, 'Ação no painel: ' + k + (x ? ' · ' + [x, y, z].filter(v => v != null).join(':') : ''), {tela: V.view});
@@ -1729,6 +1729,31 @@ async function act(a, el) {
     case 'prev-q': { const q = D.questoes.find(q => q.id === x); if (q) V.modalPrev = q; return render(); }
     case 'fechar-prev': V.modalPrev = null; return render();
     case 'ver-respostas': { const d = V.resultados && V.resultados.data, al = d && d.alunos.find(z => z.user_id === x); if (!al) return; V.respostas = {uid: x}; auditar('respostas', 'resultados', V.resultados.id, 'Viu as respostas de ' + al.nome, {aluno: x, nota: al.nota}); return render(); }
+    case 'nota-manual': {
+      const d = V.resultados && V.resultados.data; if (!d) return; const al = d.alunos.find(z => z.user_id === x); if (!al) return;
+      const aid = V.resultados.id;
+      V.modal = {titulo: 'Nota de ' + al.nome, texto: al.entregueEm ? 'Substitui a nota corrigida por uma nota manual. Ela fica marcada como ajustada e dá para restaurar depois.' : 'Lança uma nota para quem não entregou pelo app (ex.: fez em papel). Fica marcada como manual.', ok: 'Salvar nota', campos: [
+        {k: 'nota', label: 'Nota (0 a 10)', valor: al.nota != null ? String(al.nota).replace('.', ',') : '', obrigatorio: true, placeholder: 'ex.: 7,5'},
+        {k: 'obs', label: 'Motivo (opcional; aparece na auditoria)', valor: al.notaObs || '', placeholder: 'ex.: entregou em papel', maxlength: 200}
+      ], fn: async v => {
+        const nota = parseFloat(String(v.nota).replace(',', '.'));
+        if (!(nota >= 0 && nota <= 10)) return toast('A nota vai de 0 a 10.');
+        await db(sb.rpc('definir_nota', {p_atividade: aid, p_user: x, p_nota: nota, p_obs: (v.obs || '').trim() || null}));
+        toast(`Nota de ${al.nome}: ${String(nota).replace('.', ',')}.`);
+        return carregarResultados(aid);
+      }};
+      return render();
+    }
+    case 'nota-restaurar': {
+      const d = V.resultados && V.resultados.data; if (!d) return; const al = d.alunos.find(z => z.user_id === x); if (!al) return;
+      const aid = V.resultados.id;
+      V.confirmar = {titulo: 'Restaurar nota corrigida', corpo: `A nota de ${al.nome} volta a ser a da correção automática (${fmtNota(al.notaOriginal)}).`, sim: 'Restaurar', fn: async () => { await db(sb.rpc('definir_nota', {p_atividade: aid, p_user: x, p_nota: null})); toast(`Nota de ${al.nome} restaurada.`); return carregarResultados(aid); }};
+      return render();
+    }
+    case 'recorrigir': {
+      V.confirmar = {titulo: 'Recorrigir entregas', corpo: 'Corrige de novo todas as entregas desta atividade com o gabarito atual (útil depois de consertar uma questão). Notas ajustadas manualmente não mudam; o XP já ganho pelos alunos também não.', sim: 'Recorrigir', fn: async () => { const r = await db(sb.rpc('recorrigir_atividade', {p_atividade: x})); toast(`${r.entregas} entrega${r.entregas === 1 ? '' : 's'} recorrigida${r.entregas === 1 ? '' : 's'}; ${r.mudaram} mudou${r.mudaram === 1 ? '' : '/mudaram'} de nota.`); return carregarResultados(x); }};
+      return render();
+    }
     case 'fechar-respostas': V.respostas = null; return render();
     case 'relatorio': { const al = ((V.turmaAlunos && V.turmaAlunos.lista) || []).find(a => a.user_id === x); if (!al) return; V.relatorio = {turma: V.turma, uid: x}; auditar('relatorio', 'alunos', x, 'Viu o relatório de ' + al.nome, {turma: V.turma}); return render(); }
     case 'fechar-rel': V.relatorio = null; return render();
