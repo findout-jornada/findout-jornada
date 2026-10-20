@@ -546,6 +546,7 @@ let sessao = null, admin = false, papel = 'aluno', D = null, T = null, mostrando
 let V = {view: 'inicio', qf: {materia: '', unidade: '', tipo: '', status: '', busca: '', assunto: '', segmento: '', nivel: ''}, materia: null, rascunho: null, licaoAtribuir: null, alunoGerenciar: null, confirmar: null, modal: null, alunos: {busca: '', lista: null, carregando: false, erro: null, sel: {}}, metricas: null, metricasErro: null, salvando: 0, notaPub: '', jsonVersao: null, jsonTexto: '',
   turma: null, turmaAlunos: null, ativ: null, ativBusca: {texto: '', materia: '', unidade: '', assunto: '', segmento: '', nivel: ''}, ativFiltroTurma: '', resultados: null, modalPrev: null,
   escola: null, escolaAba: 'segmentos', escolaAlunos: null, escolaAberto: {},
+  turmaFiltro: {escola: '', segmento: '', busca: ''}, ativFiltroEscola: '', alunosFiltro: {escola: '', turma: ''},
   rel: {data: null, erro: null, carregando: false},
   aud: {lista: null, usuarios: [], carregando: false, erro: null, fim: false, aberto: {}, f: {user: '', origem: '', tabela: '', acao: '', periodo: '7', busca: ''}}};
 const PAPEIS = {aluno: 'Aluno', professor: 'Professor', coordenador: 'Coordenador', admin: 'Admin da escola'};
@@ -709,6 +710,16 @@ const entregasDe = aid => T ? T.entregas.filter(e => e.atividade_id === aid && e
 const minhasEscolas = () => T ? T.escolas.filter(e => admin || T.membros.some(m => m.escola_id === e.id && m.user_id === sessao.user.id)) : [];
 const souCoord = eid => admin || (T && T.membros.some(m => m.escola_id === eid && m.user_id === sessao.user.id && (m.papel === 'coordenador' || m.papel === 'admin')));
 const souAdminEsc = eid => admin || (T && T.membros.some(m => m.escola_id === eid && m.user_id === sessao.user.id && m.papel === 'admin'));
+/* Turmas de uma escola escolhida nos filtros ('sem' = sem escola; '' = todas) */
+const turmasDaEscolaF = eid => !eid ? (T ? T.turmas : []) : (T ? T.turmas.filter(t => eid === 'sem' ? !t.escola_id : t.escola_id === eid) : []);
+/* Lista de alunos da aba Alunos com o filtro de escola/turma do super aplicado */
+function alunosFiltrados() {
+  const L = V.alunos.lista || []; if (!admin || !T) return L;
+  const F = V.alunosFiltro; if (!F.escola && !F.turma) return L;
+  const ids = F.turma ? [F.turma] : turmasDaEscolaF(F.escola).map(t => t.id);
+  const set = new Set(T.alunos.filter(x => ids.includes(x.turma_id)).map(x => x.user_id));
+  return L.filter(a => set.has(a.user_id));
+}
 const STATUS_ATIV = {rascunho: ['Rascunho', 'draft'], aberta: ['Aberta', 'pub'], encerrada: ['Encerrada', 'off']};
 const statusReal = a => a.status === 'aberta' && a.prazo && new Date(a.prazo) < new Date() ? 'encerrada' : a.status;
 const isoLocal = iso => { if (!iso) return ''; const d = new Date(iso), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
@@ -835,7 +846,7 @@ async function rota(s) {
 const NAV_ADMIN = [
   ['', [['inicio', 'Visão geral', I.home]]],
   ['Conteúdo', [['trilhas', 'Matérias e trilhas', I.path], ['questoes', 'Questões', I.q], ['missoes', 'Missões', I.target], ['economia', 'Economia e loja', I.coin], ['ligas', 'Ligas', I.shield]]],
-  ['Escola', [['escolas', 'Escolas', I.predio], ['turmas', 'Turmas', I.users], ['atividades', 'Atividades', I.target], ['alunos', 'Alunos', I.users]]],
+  ['Escolas · suporte', [['escolas', 'Escolas', I.predio], ['turmas', 'Turmas', I.users], ['atividades', 'Atividades', I.target], ['alunos', 'Alunos', I.users]]],
   ['Sistema', [['publicar', 'Publicar', I.up], ['relatorios', 'Relatórios', I.grafico], ['auditoria', 'Auditoria', I.clock]]]
 ];
 /* Auditoria: eventos do painel (login, tela, busca…) vão para o banco sem travar a tela */
@@ -1209,16 +1220,22 @@ function viewLigas() {
    Alunos
    ===================================================================== */
 function viewAlunos() {
-  const A = V.alunos;
+  const A = V.alunos, F = V.alunosFiltro;
+  const L = alunosFiltrados();
   const plus = a => a.findout_plus_ate && new Date(a.findout_plus_ate) > new Date();
-  const nSel = (A.lista || []).filter(a => A.sel[a.user_id]).length;
-  const todosSel = !!(A.lista && A.lista.length && nSel === A.lista.length);
-  return topbar('Alunos', 'Quem usa o app, progresso, Findout+ e moedas/corações', `<button class="btn btn-primary" data-a="novo-aluno">${I.plus}Novo aluno</button>`) + `<div class="content">
-    <form class="toolbar" id="f-alunos"><input class="inp sm" placeholder="Nome ou e-mail" value="${esc(A.busca)}" data-f="alunos.busca" aria-label="Buscar aluno" style="min-width:260px"><button type="button" class="btn btn-primary btn-sm" data-a="buscar-alunos">Buscar</button><button type="button" class="btn btn-outline btn-sm" data-a="dar-lote" ${nSel ? '' : 'disabled'}>${I.coin}Adicionar moedas/corações${nSel ? ` (${nSel})` : ''}</button><button type="button" class="btn btn-outline btn-sm" data-a="csv-alunos" ${A.lista && A.lista.length ? '' : 'disabled'}>${I.baixar}Baixar CSV</button><span style="color:var(--muted);font-size:13px">${A.lista ? A.lista.length + ' aluno' + (A.lista.length === 1 ? '' : 's') : ''}</span></form>
+  const nSel = L.filter(a => A.sel[a.user_id]).length;
+  const todosSel = !!(L.length && nSel === L.length);
+  const turmasF = turmasDaEscolaF(F.escola);
+  return topbar('Alunos', 'Consulta geral para suporte: todas as contas de todas as escolas', `<button class="btn btn-primary" data-a="novo-aluno">${I.plus}Novo aluno</button>`) + `<div class="content">
+    <form class="toolbar" id="f-alunos"><input class="inp sm" placeholder="Nome ou e-mail" value="${esc(A.busca)}" data-f="alunos.busca" aria-label="Buscar aluno" style="min-width:220px"><button type="button" class="btn btn-primary btn-sm" data-a="buscar-alunos">Buscar</button>
+      <select class="inp sm" data-f="alunosFiltro.escola" aria-label="Escola"><option value="">Todas as escolas</option>${(T ? T.escolas : []).map(e => `<option value="${e.id}" ${F.escola === e.id ? 'selected' : ''}>${esc(e.nome)}</option>`).join('')}${T && T.turmas.some(t => !t.escola_id) ? `<option value="sem" ${F.escola === 'sem' ? 'selected' : ''}>Sem escola</option>` : ''}</select>
+      <select class="inp sm" data-f="alunosFiltro.turma" aria-label="Turma"><option value="">Todas as turmas</option>${turmasF.map(t => `<option value="${t.id}" ${F.turma === t.id ? 'selected' : ''}>${esc(t.nome)}</option>`).join('')}</select>
+      <button type="button" class="btn btn-outline btn-sm" data-a="dar-lote" ${nSel ? '' : 'disabled'}>${I.coin}Adicionar moedas/corações${nSel ? ` (${nSel})` : ''}</button><button type="button" class="btn btn-outline btn-sm" data-a="csv-alunos" ${L.length ? '' : 'disabled'}>${I.baixar}Baixar CSV</button><span style="color:var(--muted);font-size:13px">${A.lista ? L.length + (L.length !== A.lista.length ? ' de ' + A.lista.length : '') + ' aluno' + (L.length === 1 ? '' : 's') : ''}</span></form>
     ${A.erro ? `<div class="warnbox">${I.warn}<span>${esc(A.erro)}</span></div>` : ''}
+    ${F.escola || F.turma ? `<span style="font-size:12px;color:var(--muted)">Mostrando só quem está ${F.turma ? 'na turma ' + esc((turmaPorId(F.turma) || {}).nome || '') : 'nas turmas de ' + esc(F.escola === 'sem' ? 'nenhuma escola' : (escolaPorId(F.escola) || {}).nome || '')}. A busca lá em cima continua valendo para a plataforma toda.</span>` : ''}
     <div class="alunos">
       <label style="display:flex;align-items:center;gap:8px;padding:2px 2px 10px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;align-self:flex-start;cursor:pointer"><input type="checkbox" data-a="sel-todos" ${todosSel ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--primary)">Marcar todos</label>
-      ${A.carregando ? '<div class="empty">Carregando…</div>' : (A.lista || []).map(a => `<div class="aluno">
+      ${A.carregando ? '<div class="empty">Carregando…</div>' : L.map(a => `<div class="aluno">
         <input type="checkbox" data-a="sel-aluno:${a.user_id}" ${A.sel[a.user_id] ? 'checked' : ''} aria-label="Selecionar ${esc(a.nome)}">
         <div class="who">${avatarCfg(a.avatar) ? `<span class="av" aria-hidden="true" style="background:none">${avatarSvg(avatarCfg(a.avatar), 40, '')}</span>` : `<span class="av" aria-hidden="true">${esc((a.nome || '?').trim().charAt(0).toUpperCase())}</span>`}<span style="min-width:0"><b>${esc(a.nome)}</b>${a.banido ? ' <span class="pill" style="background:var(--red-l);color:var(--red-d)">bloqueado</span>' : ''}${a.admin ? ' <span class="pill type">super usuário</span>' : ''}${a.papel && a.papel !== 'aluno' ? ` <span class="pill on">${PAPEIS[a.papel] || a.papel}</span>` : ''}${plus(a) ? ` <span class="pill on">Findout+ até ${fmtDia(a.findout_plus_ate)}</span>` : ''}<span class="meta">${esc(a.email)} · visto ${fmtData(a.visto_em)} · desde ${fmtDia(a.criado_em)}</span></span></div>
         <div class="stats">
@@ -1239,7 +1256,7 @@ function viewAlunos() {
           ${a.user_id === sessao.user.id || a.admin ? '' : `<button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="excluir-conta:${a.user_id}">${I.trash}Excluir</button>`}
         </div>
       </div>`).join('')}
-      ${!A.carregando && A.lista && !A.lista.length ? '<div class="empty">Nenhum aluno encontrado.</div>' : ''}
+      ${!A.carregando && A.lista && !L.length ? `<div class="empty">Nenhum aluno encontrado${F.escola || F.turma ? ' com estes filtros' : ''}.</div>` : ''}
     </div>
     <p style="margin:0;font-size:12px;color:var(--muted)">"Adicionar" soma moedas e/ou corações para o aluno (valores negativos tiram). Para adicionar em lote, marque os alunos e use o botão lá em cima.<br>O Findout+ dá corações ilimitados e é ativado por 30 dias. A ativação aqui é manual (pagamento por Pix combinado com o aluno). Para somar mais dias a um aluno que já tem, use "+30 dias" (reinicia a contagem a partir de hoje).<br>"Tornar super" dá acesso total a este painel (suporte da plataforma): a pessoa cria conta no app e entra aqui com o mesmo login.<br>O seletor de papel define <b>Professor</b> (as turmas em que dá aula), <b>Coordenador</b> (a escola, nos segmentos dele) ou <b>Admin da escola</b> (a escola inteira — vincule-o à escola em Turmas → card da escola → "+ Admin"). Quem é só aluno não entra no painel.<br>"Excluir" apaga a conta de vez: perfil, progresso, moedas, turmas e entregas somem; as atividades criadas e a auditoria ficam. Só o super usuário consegue, e a exclusão fica registrada.</p>
   </div>`;
@@ -1370,10 +1387,18 @@ function cardTurma(t) {
     <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="stat s-li">${I.users}<span class="num">${na}</span>&nbsp;aluno${na === 1 ? '' : 's'}</span><span class="stat s-xp">${I.bolt}<span class="num">${abertas}</span>&nbsp;aberta${abertas === 1 ? '' : 's'}</span><span class="stat">${I.book}<span class="num">${ativs.length}</span>&nbsp;atividade${ativs.length === 1 ? '' : 's'}</span></div></button>`;
 }
 function viewTurmas() {
-  return topbar('Turmas', admin ? 'Todas as turmas cadastradas' : papel === 'admin' ? 'Todas as turmas da sua escola' : papel === 'coordenador' ? 'As turmas dos segmentos que você coordena' : 'As turmas em que você dá aula' + (disciplina ? ' · sua disciplina: ' + discNome(disciplina) : ''), `${admin || gestor() ? `<button class="btn btn-outline" data-a="view:escolas">${I.predio}${admin ? 'Escolas' : 'Minha escola'}</button>` : ''}<button class="btn btn-primary" data-a="nova-turma">${I.plus}Nova turma</button>`) + `<div class="content">
+  const F = V.turmaFiltro, txt = (F.busca || '').trim().toLowerCase();
+  const todas = T ? T.turmas : [];
+  const lista = admin ? todas.filter(t => (!F.escola || (F.escola === 'sem' ? !t.escola_id : t.escola_id === F.escola)) && (!F.segmento || t.segmento_id === F.segmento) && (!txt || (t.nome + ' ' + t.codigo + ' ' + ((escolaPorId(t.escola_id) || {}).nome || '')).toLowerCase().includes(txt))) : todas;
+  return topbar('Turmas', admin ? 'Consulta geral para suporte: as turmas de todas as escolas' : papel === 'admin' ? 'Todas as turmas da sua escola' : papel === 'coordenador' ? 'As turmas dos segmentos que você coordena' : 'As turmas em que você dá aula' + (disciplina ? ' · sua disciplina: ' + discNome(disciplina) : ''), `${admin || gestor() ? `<button class="btn btn-outline" data-a="view:escolas">${I.predio}${admin ? 'Escolas' : 'Minha escola'}</button>` : ''}<button class="btn btn-primary" data-a="nova-turma">${I.plus}Nova turma</button>`) + `<div class="content">
     ${avisoTurmas()}
-    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px"><span style="font-size:12px;color:var(--muted)">O aluno entra na turma digitando o código no app (Perfil → Minhas turmas) ou você adiciona pelo e-mail.</span></div>
-    ${T && T.turmas.length ? `<div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">${T.turmas.map(cardTurma).join('')}</div>` : '<div class="card"><div class="empty">Nenhuma turma ainda. Clique em "Nova turma", escolha o nome e repasse o código aos alunos.</div></div>'}
+    ${admin ? `<div class="toolbar">
+      <select class="inp sm" data-f="turmaFiltro.escola" aria-label="Escola"><option value="">Todas as escolas</option>${T.escolas.map(e => `<option value="${e.id}" ${F.escola === e.id ? 'selected' : ''}>${esc(e.nome)}</option>`).join('')}${todas.some(t => !t.escola_id) ? `<option value="sem" ${F.escola === 'sem' ? 'selected' : ''}>Sem escola</option>` : ''}</select>
+      <select class="inp sm" data-f="turmaFiltro.segmento" aria-label="Segmento"><option value="">Todos os segmentos</option>${segAtivos().map(s => `<option value="${esc(s.id)}" ${F.segmento === s.id ? 'selected' : ''}>${esc(s.nome)}</option>`).join('')}</select>
+      <input class="inp sm" placeholder="Turma, código ou escola" value="${esc(F.busca)}" data-f="turmaFiltro.busca" aria-label="Buscar turma" style="min-width:200px">
+      <span style="color:var(--muted);font-size:13px">${lista.length}${lista.length !== todas.length ? ' de ' + todas.length : ''} turma${lista.length === 1 ? '' : 's'}</span></div>` :
+    `<span style="font-size:12px;color:var(--muted)">O aluno entra na turma digitando o código no app (Perfil → Minhas turmas) ou você adiciona pelo e-mail.</span>`}
+    ${lista.length ? `<div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">${lista.map(cardTurma).join('')}</div>` : todas.length ? '<div class="card"><div class="empty">Nenhuma turma com estes filtros.</div></div>' : '<div class="card"><div class="empty">Nenhuma turma ainda. Clique em "Nova turma", escolha o nome e repasse o código aos alunos.</div></div>'}
   </div>`;
 }
 /* =====================================================================
@@ -1475,15 +1500,15 @@ function viewTurma() {
    Atividades
    ===================================================================== */
 function viewAtividades() {
-  const turmas = T ? T.turmas : [];
-  const lista = (T ? T.atividades : []).filter(a => !V.ativFiltroTurma || a.turma_id === V.ativFiltroTurma);
-  return topbar('Atividades', 'Listas de questões com prazo para a turma. O aluno responde no app e a nota sai na hora.', `<button class="btn btn-primary" data-a="nova-ativ" ${turmas.length ? '' : 'disabled'}>${I.plus}Nova atividade</button>`) + `<div class="content">
+  const turmas = admin ? turmasDaEscolaF(V.ativFiltroEscola) : (T ? T.turmas : []);
+  const lista = (T ? T.atividades : []).filter(a => (!V.ativFiltroTurma || a.turma_id === V.ativFiltroTurma) && (!admin || !V.ativFiltroEscola || turmas.some(t => t.id === a.turma_id)));
+  return topbar('Atividades', admin ? 'Consulta geral para suporte: as atividades de todas as escolas' : 'Listas de questões com prazo para a turma. O aluno responde no app e a nota sai na hora.', `<button class="btn btn-primary" data-a="nova-ativ" ${turmas.length ? '' : 'disabled'}>${I.plus}Nova atividade</button>`) + `<div class="content">
     ${avisoTurmas()}
-    ${turmas.length ? '' : `<div class="warnbox">${I.warn}<span>Crie uma turma primeiro, na aba Turmas.</span></div>`}
-    <div class="toolbar"><select class="inp sm" data-f="ativFiltroTurma" aria-label="Turma"><option value="">Todas as turmas</option>${turmas.map(t => `<option value="${t.id}" ${V.ativFiltroTurma === t.id ? 'selected' : ''}>${esc(t.nome)}</option>`).join('')}</select><span style="color:var(--muted);font-size:13px">${lista.length} atividade${lista.length === 1 ? '' : 's'}</span></div>
+    ${(T ? T.turmas : []).length ? '' : `<div class="warnbox">${I.warn}<span>Crie uma turma primeiro, na aba Turmas.</span></div>`}
+    <div class="toolbar">${admin ? `<select class="inp sm" data-f="ativFiltroEscola" aria-label="Escola"><option value="">Todas as escolas</option>${T.escolas.map(e => `<option value="${e.id}" ${V.ativFiltroEscola === e.id ? 'selected' : ''}>${esc(e.nome)}</option>`).join('')}${T.turmas.some(t => !t.escola_id) ? `<option value="sem" ${V.ativFiltroEscola === 'sem' ? 'selected' : ''}>Sem escola</option>` : ''}</select>` : ''}<select class="inp sm" data-f="ativFiltroTurma" aria-label="Turma"><option value="">Todas as turmas</option>${turmas.map(t => `<option value="${t.id}" ${V.ativFiltroTurma === t.id ? 'selected' : ''}>${esc(t.nome)}</option>`).join('')}</select><span style="color:var(--muted);font-size:13px">${lista.length} atividade${lista.length === 1 ? '' : 's'}</span></div>
     <div class="card tbl-wrap tbl-wide"><table><thead><tr><th>Atividade</th><th>Turma</th><th>Status</th><th>Prazo</th><th>Entregas</th><th>Média</th><th></th></tr></thead><tbody>
       ${lista.map(a => { const t = turmaPorId(a.turma_id), st = statusReal(a), ent = entregasDe(a.id), na = alunosDaTurma(a.turma_id).length, media = ent.length ? (ent.reduce((s, e) => s + (+e.nota || 0), 0) / ent.length).toFixed(1).replace('.', ',') : '—';
-        return `<tr class="rowbtn" data-a="resultados:${a.id}"><td style="max-width:360px"><b>${esc(a.titulo)}</b><br><span style="font-size:12px;color:var(--muted)">${a.materia_id ? esc((materiaPorId(a.materia_id) || {}).nome || a.materia_id) + ' · ' : ''}${(a.questoes || []).length} questões · por ${esc(nomeDe(a.professor_id))}</span></td><td>${t ? esc(t.nome) : '—'}</td><td><span class="pill ${STATUS_ATIV[st][1]}">${STATUS_ATIV[st][0]}</span></td><td style="white-space:nowrap">${a.prazo ? fmtData(a.prazo) : 'sem prazo'}</td><td class="num">${ent.length} / ${na}</td><td class="num">${media}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" data-a="editar-ativ:${a.id}">${I.edit}Editar</button><button class="btn btn-outline btn-sm" data-a="resultados:${a.id}">Resultados</button></td></tr>`; }).join('')}
+        return `<tr class="rowbtn" data-a="resultados:${a.id}"><td style="max-width:360px"><b>${esc(a.titulo)}</b><br><span style="font-size:12px;color:var(--muted)">${a.materia_id ? esc((materiaPorId(a.materia_id) || {}).nome || a.materia_id) + ' · ' : ''}${(a.questoes || []).length} questões · por ${esc(nomeDe(a.professor_id))}</span></td><td>${t ? esc(t.nome) : '—'}${admin && t && t.escola_id ? `<br><span style="font-size:11px;color:var(--muted)">${esc((escolaPorId(t.escola_id) || {}).nome || '')}</span>` : ''}</td><td><span class="pill ${STATUS_ATIV[st][1]}">${STATUS_ATIV[st][0]}</span></td><td style="white-space:nowrap">${a.prazo ? fmtData(a.prazo) : 'sem prazo'}</td><td class="num">${ent.length} / ${na}</td><td class="num">${media}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" data-a="editar-ativ:${a.id}">${I.edit}Editar</button><button class="btn btn-outline btn-sm" data-a="resultados:${a.id}">Resultados</button></td></tr>`; }).join('')}
       ${lista.length ? '' : '<tr><td colspan="7" class="empty">Nenhuma atividade ainda.</td></tr>'}
     </tbody></table></div></div>`;
 }
@@ -1747,6 +1772,9 @@ function setCampo(path, value) {
     case 'ativBusca': V.ativBusca[p[1]] = value; if (p[1] === 'materia') V.ativBusca.unidade = ''; return 'ui';
     case 'aud': V.aud.f[p[1]] = value; return 'nada';
     case 'ativFiltroTurma': V.ativFiltroTurma = value; return 'ui';
+    case 'ativFiltroEscola': V.ativFiltroEscola = value; V.ativFiltroTurma = ''; return 'ui';
+    case 'turmaFiltro': V.turmaFiltro[p[1]] = value; return 'ui';
+    case 'alunosFiltro': V.alunosFiltro[p[1]] = value; if (p[1] === 'escola') V.alunosFiltro.turma = ''; return 'ui';
     case 'ativ': { if (!V.ativ) return 'nada'; if (p[1] === 'questoes') { const q = V.ativ.questoes[+p[2]]; if (q && p[3] === 'valor') q.valor = Math.max(0, +String(value).replace(',', '.') || 0); return 'nada'; } V.ativ[p[1]] = value; return 'nada'; }
     case 'turma': { const t = turmaPorId(p[1]); if (!t) return 'nada'; const v = p[2] === 'segmento_id' ? (value || null) : value; t[p[2]] = v; agendar(path, () => db(sb.from('turmas').update({[p[2]]: v}).eq('id', t.id))); return 'dados'; }
     case 'segmento': { const s = D.segmentos.find(s => s.id === p[1]); if (!s) return 'nada'; s[p[2]] = value; agendar(path, () => db(sb.from('segmentos').update({[p[2]]: value}).eq('id', s.id))); return 'dados'; }
@@ -1905,7 +1933,7 @@ async function act(a, el) {
     case 'rel-recarregar': V.rel.data = null; return carregarRelatorio();
     case 'csv-notas': { const d = V.resultados && V.resultados.data; if (!d) return; const at = T.atividades.find(z => z.id === V.resultados.id); auditar('copia', 'resultados', V.resultados.id, 'Baixou o CSV de notas da atividade', {alunos: d.alunos.length}); return baixarCsv(`notas-${slug((at && at.titulo) || 'atividade')}.csv`, ['Aluno', 'E-mail', 'Nota', 'Acertos', 'Total', 'Entregue em'], d.alunos.map(z => [z.nome, z.email || '', z.entregueEm ? String(z.nota).replace('.', ',') : '', z.entregueEm ? z.acertos : '', z.entregueEm ? z.total : '', z.entregueEm ? fmtData(z.entregueEm) : 'não entregou'])); }
     case 'csv-turma': { const L2 = (V.turmaAlunos && V.turmaAlunos.lista) || []; if (!L2.length) return toast('Nenhum aluno na turma.'); const t2 = turmaPorId(V.turma); auditar('copia', 'turmas', V.turma, 'Baixou o CSV de alunos da turma'); return baixarCsv(`alunos-${slug((t2 && t2.nome) || 'turma')}.csv`, ['Aluno', 'E-mail', 'XP', 'Ofensiva (dias)', 'Entregas', 'Convite aceito', 'Entrou em'], L2.map(z => [z.nome, z.email || '', z.xp, z.ofensiva, z.entregas, z.aceito === false ? 'não' : 'sim', fmtDia(z.entrou_em)])); }
-    case 'csv-alunos': { const L2 = (V.alunos && V.alunos.lista) || []; if (!L2.length) return; auditar('copia', 'alunos', null, 'Baixou o CSV de alunos', {alunos: L2.length}); return baixarCsv('alunos.csv', ['Aluno', 'E-mail', 'XP', 'Moedas', 'Corações', 'Lições', 'Ofensiva (dias)', 'Findout+ até', 'Criado em', 'Visto em', 'Bloqueado'], L2.map(z => [z.nome, z.email, z.xp, z.moedas, z.coracoes, z.licoes, z.ofensiva, z.findout_plus_ate ? fmtDia(z.findout_plus_ate) : '', fmtDia(z.criado_em), fmtData(z.visto_em), z.banido ? 'sim' : ''])); }
+    case 'csv-alunos': { const L2 = alunosFiltrados(); if (!L2.length) return; auditar('copia', 'alunos', null, 'Baixou o CSV de alunos', {alunos: L2.length}); return baixarCsv('alunos.csv', ['Aluno', 'E-mail', 'XP', 'Moedas', 'Corações', 'Lições', 'Ofensiva (dias)', 'Findout+ até', 'Criado em', 'Visto em', 'Bloqueado'], L2.map(z => [z.nome, z.email, z.xp, z.moedas, z.coracoes, z.licoes, z.ofensiva, z.findout_plus_ate ? fmtDia(z.findout_plus_ate) : '', fmtDia(z.criado_em), fmtData(z.visto_em), z.banido ? 'sim' : ''])); }
     case 'csv-aud': { const L2 = V.aud.lista || []; if (!L2.length) return; auditar('copia', 'painel', null, 'Baixou o CSV da auditoria', {eventos: L2.length}); return baixarCsv('auditoria.csv', ['Quando', 'Quem', 'E-mail', 'Papel', 'Origem', 'Ação', 'Tabela', 'Registro', 'Resumo'], L2.map(z => [fmtData(z.criado_em), z.nome, z.email || '', z.papel || '', z.origem, z.acao, z.tabela || '', z.registro || '', z.resumo || ''])); }
     case 'csv-erradas': { const d = V.rel.data; if (!d || !(d.erradas || []).length) return; auditar('copia', 'questoes', null, 'Baixou o CSV de questões mais erradas'); return baixarCsv('questoes-mais-erradas.csv', ['Questão', 'Matéria', 'Tipo', 'Alunos errando'], d.erradas.map(q => [q.enunciado, (materiaPorId(q.materia) || {}).nome || q.materia || '', TIPOS[q.tipo] || q.tipo, q.alunos])); }
     case 'aud-recarregar': return carregarAuditoria(false);
@@ -2121,7 +2149,7 @@ async function act(a, el) {
     case 'buscar-alunos': return buscarAlunos();
     case 'plus': { await db(sb.rpc('ativar_plus', {p_user: x, p_dias: +y})); toast(+y > 0 ? `Findout+ ativado por ${y} dias.` : 'Findout+ removido.'); return buscarAlunos(); }
     case 'sel-aluno': V.alunos.sel[x] = el.checked; return render();
-    case 'sel-todos': { const marca = el.checked; (V.alunos.lista || []).forEach(a => { V.alunos.sel[a.user_id] = marca; }); return render(); }
+    case 'sel-todos': { const marca = el.checked; alunosFiltrados().forEach(a => { V.alunos.sel[a.user_id] = marca; }); if (!marca) V.alunos.sel = {}; return render(); }
     case 'dar': return darRecursos([x]);
     case 'dar-lote': { const ids = (V.alunos.lista || []).filter(a => V.alunos.sel[a.user_id]).map(a => a.user_id); if (!ids.length) return toast('Marque ao menos um aluno na lista.'); return darRecursos(ids); }
     case 'bloq': {
