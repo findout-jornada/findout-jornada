@@ -736,10 +736,19 @@ function trilha(m) {
   const curUnit = units.find(u => u.isCurrent) || units[units.length - 1] || null;
   return {units, flat, cur, curUnit, total: flat.length, done: flat.filter(r => r.done).length};
 }
-function exercicio(q) {
+function exercicio(q, cega) {
   const d = q.dados || {};
-  const x = {id: q.id, t: q.tipo, q: q.enunciado, why: q.explicacao || '', img: q.imagem || null, materia: q.materia, unidade: q.unidade};
+  const x = {id: q.id, t: q.tipo, q: q.enunciado, why: q.explicacao || '', img: q.imagem || null, materia: q.materia, unidade: q.unidade, cega: !!cega};
   x.valor = +q.valor || 1;
+  if (cega) {
+    // modo prova (atividade): o servidor não manda o gabarito; aqui só embaralhamos de novo o que veio
+    if (q.tipo === 'mc') x.opts = shuffle(d.opts || []);
+    if (q.tipo === 'tf') x.stmt = d.stmt || '';
+    if (q.tipo === 'bank') { x.parts = [d.parts?.[0] || '', d.parts?.[1] || '', d.parts?.[2] || '']; x.words = shuffle((d.words || []).filter(Boolean)); }
+    if (q.tipo === 'order') x.items = shuffle(d.items || []);
+    if (q.tipo === 'match') { x.left = shuffle(d.left || []); x.right = shuffle(d.right || []); }
+    return x;
+  }
   if (q.tipo === 'mc') { const opts = d.opts || []; const order = shuffle(opts.map((_, k) => k)); x.opts = order.map(k => opts[k]); x.a = order.indexOf(+d.a || 0); x.order = order; }
   if (q.tipo === 'tf') { x.stmt = d.stmt || ''; x.a = !!d.a; }
   if (q.tipo === 'bank') { x.parts = [d.parts?.[0] || '', d.parts?.[1] || '', d.parts?.[2] || '']; x.a = (d.a || ['', '']).slice(0, 2); x.words = shuffle([...x.a, ...(d.extra || [])].filter(Boolean)); }
@@ -780,7 +789,7 @@ async function startAtividade(id) {
   toast('Abrindo a atividade…');
   const {data, error} = await sb.rpc('abrir_atividade', {p_atividade: id});
   if (error) { await recarregarEstado(); return toast(traduz(error.message)); }
-  const queue = (data.questoes || []).map(q => exercicio({id: q.id, tipo: q.tipo, enunciado: q.enunciado, explicacao: q.explicacao || '', imagem: q.imagem || null, materia: q.materia || data.materia, unidade: null, dados: q.dados || {}, valor: q.valor}));
+  const queue = (data.questoes || []).map(q => exercicio({id: q.id, tipo: q.tipo, enunciado: q.enunciado, explicacao: q.explicacao || '', imagem: q.imagem || null, materia: q.materia || data.materia, unidade: null, dados: q.dados || {}, valor: q.valor}, !!data.cega));
   if (!queue.length) return toast('Esta atividade ainda não tem questões.');
   V.toast = null;
   L = {mode: 'atividade', atividade: data, lic: null, uni: null, materiaId: data.materia || null, queue, i: 0, total: queue.length, solved: 0, kicker: `ATIVIDADE · ${(a.turma || '').toUpperCase()}`, title: data.titulo, combo: 0, best: 0, firstTry: 0, wrongKeys: new Set(), erradas: new Set(), acertadas: new Set(), errors: 0,
@@ -788,11 +797,11 @@ async function startAtividade(id) {
   V.sheet = null; go('licao');
 }
 function respostaDe(e, a) {
-  if (e.t === 'mc') return a.pick == null ? null : e.order[a.pick];
+  if (e.t === 'mc') return a.pick == null ? null : e.cega ? e.opts[a.pick] : e.order[a.pick];
   if (e.t === 'tf') return a.pick;
   if (e.t === 'bank') return a.slots.slice();
   if (e.t === 'order') return a.order.slice();
-  if (e.t === 'match') return !L.missQ;
+  if (e.t === 'match') return e.cega ? a.pairs.slice() : !L.missQ;
   return null;
 }
 
@@ -994,7 +1003,7 @@ function startLesson(mode, opts = {}) {
     start: Date.now(), result: null, ans: blankAns(), miss: false, deadline: mode === 'flash' ? Date.now() + (+E().segundosRelampago || 120) * 1000 : 0, lostHeart: false};
   V.sheet = null; go('licao');
 }
-const blankAns = () => ({pick: null, slots: [null, null], order: [], sel: null, matched: []});
+const blankAns = () => ({pick: null, slots: [null, null], order: [], sel: null, matched: [], pairs: []});
 const costsHearts = () => !plus() && ['lesson', 'review', 'unitreview', 'flash', 'legend'].includes(L.mode);
 const requeues = () => ['lesson', 'review', 'unitreview', 'errors'].includes(L.mode);
 const ehAtividade = () => !!L && L.mode === 'atividade';
@@ -1012,16 +1021,24 @@ function screenLicao() {
   if (e.t === 'order') body = `<div class="orderbox" aria-label="Sua ordem">${a.order.length ? a.order.map((w, i) => { const cls = locked ? (w === e.ans[i] ? 'ok' : 'bad') : 'sel'; return `<button class="chip ${cls}" data-a="unorder:${i}" aria-label="Remover ${esc(w)}">${esc(w)}</button>`; }).join('') : '<span style="font-size:13px;color:var(--muted);padding-left:4px">Toque nos itens na ordem certa</span>'}</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">${e.items.map((w, i) => { const used = a.order.includes(w); return `<button class="chip ${used ? 'used' : ''}" data-a="order:${i}" ${used || locked ? 'disabled' : ''}>${esc(w)}</button>`; }).join('')}</div>`;
   if (e.t === 'match') {
-    const col = (list, side) => list.map((t, i) => { const done = a.matched.includes(side + t); const sel = a.sel && a.sel.side === side && a.sel.t === t; return `<button class="chip ${done ? 'gone' : sel ? 'sel' : ''}" data-a="match:${side}:${i}" aria-pressed="${!!sel}" ${done ? 'disabled' : ''}>${esc(t)}</button>`; }).join('');
-    body = `<div class="matchgrid ${L.miss ? 'shake' : ''}"><div class="col">${col(e.left, 'L')}</div><div class="col">${col(e.right, 'R')}</div></div>${L.miss ? '<p style="margin:0;font-size:13px;color:var(--red-d);font-weight:600">Esse par não combina. Tente de novo.</p>' : ''}`;
+    if (e.cega) {
+      // modo prova: liga e desliga livremente, sem dizer se o par está certo; a correção é na entrega
+      const par = (side, t) => a.pairs.findIndex(p => p[side === 'L' ? 0 : 1] === t) + 1;
+      const col = (list, side) => list.map((t, i) => { const n = par(side, t); const sel = a.sel && a.sel.side === side && a.sel.t === t; return `<button class="chip ${n || sel ? 'sel' : ''}" data-a="match:${side}:${i}" aria-pressed="${!!(n || sel)}">${n ? `<b class="num" style="margin-right:4px">${n}·</b>` : ''}${esc(t)}</button>`; }).join('');
+      body = `<div class="matchgrid"><div class="col">${col(e.left, 'L')}</div><div class="col">${col(e.right, 'R')}</div></div><p style="margin:0;font-size:13px;color:var(--muted)">Ligue cada item da esquerda a um da direita. O número mostra o par; toque num item ligado para desfazer.</p>`;
+    } else {
+      const col = (list, side) => list.map((t, i) => { const done = a.matched.includes(side + t); const sel = a.sel && a.sel.side === side && a.sel.t === t; return `<button class="chip ${done ? 'gone' : sel ? 'sel' : ''}" data-a="match:${side}:${i}" aria-pressed="${!!sel}" ${done ? 'disabled' : ''}>${esc(t)}</button>`; }).join('');
+      body = `<div class="matchgrid ${L.miss ? 'shake' : ''}"><div class="col">${col(e.left, 'L')}</div><div class="col">${col(e.right, 'R')}</div></div>${L.miss ? '<p style="margin:0;font-size:13px;color:var(--red-d);font-weight:600">Esse par não combina. Tente de novo.</p>' : ''}`;
+    }
   }
-  const ready = e.t === 'mc' || e.t === 'tf' ? a.pick !== null : e.t === 'bank' ? a.slots[0] !== null && a.slots[1] !== null : e.t === 'order' ? a.order.length === e.ans.length : false;
+  const ready = e.t === 'mc' || e.t === 'tf' ? a.pick !== null : e.t === 'bank' ? a.slots[0] !== null && a.slots[1] !== null : e.t === 'order' ? a.order.length === (e.cega ? e.items : e.ans).length : e.t === 'match' ? e.cega && a.pairs.length === e.left.length : false;
   const ok = L.result === 'ok';
   const dead = costsHearts() && hearts() <= 0;
   const isLast = L.i >= L.queue.length - 1;
+  const rotuloCheck = ehAtividade() ? (isLast ? 'Responder e entregar' : 'Responder') : 'Verificar';
   const footer = !locked
     ? `<div class="checkbar" data-key="check"><button class="btn" style="border:2px solid var(--line2);background:#fff;color:var(--muted);font-size:15px" data-a="skip">Pular</button>
-       ${e.t === 'match' ? `<button class="btn btn-off" disabled>Combine os pares</button>` : ready ? `<button class="btn btn-primary pxbtn" data-a="check">Verificar</button>` : `<button class="btn btn-off" disabled>Verificar</button>`}</div>`
+       ${e.t === 'match' && !e.cega ? `<button class="btn btn-off" disabled>Combine os pares</button>` : ready ? `<button class="btn btn-primary pxbtn" data-a="check">${rotuloCheck}</button>` : `<button class="btn btn-off" disabled>${rotuloCheck}</button>`}</div>`
     : `<div class="banner ${ok ? 'ok' : 'bad'}" data-key="banner">
         <div style="display:flex;align-items:flex-start;gap:12px"><span class="ic">${ok ? I.check(22, 3.2) : I.close}</span>
           <div class="grow"><span style="font-family:var(--f-display);font-weight:700;font-size:18px">${ok ? (L.combo >= (+E().comboAPartirDe || 3) ? 'Combo! Mandou bem!' : 'Mandou bem!') : dead ? 'Você ficou sem corações' : L.mode === 'legend' ? 'A prova lendária acabou' : 'Quase lá!'}</span>
@@ -1102,7 +1119,12 @@ async function perderCoracao() {
 }
 function grade(good) {
   const e = L.queue[L.i]; const key = e.id + '#' + L.i;
-  if (ehAtividade()) L.respostas.push({id: e.id, resposta: respostaDe(e, L.ans), acertou: good});
+  if (ehAtividade()) {
+    // modo prova: registra a resposta e segue sem dizer certo/errado; o servidor corrige na entrega
+    L.respostas.push({id: e.id, resposta: respostaDe(e, L.ans)});
+    SND.tap(); vib(20); anuncia('Resposta registrada.');
+    return next();
+  }
   L.result = good ? 'ok' : 'err';
   if (good) {
     L.combo++; L.best = Math.max(L.best, L.combo); L.solved++;
@@ -1675,7 +1697,7 @@ function screenPerfil() {
       <div class="row"><span class="tile" style="background:var(--lav);color:var(--primary)">${I.bolt(24)}</span><div class="grow"><span class="t15">Sons</span><span class="sub">${SND.muted ? 'Desligados' : 'Ligados · no iPhone, tire do modo silencioso; no Android, suba o volume de mídia'}</span></div><button class="chipbtn" data-a="mute">${SND.muted ? 'Ligar' : 'Desligar'}</button></div>
       <div class="row"><span class="tile" style="background:var(--lav);color:var(--primary)">${I.book}</span><div class="grow"><span class="t15">Conteúdo</span><span class="sub">${S.versaoConteudo ? 'Versão ' + S.versaoConteudo : 'Nenhuma versão publicada'}</span></div><button class="chipbtn" data-a="recarregar">Atualizar</button></div>
       <div class="row"><span class="tile" style="background:#E3ECFA;color:#1B4F8F"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.5 9.5h17M3.5 14.5h17M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span><div class="grow"><span class="t15">Mapa do ENEM</span><span class="sub">${(() => { const L = ilhas(); return L.filter(i => i.completa).length + ' de ' + L.length + ' ilhas conquistadas'; })()}</span></div><button class="chipbtn" data-a="go:mapa">Ver</button></div>
-      <div class="row"><span class="tile" style="background:var(--teal-l);color:var(--teal-d)">${I.target(24)}</span><div class="grow"><span class="t15">Minhas turmas</span><span class="sub">${(S.turmas || []).length ? (S.turmas || []).map(t => t.nome).join(', ') : 'Entre com o código do professor'}</span></div><button class="chipbtn" data-a="turmas">${(S.turmas || []).length ? 'Ver' : 'Entrar'}</button></div>
+      <div class="row"><span class="tile" style="background:var(--teal-l);color:var(--teal-d)">${I.target(24)}</span><div class="grow"><span class="t15">Minhas turmas</span><span class="sub">${(S.turmas || []).length ? esc((S.turmas || []).map(t => t.nome).join(', ')) : 'Entre com o código do professor'}</span></div><button class="chipbtn" data-a="turmas">${(S.turmas || []).length ? 'Ver' : 'Entrar'}</button></div>
     </div>
     <button class="btn btn-outline" data-a="sair">Sair da conta</button>
     <p style="margin:0;font-size:11px;color:var(--muted);text-align:center"><a href="termos.html" style="text-decoration:underline">Termos de uso</a> · <a href="privacidade.html" style="text-decoration:underline">Privacidade</a></p>
@@ -1787,14 +1809,21 @@ async function act(a) {
     case 'unorder': if (L.result === null) { SND.tap(); L.ans.order.splice(+x, 1); } return render();
     case 'match': {
       const e = L.queue[L.i], side = x, t = (side === 'L' ? e.left : e.right)[+y], an = L.ans;
+      if (e.cega) {
+        // modo prova: forma e desfaz pares sem validar; o servidor corrige na entrega
+        const j = an.pairs.findIndex(p => p[side === 'L' ? 0 : 1] === t);
+        if (j >= 0) { SND.tap(); an.pairs.splice(j, 1); an.sel = null; return render(); }
+        if (!an.sel || an.sel.side === side) { SND.tap(); an.sel = {side, t}; return render(); }
+        an.pairs.push([side === 'L' ? t : an.sel.t, side === 'R' ? t : an.sel.t]); an.sel = null; SND.match(); return render();
+      }
       if (!an.sel || an.sel.side === side) { SND.tap(); an.sel = {side, t}; L.miss = false; return render(); }
       const Lt = side === 'L' ? t : an.sel.t, Rt = side === 'R' ? t : an.sel.t;
       an.sel = null;
       if (e.map[Lt] === Rt) { an.matched.push('L' + Lt, 'R' + Rt); L.miss = false; if (an.matched.length === e.left.length * 2) return grade(ehAtividade() ? !L.missQ : true); SND.match(); return render(); }
       L.miss = true; L.missCount = (L.missCount || 0) + 1; L.missQ = (L.missQ || 0) + 1; SND.bad(); return render();
     }
-    case 'check': return grade(isRight(L.queue[L.i], L.ans));
-    case 'skip': { const e = L.queue[L.i]; if (ehAtividade()) L.respostas.push({id: e.id, resposta: null, acertou: false}); L.result = 'err'; L.combo = 0; L.errors++; L.lostHeart = false; L.erradas.add(e.id); L.acertadas.delete(e.id); if (requeues() && QI[e.id]) { const again = exercicio(QI[e.id]); L.wrongKeys.add(again.id + '#' + L.queue.length); L.queue.push(again); } render(); SND.bad(); return; }
+    case 'check': return grade(ehAtividade() ? true : isRight(L.queue[L.i], L.ans));
+    case 'skip': { const e = L.queue[L.i]; if (ehAtividade()) { L.respostas.push({id: e.id, resposta: null}); SND.tap(); return next(); } L.result = 'err'; L.combo = 0; L.errors++; L.lostHeart = false; L.erradas.add(e.id); L.acertadas.delete(e.id); if (requeues() && QI[e.id]) { const again = exercicio(QI[e.id]); L.wrongKeys.add(again.id + '#' + L.queue.length); L.queue.push(again); } render(); SND.bad(); return; }
     case 'next': return next();
   }
 }

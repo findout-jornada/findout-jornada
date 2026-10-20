@@ -1373,7 +1373,7 @@ const ACOES_AUD = {insert: ['Criou', 'pub'], update: ['Alterou', 'draft'], delet
 const TABELAS_AUD = {materias: 'Matérias', secoes: 'Seções', unidades: 'Unidades', licoes: 'Lições', questoes: 'Questões', licao_questoes: 'Questões da lição', missoes: 'Missões', itens_loja: 'Loja', parametros: 'Parâmetros', publicacoes: 'Publicações', segmentos: 'Segmentos', escolas: 'Escolas', escola_membros: 'Membros da escola', turmas: 'Turmas', turma_professores: 'Professores da turma', turma_alunos: 'Alunos da turma', atividades: 'Atividades', perfis: 'Perfis', admins: 'Administradores', painel: 'Painel', alunos: 'Alunos', resultados: 'Resultados'};
 function viewAuditoria() {
   const A = V.aud, f = A.f;
-  const acaoHtml = a => { const x = ACOES_AUD[a.acao] || [a.acao, 'off']; return `<span class="pill ${x[1] || 'off'}" style="background:${x[1] ? '' : 'var(--red-l)'};${x[1] ? '' : 'color:var(--red-d)'}">${x[0]}</span>`; };
+  const acaoHtml = a => { const x = ACOES_AUD[a.acao] || [a.acao, 'off']; return `<span class="pill ${x[1] || 'off'}" style="background:${x[1] ? '' : 'var(--red-l)'};${x[1] ? '' : 'color:var(--red-d)'}">${esc(x[0])}</span>`; };
   const diffHtml = a => {
     const d = a.dados || {};
     if (a.origem === 'painel') return d && Object.keys(d).length ? `<pre class="json" style="max-height:200px">${esc(JSON.stringify(d, null, 2))}</pre>` : '<span style="color:var(--muted);font-size:12px">Sem detalhes.</span>';
@@ -1443,11 +1443,11 @@ function modalRespostasHtml() {
     const r = porId[q.id], dd = q.dados || {}, rv = r ? r.resposta : undefined;
     const respondeu = r && rv !== null && rv !== undefined;
     let marcou = null, certo = null, extra = '';
-    if (q.tipo === 'mc') { const o = dd.opts || []; marcou = respondeu && o[rv] != null ? esc(o[rv]) : null; certo = o[dd.a] != null ? esc(o[dd.a]) : null; }
+    if (q.tipo === 'mc') { const o = dd.opts || []; marcou = !respondeu ? null : typeof rv === 'number' ? (o[rv] != null ? esc(o[rv]) : null) : esc(String(rv)); certo = o[dd.a] != null ? esc(o[dd.a]) : null; }
     else if (q.tipo === 'tf') { extra = dd.stmt ? `<div class="lin"><b>Afirmação</b><span>${esc(dd.stmt)}</span></div>` : ''; marcou = respondeu ? TF(rv) : null; certo = TF(dd.a); }
     else if (q.tipo === 'bank') { marcou = respondeu ? frase(dd.parts, rv) : null; certo = frase(dd.parts, dd.a); }
     else if (q.tipo === 'order') { marcou = respondeu ? lista(rv) : null; certo = lista(dd.items); }
-    else if (q.tipo === 'match') { marcou = respondeu ? (rv === true ? 'Ligou todos os pares sem errar' : 'Errou ao ligar os pares') : null; certo = Array.isArray(dd.pairs) ? dd.pairs.map(p => `${esc(p[0])} → ${esc(p[1])}`).join('<br>') : null; }
+    else if (q.tipo === 'match') { marcou = !respondeu ? null : Array.isArray(rv) ? rv.map(p => `${esc(p[0])} → ${esc(p[1])}`).join('<br>') : rv === true ? 'Ligou todos os pares sem errar' : 'Errou ao ligar os pares'; certo = Array.isArray(dd.pairs) ? dd.pairs.map(p => `${esc(p[0])} → ${esc(p[1])}`).join('<br>') : null; }
     const ok = !!(r && r.acertou);
     return `<div class="resp ${!r ? '' : ok ? 'ok' : 'erro'}">
       <div class="enun"><b class="num" style="color:var(--muted)">${i + 1}.</b><span style="flex:1;min-width:0">${esc(q.enunciado)}</span><span class="pill type" style="font-size:10px">${TIPOS[q.tipo] || q.tipo}</span><span class="pill ${!r ? 'off' : ok ? 'pub' : ''}" style="font-size:10px;${!r || ok ? '' : 'background:var(--red-l);color:var(--red-d)'}">${!r ? 'sem resposta' : ok ? 'acertou' : 'errou'}</span></div>
