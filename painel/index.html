@@ -1424,7 +1424,7 @@ function viewAlunos() {
   const nSel = L.filter(a => A.sel[a.user_id]).length;
   const todosSel = !!(L.length && nSel === L.length);
   const turmasF = turmasDaEscolaF(F.escola);
-  return topbar('Alunos', 'Consulta geral para suporte: todas as contas de todas as escolas', `<button class="btn btn-primary" data-a="novo-aluno">${I.plus}Novo aluno</button>`) + `<div class="content">
+  return topbar('Alunos', 'Consulta geral para suporte: todas as contas de todas as escolas', `<button class="btn btn-outline" data-a="ajuda-alunos" title="O que cada botão desta tela faz">? Como funciona</button><button class="btn btn-primary" data-a="novo-aluno">${I.plus}Novo aluno</button>`) + `<div class="content">
     <form class="toolbar" id="f-alunos"><input class="inp sm" placeholder="Nome ou e-mail" value="${esc(A.busca)}" data-f="alunos.busca" aria-label="Buscar aluno" style="min-width:220px"><button type="button" class="btn btn-primary btn-sm" data-a="buscar-alunos">Buscar</button>
       <select class="inp sm" data-f="alunosFiltro.escola" aria-label="Escola"><option value="">Todas as escolas</option>${(T ? T.escolas : []).map(e => `<option value="${e.id}" ${F.escola === e.id ? 'selected' : ''}>${esc(e.nome)}</option>`).join('')}${T && T.turmas.some(t => !t.escola_id) ? `<option value="sem" ${F.escola === 'sem' ? 'selected' : ''}>Sem escola</option>` : ''}</select>
       <select class="inp sm" data-f="alunosFiltro.turma" aria-label="Turma"><option value="">Todas as turmas</option>${turmasF.map(t => `<option value="${t.id}" ${F.turma === t.id ? 'selected' : ''}>${esc(t.nome)}</option>`).join('')}</select>
@@ -1457,7 +1457,6 @@ function viewAlunos() {
       </div>`).join('')}
       ${!A.carregando && A.lista && !L.length ? `<div class="empty">Nenhum aluno encontrado${F.escola || F.turma ? ' com estes filtros' : ''}.</div>` : ''}
     </div>
-    <p style="margin:0;font-size:12px;color:var(--muted)">"Editar" muda o nome, o e-mail de login e a senha de qualquer conta (professor, coordenador ou aluno); a mudança fica na auditoria.<br>"Adicionar" soma moedas e/ou corações para o aluno (valores negativos tiram). Para adicionar em lote, marque os alunos e use o botão lá em cima.<br>O Findout+ dá corações ilimitados e é ativado por 30 dias. A ativação aqui é manual (pagamento por Pix combinado com o aluno). Para somar mais dias a um aluno que já tem, use "+30 dias" (reinicia a contagem a partir de hoje).<br>"Tornar super" dá acesso total a este painel (suporte da plataforma): a pessoa cria conta no app e entra aqui com o mesmo login.<br>O seletor de papel define <b>Professor</b> (as turmas em que dá aula), <b>Coordenador</b> (a escola, nos segmentos dele) ou <b>Admin da escola</b> (a escola inteira — vincule-o à escola em Turmas → card da escola → "+ Admin"). Quem é só aluno não entra no painel.<br>"Excluir" apaga a conta de vez: perfil, progresso, moedas, turmas e entregas somem; as atividades criadas e a auditoria ficam. Só o super usuário consegue, e a exclusão fica registrada.</p>
   </div>`;
 }
 async function buscarAlunos() {
@@ -2280,9 +2279,10 @@ function modalRespostasHtml() {
    ===================================================================== */
 function modalHtml() {
   const M = V.modal;
-  return `<div class="drawer-bg" data-a="modal-cancelar"></div><form class="card modal" id="f-modal" role="dialog" aria-modal="true"><h2>${esc(M.titulo)}</h2>${M.texto ? `<p style="margin:0;color:var(--fg2);font-size:13px">${M.texto}</p>` : ''}
+  // texto: parágrafo simples; html: conteúdo livre (listas de ajuda); soInfo: modal só de leitura, sem botão Cancelar
+  return `<div class="drawer-bg" data-a="modal-cancelar"></div><form class="card modal" id="f-modal" role="dialog" aria-modal="true"><h2>${esc(M.titulo)}</h2>${M.texto ? `<p style="margin:0;color:var(--fg2);font-size:13px">${M.texto}</p>` : ''}${M.html || ''}
     ${M.campos.map(c => `<div class="field">${c.tipo === 'checks' ? `<span class="lab">${esc(c.label)}</span><div class="checkgroup" role="group" aria-label="${esc(c.label)}">${c.opcoes.map(([v, l]) => `<label class="chk"><input type="checkbox" data-md="${c.k}" value="${esc(v)}" ${(c.valores || []).includes(v) ? 'checked' : ''}>${esc(l)}</label>`).join('')}</div>` : `<label for="md-${c.k}">${esc(c.label)}</label>${c.tipo === 'select' ? `<select id="md-${c.k}" class="inp">${c.opcoes.map(([v, l]) => `<option value="${esc(v)}" ${String(c.valor ?? '') === String(v) ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>` : `<input id="md-${c.k}" class="inp" type="${c.tipo || 'text'}" value="${esc(c.valor ?? '')}" placeholder="${esc(c.placeholder || '')}" ${c.maxlength ? `maxlength="${c.maxlength}"` : ''} ${c.obrigatorio ? 'required' : ''}>`}`}</div>`).join('')}
-    <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn btn-ghost" data-a="modal-cancelar">Cancelar</button><button type="submit" class="btn btn-primary" data-a="modal-ok">${esc(M.ok || 'Criar')}</button></div></form>`;
+    <div style="display:flex;gap:8px;justify-content:flex-end">${M.soInfo ? '' : '<button type="button" class="btn btn-ghost" data-a="modal-cancelar">Cancelar</button>'}<button type="submit" class="btn btn-primary" data-a="modal-ok">${esc(M.ok || 'Criar')}</button></div></form>`;
 }
 function confirmHtml() {
   const C = V.confirmar;
@@ -2578,6 +2578,14 @@ async function act(a, el) {
         await db(sb.rpc('definir_segmentos_coordenador', {p_escola: x, p_user: y, p_segmentos: v.segmentos || []})); m.segmentos = v.segmentos || []; toast('Segmentos do coordenador salvos.');
       }}; return render(); }
     case 'remover-membro': return confirmar('Remover da escola?', 'A pessoa continua com as turmas que já tem, mas sai da lista da escola.', async () => { await db(sb.from('escola_membros').delete().eq('escola_id', x).eq('user_id', y)); await carregarTurmas(); });
+    case 'ajuda-alunos': V.modal = {titulo: 'Como funciona a tela Alunos', soInfo: true, ok: 'Entendi', campos: [], fn: async () => {}, html: `<ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:1.5;color:var(--fg2)">
+      <li><b>Editar</b> muda o nome, o e-mail de login e a senha de qualquer conta (professor, coordenador ou aluno); a mudança fica na auditoria.</li>
+      <li><b>Adicionar</b> soma moedas e/ou corações para o aluno (valores negativos tiram). Para adicionar em lote, marque os alunos e use o botão lá em cima.</li>
+      <li><b>Findout+</b> dá corações ilimitados e é ativado por 30 dias. A ativação aqui é manual (pagamento por Pix combinado com o aluno). Para somar mais dias a um aluno que já tem, use <b>+30 dias</b> (reinicia a contagem a partir de hoje).</li>
+      <li><b>Tornar super</b> dá acesso total a este painel (suporte da plataforma): a pessoa cria conta no app e entra aqui com o mesmo login.</li>
+      <li>O <b>seletor de papel</b> define Professor (as turmas em que dá aula), Coordenador (a escola, nos segmentos dele) ou Admin da escola (a escola inteira — vincule-o à escola em Turmas → card da escola → "+ Admin"). Quem é só aluno não entra no painel.</li>
+      <li><b>Excluir</b> apaga a conta de vez: perfil, progresso, moedas, turmas e entregas somem; as atividades criadas e a auditoria ficam. Só o super usuário consegue, e a exclusão fica registrada.</li>
+    </ul>`}; return render();
     case 'nova-turma': { const escolas = minhasEscolas(); const naEscola = V.view === 'escola' && V.escola ? V.escola : null; // aberto de dentro da tela Escola: a escola já está definida, não pergunta
       V.modal = {titulo: 'Nova turma', texto: `A turma ganha um código de 6 letras. Passe o código para os alunos digitarem no app, em Perfil → Minhas turmas.${restrito() ? '' : ' Marque as matérias que você dá nesta turma; nenhuma marcada = todas.'}`, campos: [
       {k: 'nome', label: 'Nome da turma', placeholder: 'Ex.: 3º ano A · 2026', obrigatorio: true},
