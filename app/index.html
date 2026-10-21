@@ -352,10 +352,16 @@ const app = document.getElementById('app');
 const MASCOT = 'rapozinha.png';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-const VIDEO = {feliz: 'rapozinha-feliz.mp4', triste: 'rapozinha-triste.mp4'};
+const VIDEO = {feliz: 'rapozinha-feliz.mp4', feliz2: 'rapozinha-feliz2.mp4', triste: 'rapozinha-triste.mp4'};
+// Humores em GIF: já convertidos para a identidade azul (mesmo remapeamento do recor(), feito
+// offline em ferramentas de conversão) e com transparência — vão direto num <img>, sem canvas.
+const GIFANIM = {feliz3: 'rapozinha-feliz3.gif'};
+const SEM_MOV = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 // Mascote animada: o vídeo é desenhado num canvas com o fundo removido (a cor do canto vira transparente).
 // Enquanto o vídeo carrega, ou se ele falhar, aparece a imagem estática.
-const mascot = (w, cls = '', alt = '', humor = 'feliz') => `<span class="mascot ${cls}" data-humor="${VIDEO[humor] ? humor : 'feliz'}" style="width:${w}px"><canvas style="display:none" aria-hidden="true"></canvas><img src="${MASCOT}" alt="${esc(alt)}"></span>`;
+const mascot = (w, cls = '', alt = '', humor = 'feliz') => GIFANIM[humor] && !SEM_MOV
+  ? `<span class="mascot ${cls}" style="width:${w}px"><img src="${GIFANIM[humor]}" alt="${esc(alt)}"></span>`
+  : `<span class="mascot ${cls}" data-humor="${VIDEO[humor] ? humor : 'feliz'}" style="width:${w}px"><canvas style="display:none" aria-hidden="true"></canvas><img src="${MASCOT}" alt="${esc(alt)}"></span>`;
 // Identidade azul/branco/laranja: os vídeos da mascote ainda são da era roxa, então
 // cada quadro novo passa pelo MESMO remapeamento usado para recolorir o rapozinha.png:
 // roxos (matiz 225–320) giram −32° para o azul (tons claros dessaturam rumo ao branco)
@@ -1277,7 +1283,7 @@ function screenFim() {
   const r = lastResult; if (!r) return screenJornada();
   return `<div class="scroll fullpurple" style="display:flex;flex-direction:column">
   <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:calc(28px + env(safe-area-inset-top,0px)) 20px 8px">
-    ${r.passed ? mascot(160, 'bounce', 'Rapozinha comemorando', 'feliz') : mascot(130, '', 'Rapozinha triste', 'triste')}
+    ${r.passed ? mascot(160, 'bounce', 'Rapozinha comemorando', Math.random() < 0.5 ? 'feliz' : 'feliz2') : mascot(130, '', 'Rapozinha triste', 'triste')}
     <div class="reveal" style="display:flex;flex-direction:column;gap:8px;align-items:center;--d:1">
       <span class="px ${r.passed ? 'blink' : ''}" style="font-size:10px;color:var(--gold)">★ ${r.headline} ★</span>
       <h1 style="margin:0;font-family:var(--f-display);font-size:28px;font-weight:700;line-height:1.2;text-wrap:balance">${esc(r.title)}</h1>
@@ -1308,6 +1314,7 @@ function screenOfensiva() {
   return `<div class="scroll">
   <div style="background:var(--orange);color:#fff;padding:calc(12px + env(safe-area-inset-top,0px)) 20px 22px;display:flex;flex-direction:column;gap:14px">
     <div style="display:flex;align-items:center;justify-content:space-between"><button class="iconbtn" style="margin-left:-12px;color:#fff" data-a="${celebrate ? 'after-streak' : 'go:jornada'}" aria-label="Fechar">${I.close}</button><span class="px" style="font-size:9px">OFENSIVA</span><button class="iconbtn" style="margin-right:-12px;color:#fff" data-a="go:loja" aria-label="Loja">${I.bag}</button></div>
+    ${celebrate ? `<div style="display:flex;justify-content:center;margin:-6px 0 -10px">${mascot(132, 'bounce', 'Rapozinha comemorando', 'feliz3')}</div>` : ''}
     <div style="display:flex;align-items:center;justify-content:center;gap:14px"><span class="${celebrate ? 'pop' : ''}">${I.flame(88, '#FFD36A', '#FFFFFF')}</span><div style="display:flex;flex-direction:column"><span class="num ${celebrate ? 'pop' : ''}" style="font-weight:700;font-size:64px;line-height:1">${n}</span><span style="font-family:var(--f-display);font-weight:600;font-size:18px">${n === 1 ? 'dia' : 'dias'} de ofensiva</span></div></div>
     <p style="margin:0;text-align:center;font-size:14px;line-height:1.45">${practicedToday() ? `${celebrate ? 'Chama acesa! ' : ''}Você praticou hoje. Volte amanhã para chegar a <strong>${n + 1} dias</strong>.` : `Você ainda não praticou hoje. Faça uma lição para chegar a <strong>${n + 1} dias</strong>.`}</p>
     <div style="background:#fff;color:var(--navy);border-radius:14px;padding:14px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center">
