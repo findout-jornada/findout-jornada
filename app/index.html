@@ -361,8 +361,8 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const VIDEO = {feliz: 'rapozinha-feliz.mp4', feliz2: 'rapozinha-feliz2.mp4', triste: 'rapozinha-triste.mp4'};
 const SEM_MOV = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-// A tela de carregamento fica pelo menos este tempo na tela, para a animação da Rapozinha pensando aparecer inteira
-const MIN_CARREGANDO = 2000;
+// A tela de carregamento fica pelo menos este tempo na tela (3 s: um ciclo e meio da animação), para a animação da Rapozinha pensando aparecer inteira
+const MIN_CARREGANDO = 3000;
 // Mascote animada: o vídeo é desenhado num canvas com o fundo removido (a cor do canto vira transparente).
 // Enquanto o vídeo carrega, ou se ele falhar, aparece a imagem estática.
 // Humores em sprite PNG ('pensando', 'feliz3'): quadros lado a lado, animados por CSS steps();
