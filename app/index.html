@@ -1273,6 +1273,7 @@ async function finish(success) {
   const sub = L.lic ? `Unidade ${unitN} · ${nomeMat}` : L.uni ? `Unidade ${unitN} · ${nomeMat}` : nomeMat;
   const cores = ['var(--gold)', 'var(--teal)', 'var(--lilac-l)', 'var(--green)', 'var(--red)'];
   lastResult = {xp: data.xp, coins: data.moedas, acc: data.precisao, time: Date.now() - L.start, lines: (data.linhas || []).map((l, i) => [l.rotulo, l.valor, cores[i % cores.length]]), headline, title, sub, passed: data.passou, streakUp: data.ofensivaSubiu, mode,
+    humor: Math.random() < 0.5 ? 'feliz' : 'feliz2',  // sorteado UMA vez: dentro do template, cada re-render trocaria a mascote e reiniciaria as animações da tela
     justDone: payload.p_modo === 'licao' && data.nova && L.lic ? 'L' + L.lic.id : null};
   L = null; V.open = null;
   go('fim');
@@ -1283,7 +1284,7 @@ function screenFim() {
   const r = lastResult; if (!r) return screenJornada();
   return `<div class="scroll fullpurple" style="display:flex;flex-direction:column">
   <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:calc(28px + env(safe-area-inset-top,0px)) 20px 8px">
-    ${r.passed ? mascot(160, 'bounce', 'Rapozinha comemorando', Math.random() < 0.5 ? 'feliz' : 'feliz2') : mascot(130, '', 'Rapozinha triste', 'triste')}
+    ${r.passed ? mascot(160, 'bounce', 'Rapozinha comemorando', r.humor || 'feliz') : mascot(130, '', 'Rapozinha triste', 'triste')}
     <div class="reveal" style="display:flex;flex-direction:column;gap:8px;align-items:center;--d:1">
       <span class="px ${r.passed ? 'blink' : ''}" style="font-size:10px;color:var(--gold)">★ ${r.headline} ★</span>
       <h1 style="margin:0;font-family:var(--f-display);font-size:28px;font-weight:700;line-height:1.2;text-wrap:balance">${esc(r.title)}</h1>
