@@ -726,10 +726,18 @@ async function carregar() {
   // Segmentos chegam na migration 0012; sem ela, usa a lista padrão só para exibir
   const seg = await sb.from('segmentos').select('*').order('ordem').order('nome');
   if (seg.error) D.segmentosErro = traduzErro(seg.error.message); else D.segmentos = seg.data || [];
+  // Habilidades chegam na migration 0047; sem ela, a aba mostra o aviso de migration pendente
+  D.habilidades = null; D.qhab = []; D.hpre = [];
+  const [hab, qh, hp] = await Promise.all([
+    sb.from('habilidades').select('*').order('codigo'),
+    tudo(() => sb.from('questao_habilidades').select('*').order('questao_id')),
+    sb.from('habilidade_prerequisitos').select('*')
+  ]);
+  if (!hab.error) { D.habilidades = hab.data || []; D.qhab = qh.data || []; D.hpre = hp.data || []; }
   if (!V.materia || !D.materias.some(x => x.id === V.materia)) V.materia = D.materias[0] ? D.materias[0].id : null;
 }
 /* Confere se as migrations estão em dia (tabela schema_versao, migration 0022) */
-const ESQUEMA_ESPERADO = 46;
+const ESQUEMA_ESPERADO = 47;
 const CURSOS = ['dev', 'log', 'dat']; // matérias-curso: fora do Mapa do ENEM, o app mostra no grupo "Cursos"
 async function verificarEsquema() {
   const r = await sb.from('schema_versao').select('versao').order('versao', {ascending: false}).limit(1).maybeSingle();
@@ -909,7 +917,7 @@ async function rota(s) {
    professor e coordenador veem só a escola (as turmas que o RLS deixa) e o banco de questões. */
 const NAV_ADMIN = [
   ['', [['inicio', 'Visão geral', I.home], ['dashboard', 'Dashboard', I.grafico]]],
-  ['Conteúdo', [['trilhas', 'Matérias e trilhas', I.path], ['questoes', 'Questões', I.q], ['missoes', 'Missões', I.target], ['economia', 'Economia e loja', I.coin], ['ligas', 'Ligas', I.shield]]],
+  ['Conteúdo', [['trilhas', 'Matérias e trilhas', I.path], ['questoes', 'Questões', I.q], ['habilidades', 'Habilidades', I.check], ['missoes', 'Missões', I.target], ['economia', 'Economia e loja', I.coin], ['ligas', 'Ligas', I.shield]]],
   ['Escolas · suporte', [['escolas', 'Escolas', I.predio], ['turmas', 'Turmas', I.users], ['atividades', 'Atividades', I.target], ['alunos', 'Alunos', I.users]]],
   ['Sistema', [['publicar', 'Publicar', I.up], ['relatorios', 'Relatórios', I.grafico], ['auditoria', 'Auditoria', I.clock]]]
 ];
@@ -929,7 +937,7 @@ const NAV_GESTOR = [
 ];
 const navItens = () => admin ? NAV_ADMIN : gestor() ? NAV_GESTOR : NAV_PROF;
 function sidebar() {
-  const counts = {questoes: D.questoes.length, missoes: D.missoes.filter(m => m.ativa).length, trilhas: D.materias.filter(m => m.ativa).length, turmas: T ? T.turmas.length : null, atividades: T ? T.atividades.filter(a => statusReal(a) === 'aberta').length : null};
+  const counts = {questoes: D.questoes.length, habilidades: D.habilidades ? D.habilidades.length : null, missoes: D.missoes.filter(m => m.ativa).length, trilhas: D.materias.filter(m => m.ativa).length, turmas: T ? T.turmas.length : null, atividades: T ? T.atividades.filter(a => statusReal(a) === 'aberta').length : null};
   const ult = D.publicacoes[0];
   return `<aside><div class="brand"><span class="abbr" style="background:var(--primary);width:36px;height:36px;font-size:9px">FJ</span><div><b>Findout</b><small>Painel da Jornada</small></div></div>
     ${navItens().map(([sec, itens]) => (sec ? `<div class="navsec">${sec}</div>` : '') + itens.map(([id, l, ic]) => `<button class="navbtn" data-a="view:${id}" ${V.view === id || (id === 'turmas' && V.view === 'turma') || (id === 'atividades' && V.view === 'resultados') || (id === 'escolas' && V.view === 'escola') ? 'aria-current="page"' : ''}>${ic}${l}${counts[id] != null ? `<span class="cnt num">${counts[id]}</span>` : ''}</button>`).join('')).join('')}
@@ -941,6 +949,54 @@ const toggle = (on, a, label) => `<button class="toggle" role="switch" aria-chec
 const siglaMat = m => `<span class="abbr" style="background:${esc(m.cor || '#503C9D')}">${esc(m.sigla)}</span>`;
 const mover = (tabela, id) => `<span class="mv"><button data-a="mover:${tabela}:${id}:-1" aria-label="Subir">▲</button><button data-a="mover:${tabela}:${id}:1" aria-label="Descer">▼</button></span>`;
 function numField(label, path, val, hint) { const id = 'e-' + path.replace(/\W/g, ''); return `<div class="field"><label for="${id}">${label}</label><input id="${id}" type="number" class="inp" value="${val ?? ''}" data-f="${path}">${hint ? `<span style="font-size:11px;color:var(--muted)">${hint}</span>` : ''}</div>`; }
+
+/* =====================================================================
+   Habilidades (BNCC/ENEM) — Fase B do motor de aprendizagem (PLANO.md)
+   ===================================================================== */
+const REFERENCIAIS = {bncc: 'BNCC', enem: 'ENEM', propria: 'Própria'};
+const habPorId = id => (D.habilidades || []).find(h => h.id === id);
+const preDe = h => (D.hpre || []).filter(p => p.habilidade_id === h.id).map(p => habPorId(p.prerequisito_id)).filter(Boolean);
+const habPorCodigo = c => (D.habilidades || []).find(h => h.codigo.localeCompare(c, 'pt-BR', {sensitivity: 'base'}) === 0);
+/* Sincroniza os vínculos questão↔habilidades a partir do campo de códigos do editor */
+async function salvarHabilidadesQuestao(qid, texto) {
+  const ids = [], naoAchadas = [];
+  String(texto || '').split(/[,;]/).map(s => s.trim()).filter(Boolean).forEach(c => {
+    const h = habPorCodigo(c); if (h) { if (!ids.includes(h.id)) ids.push(h.id); } else naoAchadas.push(c);
+  });
+  const atuais = D.qhab.filter(l => l.questao_id === qid).map(l => l.habilidade_id);
+  const tirar = atuais.filter(id => !ids.includes(id)), por = ids.filter(id => !atuais.includes(id));
+  if (tirar.length) { await db(sb.from('questao_habilidades').delete().eq('questao_id', qid).in('habilidade_id', tirar)); D.qhab = D.qhab.filter(l => !(l.questao_id === qid && tirar.includes(l.habilidade_id))); }
+  if (por.length) { const rows = por.map(h => ({questao_id: qid, habilidade_id: h})); await db(sb.from('questao_habilidades').insert(rows)); D.qhab.push(...rows); }
+  if (naoAchadas.length) toast('Habilidade(s) não cadastrada(s), ignoradas: ' + naoAchadas.join(', ') + '. Cadastre na aba Habilidades.');
+}
+function viewHabilidades() {
+  const F = V.habF || (V.habF = {materia: '', ref: '', busca: ''});
+  if (D.habilidades === null) return topbar('Habilidades', 'Competências e habilidades ligadas às questões') + `<div class="content"><div class="warnbox">${I.warn}<span>Esta aba precisa da migration 0047. Rode-a no SQL Editor do Supabase e recarregue o painel.</span></div></div>`;
+  const busca = F.busca.trim().toLowerCase();
+  const lista = D.habilidades.filter(h => (!F.materia || h.materia_id === F.materia) && (!F.ref || h.referencial === F.ref)
+    && (!busca || (h.codigo + ' ' + h.nome + ' ' + h.descricao).toLowerCase().includes(busca)));
+  const nQ = h => D.qhab.filter(l => l.habilidade_id === h.id).length;
+  return topbar('Habilidades', 'O que cada questão exige do aluno. Base do domínio por habilidade, das lacunas e das recomendações.', `<button class="btn btn-primary" data-a="nova-hab">${I.plus}Nova habilidade</button>`) + `<div class="content">
+    <div class="toolbar">
+      <select class="inp sm" data-f="habF.materia" aria-label="Matéria"><option value="">Todas as matérias</option>${D.materias.map(m => `<option value="${m.id}" ${F.materia === m.id ? 'selected' : ''}>${esc(m.nome)}</option>`).join('')}</select>
+      <select class="inp sm" data-f="habF.ref" aria-label="Referencial"><option value="">Todos os referenciais</option>${Object.entries(REFERENCIAIS).map(([k, v]) => `<option value="${k}" ${F.ref === k ? 'selected' : ''}>${v}</option>`).join('')}</select>
+      <input class="inp sm" placeholder="Código, nome ou descrição" value="${esc(F.busca)}" data-f="habF.busca" aria-label="Buscar habilidade" style="min-width:220px">
+      <span style="color:var(--muted);font-size:13px">${lista.length} de ${D.habilidades.length}</span></div>
+    <div class="card tbl-wrap"><table><thead><tr><th>Código</th><th>Nome</th><th>Matéria</th><th>Referencial</th><th>Pré-requisitos</th><th>Questões</th><th>Ativa</th><th></th></tr></thead><tbody>
+      ${lista.map(h => `<tr>
+        <td><input class="inline-edit num" style="min-width:110px;max-width:150px" value="${esc(h.codigo)}" data-f="habilidade.${h.id}.codigo" aria-label="Código"></td>
+        <td><input class="inline-edit" value="${esc(h.nome)}" data-f="habilidade.${h.id}.nome" aria-label="Nome"></td>
+        <td><select class="inp sm" data-f="habilidade.${h.id}.materia_id" aria-label="Matéria"><option value="">—</option>${D.materias.map(m => `<option value="${m.id}" ${h.materia_id === m.id ? 'selected' : ''}>${esc(m.sigla)}</option>`).join('')}</select></td>
+        <td><select class="inp sm" data-f="habilidade.${h.id}.referencial" aria-label="Referencial">${Object.entries(REFERENCIAIS).map(([k, v]) => `<option value="${k}" ${h.referencial === k ? 'selected' : ''}>${v}</option>`).join('')}</select></td>
+        <td style="font-size:12px">${preDe(h).map(p => `<span class="pill off" title="${esc(p.nome)}">${esc(p.codigo)}</span>`).join(' ') || '<span style="color:var(--muted)">—</span>'} <button class="btn btn-ghost btn-xs" data-a="hab-pre:${h.id}" aria-label="Editar pré-requisitos">${I.edit}</button></td>
+        <td class="num">${nQ(h)}</td>
+        <td>${toggle(h.ativa, `hab-ativa:${h.id}`, 'Ativa')}</td>
+        <td><button class="btn btn-ghost btn-xs btn-danger" style="border:0" data-a="excluir-hab:${h.id}" aria-label="Excluir">${I.trash}</button></td></tr>`).join('')}
+      ${!lista.length ? `<tr><td colspan="8" class="empty">${D.habilidades.length ? 'Nada com esses filtros.' : 'Nenhuma habilidade ainda. Cadastre com os códigos oficiais da BNCC ou da matriz do ENEM — não invente códigos.'}</td></tr>` : ''}
+    </tbody></table></div>
+    <p style="margin:0;font-size:12px;color:var(--muted)">Vincule habilidades às questões no editor de questão (campo "Habilidades"). Pré-requisito = o que o aluno precisa dominar antes: é por ele que a plataforma vai achar lacunas (ex.: errou equação do 2º grau → revisar fatoração). As próximas fases do PLANO.md usam este cadastro com a tabela de tentativas.</p>
+  </div>`;
+}
 
 /* =====================================================================
    Visão geral
@@ -1162,12 +1218,13 @@ function viewQuestoes() {
     </tbody></table></div></div>`;
 }
 function novoRascunho(tipo = 'mc', materia_id = null, unidade_id = null) {
-  return {id: null, tipo, materia_id, unidade_id, status: 'rascunho', enunciado: '', explicacao: '', imagem_url: null, fonte: '', dificuldade: 2, assuntos: '', segmentos: [], destino: 'banco', opts: ['', '', '', ''], a: 0, stmt: '', parts: ['', '', ''], ans: ['', ''], extra: ['', ''], items: ['', '', '', ''], pairs: [['', ''], ['', ''], ['', ''], ['', '']], enviando: false};
+  return {id: null, tipo, materia_id, unidade_id, status: 'rascunho', enunciado: '', explicacao: '', imagem_url: null, fonte: '', dificuldade: 2, assuntos: '', habilidades: '', segmentos: [], destino: 'banco', opts: ['', '', '', ''], a: 0, stmt: '', parts: ['', '', ''], ans: ['', ''], extra: ['', ''], items: ['', '', '', ''], pairs: [['', ''], ['', ''], ['', ''], ['', '']], enviando: false};
 }
 const listaAssuntos = s => [...new Set(String(s || '').split(/[,;]/).map(a => a.trim().replace(/\s+/g, ' ')).filter(Boolean))];
 function rascunhoDe(q) {
   const d = novoRascunho(q.tipo, q.materia_id, q.unidade_id); const x = q.dados || {};
   d.id = q.id; d.status = q.status; d.enunciado = q.enunciado || ''; d.explicacao = q.explicacao || ''; d.imagem_url = q.imagem_url || null; d.fonte = x.fonte || ''; d.dificuldade = x.dificuldade || 2; d.assuntos = (q.assuntos || []).join(', '); d.segmentos = (q.segmentos || []).slice();
+  d.habilidades = (D.qhab || []).filter(l => l.questao_id === q.id).map(l => (habPorId(l.habilidade_id) || {}).codigo).filter(Boolean).join(', ');
   const completa = (arr, min, vazio) => { const a = (arr || []).map(v => Array.isArray(v) ? v.slice() : v); while (a.length < min) a.push(Array.isArray(vazio) ? vazio.slice() : vazio); return a; };
   if (q.tipo === 'mc') { d.opts = completa(x.opts, 4, ''); d.a = +x.a || 0; }
   if (q.tipo === 'tf') { d.stmt = x.stmt || ''; d.a = !!x.a; }
@@ -1242,6 +1299,7 @@ function drawerQuestao() {
       ${formTipo}
       <div class="field"><label for="f-why">Explicação quando erra</label><textarea id="f-why" class="inp" data-f="rascunho.explicacao" placeholder="Resposta correta e o porquê, em uma ou duas frases">${esc(d.explicacao)}</textarea></div>
       <div class="frow"><div class="field"><label for="f-ass">Assuntos (opcional, separe por vírgula)</label><input id="f-ass" class="inp sm" value="${esc(d.assuntos)}" data-f="rascunho.assuntos" placeholder="Ex.: porcentagem, juros simples"></div>
+        ${!paraAtiv && D.habilidades !== null ? `<div class="field"><label for="f-hab">Habilidades (códigos da aba Habilidades)</label><input id="f-hab" class="inp sm" value="${esc(d.habilidades || '')}" data-f="rascunho.habilidades" placeholder="Ex.: EM13MAT302, C2H7"></div>` : ''}
         <div class="field"><label for="f-fonte">Fonte (opcional)</label><input id="f-fonte" class="inp sm" value="${esc(d.fonte)}" data-f="rascunho.fonte" placeholder="Ex.: ENEM 2019, adaptada"></div>
         <div class="field"><label for="f-dif">Nível</label><select id="f-dif" class="inp sm" data-f="rascunho.dificuldade">${Object.entries(DIFICULDADES).map(([k, v]) => `<option value="${k}" ${+d.dificuldade === +k ? 'selected' : ''}>${v}</option>`).join('')}</select></div></div>
       <div class="field"><span class="lab">Indicada para (opcional; nada marcado = todos os segmentos)</span><div style="display:flex;gap:6px 14px;flex-wrap:wrap">${segAtivos().map(s => `<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" data-a="rascunho-seg:${esc(s.id)}" ${(d.segmentos || []).includes(s.id) ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--primary)">${esc(s.nome)}</label>`).join('') || '<span style="font-size:12px;color:var(--muted)">Nenhum segmento cadastrado.</span>'}</div></div>
@@ -2222,7 +2280,7 @@ function confirmHtml() {
 /* =====================================================================
    Render
    ===================================================================== */
-const VIEWS = {inicio: () => admin ? viewInicio() : viewInicioEducador(), dashboard: viewDashboard, trilhas: viewTrilhas, questoes: viewQuestoes, missoes: viewMissoes, economia: viewEconomia, ligas: viewLigas, alunos: viewAlunos, publicar: viewPublicar, turmas: viewTurmas, turma: viewTurma, escolas: viewEscolas, escola: viewEscola, atividades: viewAtividades, resultados: viewResultados, dinamica: viewDinamica, auditoria: viewAuditoria, relatorios: viewRelatorios};
+const VIEWS = {inicio: () => admin ? viewInicio() : viewInicioEducador(), dashboard: viewDashboard, trilhas: viewTrilhas, questoes: viewQuestoes, habilidades: viewHabilidades, missoes: viewMissoes, economia: viewEconomia, ligas: viewLigas, alunos: viewAlunos, publicar: viewPublicar, turmas: viewTurmas, turma: viewTurma, escolas: viewEscolas, escola: viewEscola, atividades: viewAtividades, resultados: viewResultados, dinamica: viewDinamica, auditoria: viewAuditoria, relatorios: viewRelatorios};
 let ultimaViewRender = null;
 function render() {
   if (!D) return;
@@ -2265,6 +2323,8 @@ function setCampo(path, value) {
       r[p[2]] = value; agendar(path, () => db(sb.from(tabela).update({[p[2]]: value}).eq('id', p[1]))); return 'dados';
     }
     case 'missao': { const r = D.missoes.find(x => x.id === p[1]); if (!r) return 'nada'; const v = p[2] === 'meta' ? Math.max(1, +value || 1) : value; r[p[2]] = v; agendar(path, () => db(sb.from('missoes').update({[p[2]]: v}).eq('id', r.id))); return 'dados'; }
+    case 'habF': V.habF[p[1]] = value; return 'ui';
+    case 'habilidade': { const h = (D.habilidades || []).find(x => x.id === p[1]); if (!h) return 'nada'; const v = p[2] === 'materia_id' ? (value || null) : value; h[p[2]] = v; agendar(path, () => db(sb.from('habilidades').update({[p[2]]: v}).eq('id', h.id))); return 'dados'; }
     case 'loja': { const r = D.loja.find(x => x.id === p[1]); if (!r) return 'nada'; const v = p[2] === 'preco' ? Math.max(0, +value || 0) : value; r[p[2]] = v; agendar(path, () => db(sb.from('itens_loja').update({[p[2]]: v}).eq('id', r.id))); return 'dados'; }
     case 'param': { const g = p[1]; setIn(D.param[g], p.slice(2), value); agendar('param.' + g, () => salvarParam(g)); return 'dados'; }
   }
@@ -2638,6 +2698,37 @@ async function act(a, el) {
     case 'rascunho-mais-item': V.rascunho.items.push(''); return render();
     case 'trocar-imagem': { const inp = document.getElementById('f-img'); if (inp) inp.click(); return; }
     case 'remover-imagem': V.rascunho.imagem_url = null; return render();
+    case 'nova-hab': V.modal = {titulo: 'Nova habilidade', texto: 'Use o código oficial (BNCC, ex.: EM13MAT302; matriz do ENEM, ex.: C2H7) ou um código próprio curto. Não invente códigos oficiais: copie do documento de referência.', ok: 'Criar', campos: [
+      {k: 'codigo', label: 'Código', obrigatorio: true, maxlength: 20},
+      {k: 'nome', label: 'Nome (resumo da habilidade)', obrigatorio: true},
+      {k: 'descricao', label: 'Descrição oficial (opcional)'}
+    ], fn: async v => {
+      const codigo = v.codigo.trim();
+      if (habPorCodigo(codigo)) return toast('Já existe uma habilidade com esse código.');
+      const referencial = /^(EF|EM)\d/i.test(codigo) ? 'bncc' : /^C\d+H\d+$/i.test(codigo) ? 'enem' : 'propria';
+      const row = await db(sb.from('habilidades').insert({codigo, nome: v.nome.trim(), descricao: v.descricao.trim(), materia_id: (V.habF && V.habF.materia) || null, referencial}).select().single());
+      D.habilidades.push(row); D.habilidades.sort((a, b) => a.codigo.localeCompare(b.codigo, 'pt-BR'));
+      toast(`Habilidade ${row.codigo} criada (${REFERENCIAIS[referencial]}).`);
+    }}; return render();
+    case 'hab-ativa': { const h = habPorId(x); if (!h) return; h.ativa = !h.ativa; render(); return db(sb.from('habilidades').update({ativa: h.ativa}).eq('id', x)); }
+    case 'hab-pre': { const h = habPorId(x); if (!h) return;
+      V.modal = {titulo: `Pré-requisitos de ${h.codigo}`, texto: 'Códigos de habilidades já cadastradas, separados por vírgula — o que o aluno precisa dominar antes desta. Deixe vazio para nenhum.', ok: 'Salvar', campos: [
+        {k: 'pre', label: 'Códigos', valor: preDe(h).map(p => p.codigo).join(', ')}
+      ], fn: async v => {
+        const ids = [], ruins = [];
+        v.pre.split(/[,;]/).map(s => s.trim()).filter(Boolean).forEach(c => { const p = habPorCodigo(c); if (!p || p.id === h.id) ruins.push(c); else if (!ids.includes(p.id)) ids.push(p.id); });
+        if (ruins.length) return toast('Não encontrei (ou é a própria habilidade): ' + ruins.join(', ') + '. Nada foi salvo.');
+        await db(sb.from('habilidade_prerequisitos').delete().eq('habilidade_id', h.id));
+        if (ids.length) await db(sb.from('habilidade_prerequisitos').insert(ids.map(p => ({habilidade_id: h.id, prerequisito_id: p}))));
+        D.hpre = D.hpre.filter(p => p.habilidade_id !== h.id).concat(ids.map(p => ({habilidade_id: h.id, prerequisito_id: p})));
+        toast('Pré-requisitos salvos.');
+      }}; return render(); }
+    case 'excluir-hab': { const h = habPorId(x); if (!h) return;
+      return confirmar(`Excluir ${h.codigo}?`, 'Ela sai de todas as questões vinculadas e dos pré-requisitos das outras. Não dá para desfazer.', async () => {
+        await db(sb.from('habilidades').delete().eq('id', x));
+        D.habilidades = D.habilidades.filter(o => o.id !== x); D.qhab = D.qhab.filter(l => l.habilidade_id !== x); D.hpre = D.hpre.filter(p => p.habilidade_id !== x && p.prerequisito_id !== x);
+        toast('Habilidade excluída.');
+      }); }
     case 'salvar-q': {
       const d = V.rascunho; if ((x === 'publicada' || x === 'atividade') && validar(d).length) return;
       if (x === 'atividade') {
@@ -2648,9 +2739,11 @@ async function act(a, el) {
       }
       if (!d.unidade_id) return toast('Escolha uma unidade (a matéria precisa ter unidades).');
       const linha = rascunhoParaLinha(d, x);
+      let qid;
       if (d.id) {
         const row = await db(sb.from('questoes').update(linha).eq('id', d.id).select().single());
         const i = D.questoes.findIndex(q => q.id === d.id); if (i >= 0) D.questoes[i] = row;
+        qid = row.id;
       } else {
         const row = await db(sb.from('questoes').insert(linha).select().single());
         D.questoes.unshift(row);
@@ -2658,12 +2751,14 @@ async function act(a, el) {
           const l = licoesDe(row.unidade_id).find(l => questoesDaLicao(l.id).length < tamLicao());
           if (l) { const lq = {licao_id: l.id, questao_id: row.id, ordem: questoesDaLicao(l.id).length}; await db(sb.from('licao_questoes').insert(lq)); D.licaoQuestoes.push(lq); }
         }
+        qid = row.id;
       }
+      if (D.habilidades !== null) await salvarHabilidadesQuestao(qid, d.habilidades);
       V.rascunho = null; toast(x === 'publicada' ? 'Questão salva. Lembre de Publicar para chegar ao app.' : 'Rascunho salvo.'); return render();
     }
     case 'excluir-q': return confirmar('Excluir questão?', 'Ela sai de todas as lições em que está e dos erros dos alunos. Não dá para desfazer.', async () => {
       const id = V.rascunho.id; await db(sb.from('questoes').delete().eq('id', id));
-      D.questoes = D.questoes.filter(q => q.id !== id); D.licaoQuestoes = D.licaoQuestoes.filter(q => q.questao_id !== id); V.rascunho = null; toast('Questão excluída.');
+      D.questoes = D.questoes.filter(q => q.id !== id); D.licaoQuestoes = D.licaoQuestoes.filter(q => q.questao_id !== id); D.qhab = (D.qhab || []).filter(l => l.questao_id !== id); V.rascunho = null; toast('Questão excluída.');
     });
     case 'fechar': V.rascunho = null; V.licaoAtribuir = null; return render();
     case 'atribuir': V.licaoAtribuir = x; V.rascunho = null; V.atribuirBusca = ''; return render();
