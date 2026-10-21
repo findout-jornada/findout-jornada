@@ -2,7 +2,7 @@
    Rede primeiro (com limite de tempo) para o que é nosso; o supabase-js tem
    versão fixa e fica em cache (sem ele o app nem abre). Só respostas 200
    entram no cache — erro e resposta parcial (206 dos vídeos) ficam fora. */
-const CACHE = 'fj-casca-v2';
+const CACHE = 'fj-casca-v3'; // v3: identidade visual azul/branco/laranja (mascote e ícones novos)
 const CASCA = ['./', 'index.html', 'config.js', 'manifest.json', 'rapozinha.png', 'icone-192.png', 'icone-512.png'];
 const CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js';
 
