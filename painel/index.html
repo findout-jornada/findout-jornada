@@ -669,7 +669,7 @@ async function carregar() {
   if (!V.materia || !D.materias.some(x => x.id === V.materia)) V.materia = D.materias[0] ? D.materias[0].id : null;
 }
 /* Confere se as migrations estão em dia (tabela schema_versao, migration 0022) */
-const ESQUEMA_ESPERADO = 28;
+const ESQUEMA_ESPERADO = 31;
 async function verificarEsquema() {
   const r = await sb.from('schema_versao').select('versao').order('versao', {ascending: false}).limit(1).maybeSingle();
   const v = r.error || !r.data ? 0 : r.data.versao;
@@ -706,6 +706,9 @@ const turmaPorId = id => T && T.turmas.find(t => t.id === id);
 const escolaPorId = id => T && T.escolas.find(e => e.id === id);
 const alunosDaTurma = tid => T ? T.alunos.filter(a => a.turma_id === tid) : [];
 const profsDaTurma = tid => T ? T.profs.filter(p => p.turma_id === tid) : [];
+// Matérias de um professor na turma (migration 0031: lista em `materias`; antes era só `materia_id`). Lista vazia = todas.
+const matsProfIds = p => (p.materias && p.materias.length) ? p.materias : p.materia_id ? [p.materia_id] : [];
+const matsProf = p => { const ids = matsProfIds(p); return ids.length ? ids.map(id => (materiaPorId(id) || {}).nome || id).join(', ') : 'todas as matérias'; };
 const entregasDe = aid => T ? T.entregas.filter(e => e.atividade_id === aid && e.entregue_em) : [];
 const minhasEscolas = () => T ? T.escolas.filter(e => admin || T.membros.some(m => m.escola_id === e.id && m.user_id === sessao.user.id)) : [];
 const souCoord = eid => admin || (T && T.membros.some(m => m.escola_id === eid && m.user_id === sessao.user.id && (m.papel === 'coordenador' || m.papel === 'admin')));
@@ -1439,7 +1442,7 @@ function viewEscola() {
   const blocoTurma = t => { const tp = profsDaTurma(t.id), ta = alunosDaTurma(t.id), aberto = !!V.escolaAberto['t:' + t.id];
     return `<div class="tree-t"><button class="tree-h" data-a="esc-abrir:t:${t.id}" aria-expanded="${aberto}">${I.seta}<b style="flex:1;min-width:0;text-align:left">${esc(t.nome)}</b>${t.ativa ? '' : '<span class="pill off">inativa</span>'}<span class="pill type" style="font-size:10px">${ta.length} aluno${ta.length === 1 ? '' : 's'}</span><span class="pill on" style="font-size:10px">${tp.length} prof.</span></button>
       ${aberto ? `<div class="tree-b">
-        <div><b style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Professores</b><div class="list">${tp.map(p => `<div class="item"><span style="flex:1;min-width:0"><b>${esc(nomeDe(p.user_id))}</b><br><span style="font-size:12px;color:var(--muted)">${p.materia_id ? esc((materiaPorId(p.materia_id) || {}).nome || p.materia_id) : 'todas as matérias'}</span></span></div>`).join('') || '<div class="empty" style="padding:8px 0">Sem professor nesta turma.</div>'}</div></div>
+        <div><b style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Professores</b><div class="list">${tp.map(p => `<div class="item"><span style="flex:1;min-width:0"><b>${esc(nomeDe(p.user_id))}</b><br><span style="font-size:12px;color:var(--muted)">${esc(matsProf(p))}</span></span></div>`).join('') || '<div class="empty" style="padding:8px 0">Sem professor nesta turma.</div>'}</div></div>
         <div><b style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Alunos</b><div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:6px">${ta.map(a => `<span class="pill off" style="font-size:11px">${esc(nomeDe(a.user_id))}</span>`).join('') || '<span class="empty" style="padding:0">Nenhum aluno ainda.</span>'}</div></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" data-a="abrir-turma:${t.id}">Abrir a turma</button><button class="btn btn-ghost btn-sm" data-a="nova-ativ:${t.id}">${I.plus}Atividade</button></div>
       </div>` : ''}</div>`; };
@@ -1488,7 +1491,7 @@ function viewTurma() {
           ${A.lista.map(a => `<tr style="${a.aceito === false ? 'opacity:.6' : ''}"><td><b>${esc(a.nome)}</b>${a.aceito === false ? ' <span class="pill draft" title="O aluno ainda não aceitou o convite no app">convite pendente</span>' : ''}<br><span style="font-size:12px;color:var(--muted);white-space:nowrap">${esc(a.email)} · ${a.aceito === false ? 'convidado' : 'desde'} ${fmtDia(a.entrou_em)}</span>${a.aceito === false ? '' : `<br><button class="btn btn-ghost btn-sm" style="padding:0;height:auto;font-size:12px" data-a="relatorio:${a.user_id}">${I.eye}Relatório do aluno</button>`}</td><td class="num">${a.xp}</td><td class="num">${a.ofensiva} d</td><td class="num">${a.entregas} / ${ativs.filter(x => x.status !== 'rascunho').length}</td><td><button class="btn btn-ghost btn-sm" data-a="remover-aluno:${t.id}:${a.user_id}" aria-label="Tirar da turma">${I.trash}</button></td></tr>`).join('')}
         </tbody></table></div>` : `<div class="empty">Nenhum aluno ainda. Passe o código <b>${esc(t.codigo)}</b> para a turma digitar no app, ou adicione pelo e-mail.</div>`}</div>
       <div class="card"><div class="card-h"><h2>Professores</h2><span class="right"><button class="btn btn-outline btn-sm" data-a="add-prof-turma:${t.id}">${I.plus}Professor</button></span></div>
-        <div class="list">${profs.map(p => `<div class="item"><span style="flex:1;min-width:0"><b>${esc(nomeDe(p.user_id))}</b><br><span style="font-size:12px;color:var(--muted)">${esc((T.pessoas[p.user_id] || {}).email || '')} · ${p.materia_id ? esc((materiaPorId(p.materia_id) || {}).nome || p.materia_id) : 'todas as matérias'}</span></span>${p.user_id === sessao.user.id ? '<span style="font-size:12px;color:var(--muted)">você</span>' : `<button class="btn btn-ghost btn-sm" data-a="remover-prof:${t.id}:${p.user_id}" aria-label="Remover professor">${I.trash}</button>`}</div>`).join('') || '<div class="empty">Sem professores.</div>'}</div>
+        <div class="list">${profs.map(p => `<div class="item"><span style="flex:1;min-width:0"><b>${esc(nomeDe(p.user_id))}</b><br><span style="font-size:12px;color:var(--muted)">${esc((T.pessoas[p.user_id] || {}).email || '')} · ${esc(matsProf(p))}</span></span>${p.user_id === sessao.user.id ? '<span style="font-size:12px;color:var(--muted)">você</span>' : `<button class="btn btn-ghost btn-sm" data-a="remover-prof:${t.id}:${p.user_id}" aria-label="Remover professor">${I.trash}</button>`}</div>`).join('') || '<div class="empty">Sem professores.</div>'}</div>
         <div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">Cada professor pode ser responsável por uma matéria; as atividades dele ficam com essa matéria por padrão.</div></div>
     </div>
     <div class="card"><div class="card-h"><h2>Atividades desta turma</h2><span class="right"><button class="btn btn-primary btn-sm" data-a="nova-ativ:${t.id}">${I.plus}Nova atividade</button></span></div>
@@ -1515,7 +1518,7 @@ function viewAtividades() {
 function novaAtiv(turmaId) {
   const t = turmaId ? turmaPorId(turmaId) : (T.turmas[0] || null);
   const meu = t ? profsDaTurma(t.id).find(p => p.user_id === sessao.user.id) : null;
-  return {id: null, turma_id: t ? t.id : '', materia_id: restrito() ? disciplina : (meu && meu.materia_id) || disciplina || (D.materias[0] ? D.materias[0].id : ''), titulo: '', descricao: '', prazo: '', status: 'rascunho', questoes: []};
+  return {id: null, turma_id: t ? t.id : '', materia_id: restrito() ? disciplina : (meu && matsProfIds(meu)[0]) || disciplina || (D.materias[0] ? D.materias[0].id : ''), titulo: '', descricao: '', prazo: '', status: 'rascunho', questoes: []};
 }
 function snapshotQ(q) { return {id: q.id, tipo: q.tipo, enunciado: q.enunciado, dados: q.dados, explicacao: q.explicacao || '', imagem: q.imagem_url || null, materia: q.materia_id, valor: 1, origem: 'banco'}; }
 function validarAtiv(a) {
@@ -2005,13 +2008,14 @@ async function act(a, el) {
         await db(sb.rpc('definir_segmentos_coordenador', {p_escola: x, p_user: y, p_segmentos: v.segmentos || []})); m.segmentos = v.segmentos || []; toast('Segmentos do coordenador salvos.');
       }}; return render(); }
     case 'remover-membro': return confirmar('Remover da escola?', 'A pessoa continua com as turmas que já tem, mas sai da lista da escola.', async () => { await db(sb.from('escola_membros').delete().eq('escola_id', x).eq('user_id', y)); await carregarTurmas(); });
-    case 'nova-turma': { const escolas = minhasEscolas(); V.modal = {titulo: 'Nova turma', texto: 'A turma ganha um código de 6 letras. Passe o código para os alunos digitarem no app, em Perfil → Minhas turmas.', campos: [
+    case 'nova-turma': { const escolas = minhasEscolas(); const naEscola = V.view === 'escola' && V.escola ? V.escola : null; // aberto de dentro da tela Escola: a escola já está definida, não pergunta
+      V.modal = {titulo: 'Nova turma', texto: `A turma ganha um código de 6 letras. Passe o código para os alunos digitarem no app, em Perfil → Minhas turmas.${restrito() ? '' : ' Marque as matérias que você dá nesta turma; nenhuma marcada = todas.'}`, campos: [
       {k: 'nome', label: 'Nome da turma', placeholder: 'Ex.: 3º ano A · 2026', obrigatorio: true},
-      ...(escolas.length ? [{k: 'escola', label: 'Escola', tipo: 'select', opcoes: [['', 'Sem escola'], ...escolas.map(e => [e.id, e.nome])], valor: (V.view === 'escola' && V.escola) || escolas[0].id}] : []),
+      ...(escolas.length && !naEscola ? [{k: 'escola', label: 'Escola', tipo: 'select', opcoes: [['', 'Sem escola'], ...escolas.map(e => [e.id, e.nome])], valor: escolas[0].id}] : []),
       {k: 'segmento', label: 'Segmento', tipo: 'select', opcoes: [['', 'Sem segmento'], ...segAtivos().map(s => [s.id, s.nome])], valor: (segAtivos()[2] || segAtivos()[0] || {}).id || ''},
-      {k: 'materia', label: 'Sua matéria nesta turma', tipo: 'select', opcoes: restrito() ? materiasPermitidas().map(m => [m.id, m.nome]) : [['', 'Todas / várias'], ...D.materias.map(m => [m.id, m.nome])], valor: disciplina || ''}
+      {k: 'materias', label: restrito() ? 'Sua matéria nesta turma' : 'Suas matérias nesta turma', tipo: 'checks', opcoes: (restrito() ? materiasPermitidas() : D.materias.filter(m => m.ativa)).map(m => [m.id, m.nome]), valores: disciplina ? [disciplina] : []}
     ], ok: 'Criar turma', fn: async v => {
-      const row = await db(sb.rpc('criar_turma', {p_nome: v.nome.trim(), p_escola: v.escola || null, p_materia: v.materia || null, p_segmento: v.segmento || null})); await carregarTurmas(); V.turma = row.id; V.view = 'turma'; V.turmaAlunos = {lista: [], erro: null}; toast(`Turma criada. Código: ${row.codigo}`);
+      const row = await db(sb.rpc('criar_turma', {p_nome: v.nome.trim(), p_escola: naEscola || v.escola || null, p_materias: v.materias || [], p_segmento: v.segmento || null})); await carregarTurmas(); V.turma = row.id; V.view = 'turma'; V.turmaAlunos = {lista: [], erro: null}; toast(`Turma criada. Código: ${row.codigo}`);
     }}; return render(); }
     case 'abrir-turma': { const t = turmaPorId(x); V.turma = x; V.view = 'turma'; V.turmaAlunos = null; window.scrollTo(0, 0); render(); auditar('turma', 'turmas', x, 'Abriu a turma ' + (t ? t.nome : x)); return carregarAlunosTurma(x); }
     case 'abrir-escola': { const e = escolaPorId(x); V.view = 'escola'; if (V.escola !== x) { V.escola = x; V.escolaAba = 'segmentos'; V.escolaAlunos = null; V.escolaAberto = {}; } window.scrollTo(0, 0); render(); auditar('escola', 'escolas', x, 'Abriu a escola ' + (e ? e.nome : x)); return; }
@@ -2027,8 +2031,8 @@ async function act(a, el) {
       const r = await db(sb.rpc('adicionar_aluno_turma', {p_turma: x, p_email: v.email.trim()})); await carregarTurmas(); toast(`${r.nome} entrou na turma.`); return carregarAlunosTurma(x);
     }}; return render();
     case 'remover-aluno': return confirmar('Tirar o aluno da turma?', 'As entregas dele ficam guardadas, mas ele deixa de ver as atividades.', async () => { await db(sb.from('turma_alunos').delete().eq('turma_id', x).eq('user_id', y)); await carregarTurmas(); await carregarAlunosTurma(x); }, 'Tirar');
-    case 'add-prof-turma': V.modal = {titulo: 'Adicionar professor à turma', texto: 'Ele passa a criar atividades para esta turma e ver os resultados.', campos: [{k: 'email', label: 'E-mail da conta', tipo: 'email', obrigatorio: true}, {k: 'materia', label: 'Matéria dele nesta turma', tipo: 'select', opcoes: [['', 'A disciplina do cadastro dele'], ...D.materias.map(m => [m.id, m.nome])]}], ok: 'Adicionar', fn: async v => {
-      const r = await db(sb.rpc('adicionar_professor_turma', {p_turma: x, p_email: v.email.trim(), p_materia: v.materia || null})); await carregarTurmas(); toast(`${r.nome} agora dá aula nesta turma.`);
+    case 'add-prof-turma': V.modal = {titulo: 'Adicionar professor à turma', texto: 'Ele passa a criar atividades para esta turma e ver os resultados. Marque as matérias dele nesta turma; nenhuma marcada = a disciplina do cadastro dele (ou todas, se não tiver).', campos: [{k: 'email', label: 'E-mail da conta', tipo: 'email', obrigatorio: true}, {k: 'materias', label: 'Matérias dele nesta turma', tipo: 'checks', opcoes: D.materias.filter(m => m.ativa).map(m => [m.id, m.nome]), valores: []}], ok: 'Adicionar', fn: async v => {
+      const r = await db(sb.rpc('adicionar_professor_turma', {p_turma: x, p_email: v.email.trim(), p_materias: v.materias || []})); await carregarTurmas(); toast(`${r.nome} agora dá aula nesta turma.`);
     }}; return render();
     case 'remover-prof': return confirmar('Remover professor da turma?', 'As atividades que ele criou continuam na turma.', async () => { await db(sb.from('turma_professores').delete().eq('turma_id', x).eq('user_id', y)); await carregarTurmas(); }, 'Remover');
 

@@ -1406,7 +1406,9 @@ function sheetTurma() {
 }
 /* ---------- Mapa do ENEM: arquipélago com uma ilha por área de conhecimento ---------- */
 // Cada ilha agrupa matérias. A ilha é conquistada quando todas as lições publicadas das matérias dela foram concluídas.
-// Matérias fora dessas listas caem na ilha "Atualidades". A ordem da lista é a ordem da viagem.
+// Matérias fora dessas listas caem na ilha "Atualidades", exceto as de FORA_DO_MAPA, que não entram no mapa
+// (ficam só em "Suas matérias"). A ordem da lista é a ordem da viagem.
+const FORA_DO_MAPA = ['lit', 'cge']; // Literatura e Conhecimentos Gerais: não fazem parte do ENEM
 const ILHAS = [
   // x/y no mapa base de 360×600 (o y é esticado conforme a altura da tela); barco: âncora do barco em relação ao pino, para não cobrir rótulos
   // idiomas: na viagem o aluno escolhe um deles (como no ENEM); só o escolhido conta para a ilha
@@ -1433,7 +1435,7 @@ function ilhas() {
     return {...i, materias, opcoesIdioma: opcoes, precisaEscolher: opcoes.length > 1 && !escolhido, todasMaterias: todas};
   });
   lista.forEach(i => i.todasMaterias.forEach(m => usados.add(m.id)));
-  const extra = lista.find(i => i.id === 'extra'); extra.materias = ms.filter(m => !usados.has(m.id)); extra.todasMaterias = extra.materias;
+  const extra = lista.find(i => i.id === 'extra'); extra.materias = ms.filter(m => !usados.has(m.id) && !FORA_DO_MAPA.includes(m.id)); extra.todasMaterias = extra.materias;
   const out = lista.filter(i => i.todasMaterias.length);
   out.forEach(i => { let d = 0, t = 0; i.materias.forEach(m => { const T = trilha(m); d += T.done; t += T.total; }); i.feitas = d; i.total = t; i.pct = t ? Math.round(d / t * 100) : 0; i.completa = t > 0 && d >= t && !i.precisaEscolher; });
   // viagem sequencial: só a ilha atual (primeira não concluída) e as anteriores estão liberadas
