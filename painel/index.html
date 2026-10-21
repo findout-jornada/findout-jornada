@@ -701,7 +701,7 @@ async function carregar() {
   if (!V.materia || !D.materias.some(x => x.id === V.materia)) V.materia = D.materias[0] ? D.materias[0].id : null;
 }
 /* Confere se as migrations estão em dia (tabela schema_versao, migration 0022) */
-const ESQUEMA_ESPERADO = 33;
+const ESQUEMA_ESPERADO = 34;
 async function verificarEsquema() {
   const r = await sb.from('schema_versao').select('versao').order('versao', {ascending: false}).limit(1).maybeSingle();
   const v = r.error || !r.data ? 0 : r.data.versao;
@@ -1282,6 +1282,7 @@ function viewAlunos() {
           <span class="stat s-of" title="Ofensiva (dias seguidos)">${I.flame}<span class="num">${a.ofensiva}</span>&nbsp;dias</span>
         </div>
         <div class="acts">
+          <button class="btn btn-outline btn-sm" data-a="editar-conta:${a.user_id}" title="Nome, e-mail e senha">${I.edit}Editar</button>
           <button class="btn btn-outline btn-sm" data-a="dar:${a.user_id}">${I.plus}Adicionar</button>
           ${plus(a) ? `<button class="btn btn-ghost btn-sm" data-a="plus:${a.user_id}:30">+30 dias</button><button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="plus:${a.user_id}:0">Remover Findout+</button>` : `<button class="btn btn-ghost btn-sm" data-a="plus:${a.user_id}:30">Ativar Findout+</button>`}
           ${a.admin ? (a.user_id === sessao.user.id ? '<span style="font-size:12px;color:var(--muted);padding:0 4px">você</span>' : `<button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="admin:${a.user_id}:0">Tirar super</button>`) : `<button class="btn btn-ghost btn-sm" data-a="admin:${a.user_id}:1">Tornar super</button>`}
@@ -1293,7 +1294,7 @@ function viewAlunos() {
       </div>`).join('')}
       ${!A.carregando && A.lista && !L.length ? `<div class="empty">Nenhum aluno encontrado${F.escola || F.turma ? ' com estes filtros' : ''}.</div>` : ''}
     </div>
-    <p style="margin:0;font-size:12px;color:var(--muted)">"Adicionar" soma moedas e/ou corações para o aluno (valores negativos tiram). Para adicionar em lote, marque os alunos e use o botão lá em cima.<br>O Findout+ dá corações ilimitados e é ativado por 30 dias. A ativação aqui é manual (pagamento por Pix combinado com o aluno). Para somar mais dias a um aluno que já tem, use "+30 dias" (reinicia a contagem a partir de hoje).<br>"Tornar super" dá acesso total a este painel (suporte da plataforma): a pessoa cria conta no app e entra aqui com o mesmo login.<br>O seletor de papel define <b>Professor</b> (as turmas em que dá aula), <b>Coordenador</b> (a escola, nos segmentos dele) ou <b>Admin da escola</b> (a escola inteira — vincule-o à escola em Turmas → card da escola → "+ Admin"). Quem é só aluno não entra no painel.<br>"Excluir" apaga a conta de vez: perfil, progresso, moedas, turmas e entregas somem; as atividades criadas e a auditoria ficam. Só o super usuário consegue, e a exclusão fica registrada.</p>
+    <p style="margin:0;font-size:12px;color:var(--muted)">"Editar" muda o nome, o e-mail de login e a senha de qualquer conta (professor, coordenador ou aluno); a mudança fica na auditoria.<br>"Adicionar" soma moedas e/ou corações para o aluno (valores negativos tiram). Para adicionar em lote, marque os alunos e use o botão lá em cima.<br>O Findout+ dá corações ilimitados e é ativado por 30 dias. A ativação aqui é manual (pagamento por Pix combinado com o aluno). Para somar mais dias a um aluno que já tem, use "+30 dias" (reinicia a contagem a partir de hoje).<br>"Tornar super" dá acesso total a este painel (suporte da plataforma): a pessoa cria conta no app e entra aqui com o mesmo login.<br>O seletor de papel define <b>Professor</b> (as turmas em que dá aula), <b>Coordenador</b> (a escola, nos segmentos dele) ou <b>Admin da escola</b> (a escola inteira — vincule-o à escola em Turmas → card da escola → "+ Admin"). Quem é só aluno não entra no painel.<br>"Excluir" apaga a conta de vez: perfil, progresso, moedas, turmas e entregas somem; as atividades criadas e a auditoria ficam. Só o super usuário consegue, e a exclusão fica registrada.</p>
   </div>`;
 }
 async function buscarAlunos() {
@@ -1822,7 +1823,7 @@ function viewDinamica() {
 /* =====================================================================
    Auditoria (admin)
    ===================================================================== */
-const ACOES_AUD = {insert: ['Criou', 'pub'], update: ['Alterou', 'draft'], delete: ['Excluiu', ''], login: ['Entrou', 'type'], sair: ['Saiu', 'off'], tela: ['Abriu a tela', 'off'], busca: ['Buscou', 'on'], copia: ['Copiou', 'on'], resultados: ['Viu resultados', 'on'], turma: ['Abriu a turma', 'on'], escola: ['Abriu a escola', 'on'], novo_aluno: ['Criou conta', 'pub'], bloqueio: ['Bloqueou', ''], liberacao: ['Liberou', 'pub'], recursos: ['Deu moedas/corações', 'pub'], respostas: ['Viu respostas', 'on'], papel: ['Definiu papel', 'pub'], relatorio: ['Viu relatório', 'on'], clique: ['Clicou', 'off'], nota_manual: ['Nota manual', 'draft'], recorrecao: ['Recorrigiu', 'pub'], segmentos_coord: ['Segmentos do coordenador', 'type'], exclusao_conta: ['Excluiu conta', ''], dinamica: ['Dinâmica', 'type']};
+const ACOES_AUD = {insert: ['Criou', 'pub'], update: ['Alterou', 'draft'], delete: ['Excluiu', ''], login: ['Entrou', 'type'], sair: ['Saiu', 'off'], tela: ['Abriu a tela', 'off'], busca: ['Buscou', 'on'], copia: ['Copiou', 'on'], resultados: ['Viu resultados', 'on'], turma: ['Abriu a turma', 'on'], escola: ['Abriu a escola', 'on'], novo_aluno: ['Criou conta', 'pub'], bloqueio: ['Bloqueou', ''], liberacao: ['Liberou', 'pub'], recursos: ['Deu moedas/corações', 'pub'], respostas: ['Viu respostas', 'on'], papel: ['Definiu papel', 'pub'], relatorio: ['Viu relatório', 'on'], clique: ['Clicou', 'off'], nota_manual: ['Nota manual', 'draft'], recorrecao: ['Recorrigiu', 'pub'], segmentos_coord: ['Segmentos do coordenador', 'type'], exclusao_conta: ['Excluiu conta', ''], edicao_conta: ['Editou conta', 'draft'], dinamica: ['Dinâmica', 'type']};
 const TABELAS_AUD = {materias: 'Matérias', secoes: 'Seções', unidades: 'Unidades', licoes: 'Lições', questoes: 'Questões', licao_questoes: 'Questões da lição', missoes: 'Missões', itens_loja: 'Loja', parametros: 'Parâmetros', publicacoes: 'Publicações', segmentos: 'Segmentos', escolas: 'Escolas', escola_membros: 'Membros da escola', turmas: 'Turmas', turma_professores: 'Professores da turma', turma_alunos: 'Alunos da turma', atividades: 'Atividades', dinamicas: 'Dinâmicas', perfis: 'Perfis', admins: 'Administradores', painel: 'Painel', alunos: 'Alunos', resultados: 'Resultados'};
 /* =====================================================================
    Relatórios de uso (admin): atividade por dia, modos e questões mais erradas
@@ -2148,7 +2149,7 @@ async function carregarResultados(aid) {
   render();
 }
 /* Toda ação do painel é registrada; estas já têm um registro mais descritivo em seu próprio código */
-const ACOES_COM_REGISTRO_PROPRIO = new Set(['view', 'sair', 'abrir-turma', 'resultados', 'copiar-notas', 'copiar-json', 'buscar-alunos', 'bloq', 'novo-aluno', 'dar', 'dar-lote', 'ver-respostas', 'relatorio', 'csv-notas', 'csv-turma', 'csv-alunos', 'csv-aud', 'csv-erradas', 'nota-manual', 'nota-restaurar', 'recorrigir', 'seg-coord', 'excluir-conta', 'abrir-escola', 'escola-aba', 'esc-abrir', 'csv-esc-alunos', 'nova-din', 'din-abrir', 'din-voltar', 'din-cmd', 'din-sortn', 'din-sortear', 'din-sortear-ui', 'din-mover', 'din-salvar-grupos', 'din-ponto', 'csv-din', 'din-criar-com-questoes', 'din-telao', 'din-telao-sair']);
+const ACOES_COM_REGISTRO_PROPRIO = new Set(['view', 'sair', 'abrir-turma', 'resultados', 'copiar-notas', 'copiar-json', 'buscar-alunos', 'bloq', 'novo-aluno', 'dar', 'dar-lote', 'ver-respostas', 'relatorio', 'csv-notas', 'csv-turma', 'csv-alunos', 'csv-aud', 'csv-erradas', 'nota-manual', 'nota-restaurar', 'recorrigir', 'seg-coord', 'excluir-conta', 'abrir-escola', 'escola-aba', 'esc-abrir', 'csv-esc-alunos', 'nova-din', 'din-abrir', 'din-voltar', 'din-cmd', 'din-sortn', 'din-sortear', 'din-sortear-ui', 'din-mover', 'din-salvar-grupos', 'din-ponto', 'csv-din', 'din-criar-com-questoes', 'din-telao', 'din-telao-sair', 'editar-conta']);
 async function act(a, el) {
   const [k, x, y, z] = a.split(':');
   if (!ACOES_COM_REGISTRO_PROPRIO.has(k)) auditar('clique', 'painel', a, 'Ação no painel: ' + k + (x ? ' · ' + [x, y, z].filter(v => v != null).join(':') : ''), {tela: V.view});
@@ -2211,6 +2212,20 @@ async function act(a, el) {
       }
       await db(sb.rpc('definir_papel', {p_user: x, p_papel: novo, p_disciplina: null})); a.papel = novo; a.disciplina_id = null; toast(`${a.nome} agora é ${PAPEIS[novo].toLowerCase()}.`); return render(); }
     case 'disciplina': { const a = (V.alunos.lista || []).find(t => t.user_id === x); const d = el.value; if (!a || !d) return; await db(sb.rpc('definir_papel', {p_user: x, p_papel: 'professor', p_disciplina: d})); a.disciplina_id = d; toast(`${a.nome}: disciplina ${discNome(d)}.`); return render(); }
+    case 'editar-conta': { const a = (V.alunos.lista || []).find(t => t.user_id === x); if (!a) return;
+      if (a.admin && a.user_id !== sessao.user.id) return toast('Esta conta é super usuário. Tire o acesso antes de editar.');
+      V.modal = {titulo: 'Editar a conta de ' + a.nome, texto: 'Vale para qualquer conta (professor, coordenador, aluno). Trocar o e-mail muda o login na hora; se a pessoa entra com Google, o Google continua usando o e-mail antigo. A senha nova vale no próximo login. Papel e disciplina mudam pelos seletores do card.', ok: 'Salvar', campos: [
+        {k: 'nome', label: 'Nome', valor: a.nome || '', obrigatorio: true, maxlength: 60},
+        {k: 'email', label: 'E-mail de login', tipo: 'email', valor: a.email || '', obrigatorio: true},
+        {k: 'senha', label: 'Nova senha (deixe vazio para não mudar)', placeholder: 'mínimo 8 caracteres'}
+      ], fn: async v => {
+        if (v.senha && v.senha.length < 8) return toast('A senha precisa de pelo menos 8 caracteres.');
+        const r = await db(sb.rpc('editar_usuario', {p_user: x, p_nome: v.nome.trim(), p_email: v.email.trim(), p_senha: v.senha || null}));
+        a.nome = r.nome || a.nome; a.email = r.email || a.email;
+        toast(`Conta de ${a.nome} atualizada (${(r.mudou || []).join(', ') || 'nada mudou'}).`);
+        if ((r.mudou || []).length) await carregarTurmas();
+        return render();
+      }}; return render(); }
     case 'excluir-conta': { const a = (V.alunos.lista || []).find(t => t.user_id === x); if (!a) return;
       return confirmar(`Excluir a conta de ${a.nome}?`, `Apaga de vez o login (${a.email}), o perfil, o progresso, as moedas e as entregas. Não tem como desfazer. As atividades que a pessoa criou e o histórico de auditoria ficam.`, async () => {
         await db(sb.rpc('excluir_usuario', {p_user: x}));
