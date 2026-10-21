@@ -115,6 +115,25 @@ aside::-webkit-scrollbar{display:none}
 .dintimer.esgotado{font-size:14px;color:var(--red-d)}
 .dingrp{border:1.5px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center}
 .dinenun{font-size:24px;line-height:1.4;margin:0}
+/* Entrada suave ao trocar de tela (só no render da troca, não a cada tecla) */
+@keyframes fjView{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+main.view-anim .topbar{animation:fjView .22s ease both}
+main.view-anim .content{animation:fjView .3s ease both}
+@keyframes fjBarra{from{width:0}}
+.bar i{animation:fjBarra .7s cubic-bezier(.2,.7,.3,1)}
+.topbar h1{background:linear-gradient(100deg,var(--fg) 55%,var(--primary));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.tbl-wrap tbody tr:nth-child(even) td{background:rgba(127,127,190,.05)}
+/* Acentos coloridos dos cartões do dashboard */
+.tile.tcor::before{content:"";position:absolute;left:0;top:0;right:0;height:3px;background:var(--cor-t,var(--primary));opacity:.9}
+.tile.tcor .val{color:var(--cor-v,var(--fg))}
+.t-roxo{--cor-t:linear-gradient(90deg,var(--primary),#8E7FCF);--cor-v:var(--primary)}
+.t-teal{--cor-t:var(--teal);--cor-v:var(--teal-d)}
+.t-verde{--cor-t:var(--green);--cor-v:var(--green-d)}
+.t-ouro{--cor-t:var(--gold);--cor-v:var(--gold-d)}
+.t-rosa{--cor-t:var(--red);--cor-v:var(--red-d)}
+.t-azul{--cor-t:var(--blue);--cor-v:var(--blue-d)}
+.secdash{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:10px;margin:6px 0 -8px}
+.secdash::after{content:"";flex:1;height:1px;background:var(--line)}
 /* Modo telão: sem menu, tela cheia e letras grandes para projetar no quadro */
 #shell.telao{grid-template-columns:1fr}
 #shell.telao aside{display:none}
@@ -586,7 +605,7 @@ let sessao = null, admin = false, papel = 'aluno', D = null, T = null, mostrando
 let V = {view: 'inicio', qf: {materia: '', unidade: '', tipo: '', status: '', busca: '', assunto: '', segmento: '', nivel: ''}, materia: null, rascunho: null, licaoAtribuir: null, alunoGerenciar: null, confirmar: null, modal: null, alunos: {busca: '', lista: null, carregando: false, erro: null, sel: {}}, metricas: null, metricasErro: null, salvando: 0, notaPub: '', jsonVersao: null, jsonTexto: '',
   turma: null, turmaAlunos: null, ativ: null, ativBusca: {texto: '', materia: '', unidade: '', assunto: '', segmento: '', nivel: ''}, ativFiltroTurma: '', resultados: null, modalPrev: null,
   escola: null, escolaAba: 'segmentos', escolaAlunos: null, escolaAberto: {},
-  din: null, dinamicas: null,
+  din: null, dinamicas: null, dash: {data: null, erro: null, carregando: false},
   turmaFiltro: {escola: '', segmento: '', busca: ''}, ativFiltroEscola: '', alunosFiltro: {escola: '', turma: ''},
   rel: {data: null, erro: null, carregando: false},
   aud: {lista: null, usuarios: [], carregando: false, erro: null, fim: false, aberto: {}, f: {user: '', origem: '', tabela: '', acao: '', periodo: '7', busca: ''}}};
@@ -710,7 +729,7 @@ async function carregar() {
   if (!V.materia || !D.materias.some(x => x.id === V.materia)) V.materia = D.materias[0] ? D.materias[0].id : null;
 }
 /* Confere se as migrations estão em dia (tabela schema_versao, migration 0022) */
-const ESQUEMA_ESPERADO = 37;
+const ESQUEMA_ESPERADO = 38;
 async function verificarEsquema() {
   const r = await sb.from('schema_versao').select('versao').order('versao', {ascending: false}).limit(1).maybeSingle();
   const v = r.error || !r.data ? 0 : r.data.versao;
@@ -888,7 +907,7 @@ async function rota(s) {
 /* Navegação por papel: cada bloco é [título da seção, itens]. Admin vê tudo;
    professor e coordenador veem só a escola (as turmas que o RLS deixa) e o banco de questões. */
 const NAV_ADMIN = [
-  ['', [['inicio', 'Visão geral', I.home]]],
+  ['', [['inicio', 'Visão geral', I.home], ['dashboard', 'Dashboard', I.grafico]]],
   ['Conteúdo', [['trilhas', 'Matérias e trilhas', I.path], ['questoes', 'Questões', I.q], ['missoes', 'Missões', I.target], ['economia', 'Economia e loja', I.coin], ['ligas', 'Ligas', I.shield]]],
   ['Escolas · suporte', [['escolas', 'Escolas', I.predio], ['turmas', 'Turmas', I.users], ['atividades', 'Atividades', I.target], ['alunos', 'Alunos', I.users]]],
   ['Sistema', [['publicar', 'Publicar', I.up], ['relatorios', 'Relatórios', I.grafico], ['auditoria', 'Auditoria', I.clock]]]
@@ -988,6 +1007,82 @@ function viewInicioEducador() {
     <div class="card"><div class="card-h"><h2>Atividades abertas</h2><span class="right"><button class="btn btn-ghost btn-sm" data-a="view:atividades">Ver todas</button></span></div>
       ${proximas.length ? `<div class="tbl-wrap tbl-wide"><table><thead><tr><th>Atividade</th><th>Prazo</th><th>Entregas</th><th></th></tr></thead><tbody>${proximas.map(linhaAtiv).join('')}</tbody></table></div>` : `<div class="empty">Nenhuma atividade aberta agora. ${turmas.length ? 'Crie uma em "Nova atividade".' : 'Crie uma turma primeiro, na aba Turmas.'}</div>`}</div>
     ${gestor() ? escolas.map(e => `<div class="card"><div class="card-h"><h2>${esc(e.nome)}</h2><span class="right"><button class="btn btn-ghost btn-sm" data-a="abrir-escola:${e.id}">Abrir a escola</button></span></div>${resumoEscola(e) || `<div class="empty">Ainda sem turmas ${papel === 'admin' ? 'na escola' : 'nos seus segmentos'}.</div>`}</div>`).join('') : ''}
+  </div>`;
+}
+
+/* =====================================================================
+   Dashboard (super): os números de cada cenário da plataforma
+   ===================================================================== */
+async function carregarDashboard() {
+  const Dh = V.dash; if (Dh.carregando) return;
+  Dh.carregando = true; Dh.erro = null; render();
+  const {data, error} = await sb.rpc('dashboard_admin');
+  Dh.carregando = false;
+  if (error) Dh.erro = traduzErro(error.message); else Dh.data = data;
+  render();
+  if (!error) animarNumeros();
+}
+/* Contagem animada dos números dos cartões (uma vez, ao carregar) */
+function animarNumeros() {
+  shell.querySelectorAll('[data-anim]').forEach(el => {
+    const fim = +el.dataset.anim || 0; if (!fim) return;
+    const t0 = performance.now(), dur = 650;
+    const passo = t => { const k = Math.min(1, (t - t0) / dur); el.textContent = Math.round(fim * (1 - Math.pow(1 - k, 3))).toLocaleString('pt-BR'); if (k < 1 && el.isConnected) requestAnimationFrame(passo); };
+    requestAnimationFrame(passo);
+  });
+}
+const tileDash = (cor, lbl, val, hint) => `<div class="tile tcor ${cor}"><span class="lbl">${lbl}</span><span class="val num" ${typeof val === 'number' ? `data-anim="${val}"` : ''}>${typeof val === 'number' ? val.toLocaleString('pt-BR') : val}</span><span class="hint">${hint || ''}</span></div>`;
+function viewDashboard() {
+  const Dh = V.dash, d = Dh.data;
+  const fmtN = n => n == null ? '—' : String(n).replace('.', ',');
+  return topbar('Dashboard', 'Os números da plataforma em cada cenário: contas, engajamento, escolas, atividades, dinâmicas e conteúdo', `<button class="btn btn-outline" data-a="dash-recarregar" ${Dh.carregando ? 'disabled' : ''}>${Dh.carregando ? 'Atualizando…' : 'Atualizar'}</button>`) + `<div class="content">
+    ${Dh.erro ? `<div class="warnbox">${I.warn}<span>${esc(Dh.erro)}${/não existe|does not exist/i.test(Dh.erro) ? ' Rode a migration 0038 no SQL Editor.' : ''}</span></div>` : ''}
+    ${!d ? '<div class="empty">Carregando o dashboard…</div>' : `
+    <div class="secdash">Contas e acessos</div>
+    <div class="tiles">
+      ${tileDash('t-roxo', 'Alunos', d.contas.alunos, `${d.contas.novos30} novos em 30 dias · ${d.contas.novos7} na semana`)}
+      ${tileDash('t-teal', 'Professores', d.contas.professores, 'contas com papel de professor')}
+      ${tileDash('t-azul', 'Gestão escolar', d.contas.coordenadores + d.contas.adminsEscola, `${d.contas.coordenadores} coordenador${d.contas.coordenadores === 1 ? '' : 'es'} · ${d.contas.adminsEscola} admin${d.contas.adminsEscola === 1 ? '' : 's'} de escola`)}
+      ${tileDash('t-ouro', 'Findout+', d.contas.plus, 'assinaturas ativas')}
+      ${tileDash('t-rosa', 'Bloqueados', d.contas.bloqueados, `${d.contas.supers} super usuário${d.contas.supers === 1 ? '' : 's'} no painel`)}
+    </div>
+    <div class="secdash">Engajamento</div>
+    <div class="tiles">
+      ${tileDash('t-verde', 'Ativos hoje', d.engajamento.ativosHoje, `${d.engajamento.ativos7} na semana · ${d.engajamento.ativos30} no mês`)}
+      ${tileDash('t-roxo', 'Estudos na semana', d.engajamento.estudos7, `${d.engajamento.licoes7} lições concluídas`)}
+      ${tileDash('t-ouro', 'XP na semana', d.engajamento.xp7, 'somando todos os alunos')}
+      ${tileDash('t-teal', 'Minutos por dia', d.engajamento.minutosMedios7, 'média de quem estudou (7 dias)')}
+      ${tileDash('t-rosa', 'Ofensivas hoje', d.engajamento.ofensivasHoje, 'alunos que mantiveram a sequência')}
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="card-h"><h2>Alunos ativos por dia</h2><span class="right" style="font-size:12px;color:var(--muted)">últimos 14 dias</span></div><div class="card-b" style="display:flex;flex-direction:column;gap:8px">
+        ${(() => { const max = Math.max(1, ...d.dias.map(x => x.alunos)); return d.dias.map(x => `<div class="barrow"><span>${fmtDia(x.dia)}</span><span class="bar"><i style="width:${Math.round(x.alunos / max * 100)}%"></i></span><b class="num">${x.alunos}</b></div>`).join(''); })()}
+      </div></div>
+      <div class="card"><div class="card-h"><h2>Modos de estudo</h2><span class="right" style="font-size:12px;color:var(--muted)">últimos 30 dias</span></div><div class="card-b" style="display:flex;flex-direction:column;gap:8px">
+        ${(() => { const en = Object.entries(d.modos || {}).sort((a, b) => b[1] - a[1]); const max = Math.max(1, ...en.map(x => x[1])); return en.map(([m, n]) => `<div class="barrow"><span>${MODOS_REL[m] || m}</span><span class="bar"><i style="width:${Math.round(n / max * 100)}%;background:var(--teal-d)"></i></span><b class="num">${n}</b></div>`).join('') || '<span style="color:var(--muted);font-size:13px">Nenhum estudo registrado ainda.</span>'; })()}
+      </div></div>
+    </div>
+    <div class="secdash">Cenário por escola</div>
+    <div class="card tbl-wrap tbl-wide"><table><thead><tr><th>Escola</th><th>Alunos</th><th>Prof.</th><th>Gestão</th><th>Turmas</th><th>Abertas</th><th>Entregas 30d</th><th>Média 30d</th><th>Ativos 7d</th><th>Dinâmicas 30d</th></tr></thead><tbody>
+      ${d.escolas.map(e => `<tr class="rowbtn" data-a="abrir-escola:${e.id}"><td><b>${esc(e.nome)}</b></td><td class="num">${e.alunos}</td><td class="num">${e.professores}</td><td class="num">${e.gestores}</td><td class="num">${e.turmas}</td><td class="num">${e.abertas}</td><td class="num">${e.entregas30}</td><td class="num" style="font-weight:700;color:${e.media30 == null ? 'var(--muted)' : e.media30 >= 6 ? 'var(--green-d)' : 'var(--red-d)'}">${fmtN(e.media30)}</td><td class="num">${e.ativos7}</td><td class="num">${e.dinamicas30}</td></tr>`).join('')}
+      ${d.semEscola.turmas ? `<tr><td><i style="color:var(--muted)">Sem escola</i></td><td class="num">${d.semEscola.alunos}</td><td class="num">—</td><td class="num">—</td><td class="num">${d.semEscola.turmas}</td><td colspan="5" style="color:var(--muted);font-size:12px">turmas avulsas de professores</td></tr>` : ''}
+      ${d.escolas.length || d.semEscola.turmas ? '' : '<tr><td colspan="10" class="empty">Nenhuma escola ainda.</td></tr>'}
+    </tbody></table></div>
+    <div class="grid2">
+      <div class="card"><div class="card-h"><h2>Atividades</h2></div><div class="card-b" style="display:flex;flex-direction:column;gap:12px">
+        <div class="kv"><span>Abertas agora</span><b class="num">${d.atividades.abertas}</b><span>Encerram nos próximos 7 dias</span><b class="num">${d.atividades.encerram7}</b><span>Entregas na semana</span><b class="num">${d.atividades.entregas7}</b><span>Média das notas (30 dias)</span><b class="num" style="color:${d.atividades.media30 == null ? 'inherit' : d.atividades.media30 >= 6 ? 'var(--green-d)' : 'var(--red-d)'}">${fmtN(d.atividades.media30)}</b></div>
+        ${d.atividades.taxaEntrega != null ? `<div><span style="font-size:12px;color:var(--muted)">Taxa de entrega das atividades abertas</span><div class="barrow" style="grid-template-columns:1fr 48px;margin-top:4px"><span class="bar"><i style="width:${d.atividades.taxaEntrega}%;background:${d.atividades.taxaEntrega >= 60 ? 'var(--green-d)' : 'var(--orange)'}"></i></span><b class="num" style="text-align:right">${d.atividades.taxaEntrega}%</b></div></div>` : ''}
+      </div></div>
+      <div class="card"><div class="card-h"><h2>Dinâmicas ao vivo</h2>${d.dinamicas.aoVivo ? `<span class="pill pub">${d.dinamicas.aoVivo} acontecendo agora</span>` : ''}</div><div class="card-b" style="display:flex;flex-direction:column;gap:12px">
+        <div class="kv"><span>Nos últimos 30 dias</span><b class="num">${d.dinamicas.ultimos30}</b><span>Respostas de alunos (30 dias)</span><b class="num">${d.dinamicas.respostas30}</b><span>Desde o começo</span><b class="num">${d.dinamicas.total}</b></div>
+        <span style="font-size:12px;color:var(--muted)">Quiz de sala com grupos, telão e placar — criado na tela de cada turma.</span>
+      </div></div>
+    </div>
+    <div class="secdash">Conteúdo publicado</div>
+    <div class="card"><div class="card-b" style="display:flex;flex-direction:column;gap:8px">
+      ${(() => { const cs = d.conteudo.filter(m => m.questoes || m.ativa); const max = Math.max(1, ...cs.map(m => m.questoes)); return cs.map(m => `<div class="barrow" style="grid-template-columns:minmax(150px,220px) 1fr minmax(110px,160px)"><span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="flex-shrink:0">${siglaMat(m)}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.nome)}</span>${m.ativa ? '' : '<span class="pill off" style="font-size:10px;flex-shrink:0">inativa</span>'}</span><span class="bar"><i style="width:${Math.round(m.questoes / max * 100)}%;background:${esc(m.cor || '')}"></i></span><b class="num" style="text-align:right;font-size:12px">${m.questoes} questões · ${m.licoes} lições</b></div>`).join('') || '<div class="empty">Nenhuma matéria ainda.</div>'; })()}
+    </div></div>
+    <p style="margin:0;font-size:12px;color:var(--muted)">Banco na migration ${String(d.esquema).padStart(4, '0')}${d.publicacao ? ` · conteúdo publicado v${d.publicacao.versao} em ${fmtData(d.publicacao.em)}` : ''} · números de ${fmtData(d.agora)}. Clique numa linha de escola para abrir o cenário dela.</p>`}
   </div>`;
 }
 
@@ -1982,14 +2077,16 @@ function confirmHtml() {
 /* =====================================================================
    Render
    ===================================================================== */
-const VIEWS = {inicio: () => admin ? viewInicio() : viewInicioEducador(), trilhas: viewTrilhas, questoes: viewQuestoes, missoes: viewMissoes, economia: viewEconomia, ligas: viewLigas, alunos: viewAlunos, publicar: viewPublicar, turmas: viewTurmas, turma: viewTurma, escolas: viewEscolas, escola: viewEscola, atividades: viewAtividades, resultados: viewResultados, dinamica: viewDinamica, auditoria: viewAuditoria, relatorios: viewRelatorios};
+const VIEWS = {inicio: () => admin ? viewInicio() : viewInicioEducador(), dashboard: viewDashboard, trilhas: viewTrilhas, questoes: viewQuestoes, missoes: viewMissoes, economia: viewEconomia, ligas: viewLigas, alunos: viewAlunos, publicar: viewPublicar, turmas: viewTurmas, turma: viewTurma, escolas: viewEscolas, escola: viewEscola, atividades: viewAtividades, resultados: viewResultados, dinamica: viewDinamica, auditoria: viewAuditoria, relatorios: viewRelatorios};
+let ultimaViewRender = null;
 function render() {
   if (!D) return;
   if (!VIEWS[V.view] || (!admin && !['inicio', 'turmas', 'turma', 'atividades', 'resultados', 'dinamica', 'questoes', ...(gestor() ? ['escolas', 'escola'] : [])].includes(V.view))) V.view = 'inicio';
   const focado = document.activeElement, fkey = focado && focado.dataset ? focado.dataset.f : null, sel = focado && focado.selectionStart;
   const scroll = window.scrollY;
+  const trocouView = V.view !== ultimaViewRender; ultimaViewRender = V.view;
   shell.className = V.view === 'dinamica' && V.din && V.din.telao ? 'telao' : '';
-  shell.innerHTML = sidebar() + `<main>${VIEWS[V.view]()}</main>` + (V.ativ ? drawerAtividade() : '') + (V.rascunho ? drawerQuestao() : '') + (V.licaoAtribuir ? drawerAtribuir() : '') + (V.modalPrev ? modalPrevHtml() : '') + (V.relatorio ? modalRelatorioHtml() : '') + (V.respostas ? modalRespostasHtml() : '') + (V.modal ? modalHtml() : '') + (V.confirmar ? confirmHtml() : '');
+  shell.innerHTML = sidebar() + `<main${trocouView ? ' class="view-anim"' : ''}>${VIEWS[V.view]()}</main>` + (V.ativ ? drawerAtividade() : '') + (V.rascunho ? drawerQuestao() : '') + (V.licaoAtribuir ? drawerAtribuir() : '') + (V.modalPrev ? modalPrevHtml() : '') + (V.relatorio ? modalRelatorioHtml() : '') + (V.respostas ? modalRespostasHtml() : '') + (V.modal ? modalHtml() : '') + (V.confirmar ? confirmHtml() : '');
   window.scrollTo(0, scroll);
   if (fkey) { const el = shell.querySelector(`[data-f="${fkey}"]`); if (el && el.tagName !== 'SELECT' && el.type !== 'radio' && el.type !== 'color') { el.focus(); try { el.setSelectionRange(sel, sel); } catch (e) {} } }
   if (V.modal) { const first = shell.querySelector('#f-modal input'); if (first) first.focus(); }
@@ -2164,8 +2261,9 @@ async function act(a, el) {
   if (!ACOES_COM_REGISTRO_PROPRIO.has(k)) auditar('clique', 'painel', a, 'Ação no painel: ' + k + (x ? ' · ' + [x, y, z].filter(v => v != null).join(':') : ''), {tela: V.view});
   const M = materiaPorId(V.materia);
   switch (k) {
-    case 'view': V.view = x; V.rascunho = null; V.licaoAtribuir = null; V.jsonVersao = null; V.ativ = null; V.modalPrev = null; V.respostas = null; V.din = null; if (x !== 'turma') V.turma = null; window.scrollTo(0, 0); render(); if (x === 'alunos' && !V.alunos.lista) buscarAlunos(); if (x === 'inicio' && admin) carregarMetricas(); if (x === 'auditoria' && !V.aud.lista) carregarAuditoria(false); if (x === 'relatorios' && !V.rel.data) carregarRelatorio(); auditar('tela', 'painel', x, 'Abriu a tela ' + x); return;
+    case 'view': V.view = x; V.rascunho = null; V.licaoAtribuir = null; V.jsonVersao = null; V.ativ = null; V.modalPrev = null; V.respostas = null; V.din = null; if (x !== 'turma') V.turma = null; window.scrollTo(0, 0); render(); if (x === 'alunos' && !V.alunos.lista) buscarAlunos(); if (x === 'inicio' && admin) carregarMetricas(); if (x === 'dashboard' && !V.dash.data) carregarDashboard(); if (x === 'auditoria' && !V.aud.lista) carregarAuditoria(false); if (x === 'relatorios' && !V.rel.data) carregarRelatorio(); auditar('tela', 'painel', x, 'Abriu a tela ' + x); return;
     case 'rel-recarregar': V.rel.data = null; return carregarRelatorio();
+    case 'dash-recarregar': return carregarDashboard();
     case 'csv-notas': { const d = V.resultados && V.resultados.data; if (!d) return; const at = T.atividades.find(z => z.id === V.resultados.id); auditar('copia', 'resultados', V.resultados.id, 'Baixou o CSV de notas da atividade', {alunos: d.alunos.length}); return baixarCsv(`notas-${slug((at && at.titulo) || 'atividade')}.csv`, ['Aluno', 'E-mail', 'Nota', 'Acertos', 'Total', 'Entregue em'], d.alunos.map(z => [z.nome, z.email || '', z.entregueEm ? String(z.nota).replace('.', ',') : '', z.entregueEm ? z.acertos : '', z.entregueEm ? z.total : '', z.entregueEm ? fmtData(z.entregueEm) : 'não entregou'])); }
     case 'csv-turma': { const L2 = (V.turmaAlunos && V.turmaAlunos.lista) || []; if (!L2.length) return toast('Nenhum aluno na turma.'); const t2 = turmaPorId(V.turma); auditar('copia', 'turmas', V.turma, 'Baixou o CSV de alunos da turma'); return baixarCsv(`alunos-${slug((t2 && t2.nome) || 'turma')}.csv`, ['Aluno', 'E-mail', 'XP', 'Ofensiva (dias)', 'Entregas', 'Convite aceito', 'Entrou em'], L2.map(z => [z.nome, z.email || '', z.xp, z.ofensiva, z.entregas, z.aceito === false ? 'não' : 'sim', fmtDia(z.entrou_em)])); }
     case 'csv-alunos': { const L2 = alunosFiltrados(); if (!L2.length) return; auditar('copia', 'alunos', null, 'Baixou o CSV de alunos', {alunos: L2.length}); return baixarCsv('alunos.csv', ['Aluno', 'E-mail', 'XP', 'Moedas', 'Corações', 'Lições', 'Ofensiva (dias)', 'Findout+ até', 'Criado em', 'Visto em', 'Bloqueado'], L2.map(z => [z.nome, z.email, z.xp, z.moedas, z.coracoes, z.licoes, z.ofensiva, z.findout_plus_ate ? fmtDia(z.findout_plus_ate) : '', fmtDia(z.criado_em), fmtData(z.visto_em), z.banido ? 'sim' : ''])); }
