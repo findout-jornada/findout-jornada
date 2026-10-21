@@ -1659,7 +1659,16 @@ async function atualizarDinamica() {
   if (!V.din || V.din.id !== W.id) return;
   W.carregando = false;
   if (error) W.erro = traduzErro(error.message);
-  else { W.erro = null; W.data = data; W.offset = new Date(data.agora).getTime() - Date.now(); }
+  else {
+    W.erro = null; W.offset = new Date(data.agora).getTime() - Date.now();
+    // Só re-renderiza quando algo mudou de verdade (resposta nova, revelação, placar).
+    // Ignora o relógio do servidor e, fora do lobby, a presença — senão o telão fica "pulando" a cada consulta.
+    const lobby = data.status === 'lobby';
+    const chave = JSON.stringify(data, (ck, cv) => ck === 'agora' || (!lobby && ck === 'online') ? undefined : cv);
+    const mudou = chave !== W.chave;
+    W.chave = chave; W.data = data;
+    if (!mudou) return;
+  }
   if (V.view === 'dinamica') render();
 }
 /* O telão se atualiza sozinho enquanto a dinâmica está aberta */
