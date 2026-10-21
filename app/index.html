@@ -1565,7 +1565,7 @@ function screenDinamica() {
 // Cada ilha agrupa matérias. A ilha é conquistada quando todas as lições publicadas das matérias dela foram concluídas.
 // Matérias fora dessas listas caem na ilha "Atualidades", exceto as de FORA_DO_MAPA, que não entram no mapa
 // (ficam só em "Suas matérias"). A ordem da lista é a ordem da viagem.
-const FORA_DO_MAPA = ['lit', 'cge', 'eti', 'art', 'cie', 'dev', 'log', 'dat']; // Literatura, Conhecimentos Gerais, Ética e Cidadania, Arte, Ciências e os cursos: não fazem parte do ENEM
+const FORA_DO_MAPA = ['lit', 'cge', 'eti', 'art', 'cie', 'gmt', 'rac', 'dev', 'log', 'dat']; // Literatura, Conhecimentos Gerais, Ética e Cidadania, Arte, Ciências, Geometria, Raciocínio Lógico e os cursos: não fazem parte do ENEM
 const CURSOS = ['dev', 'log', 'dat']; // matérias-curso (Desenvolvimento de Software, Lógica de Programação, Análise e Ciência de Dados): aparecem no grupo "Cursos" em Suas matérias
 const ILHAS = [
   // x/y no mapa base de 360×600 (o y é esticado conforme a altura da tela); barco: âncora do barco em relação ao pino, para não cobrir rótulos
