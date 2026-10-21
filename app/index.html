@@ -328,6 +328,7 @@ button.card:active{transform:scale(.985)}
 @keyframes duvida-bob{0%,100%{transform:translateY(0) rotate(8deg)}50%{transform:translateY(-6px) rotate(8deg)}}
 @media (prefers-reduced-motion:reduce){.duvida{animation:none}}
 .stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pill-dom{font-size:7px;padding:6px 9px;border-radius:999px;white-space:nowrap;flex-shrink:0;align-self:center}
 .stats3 .stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;height:auto;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:22px}
 .stats3 .stat small{font-size:11px;color:var(--muted);font-family:var(--f-body);font-weight:500}
 </style>
@@ -1883,6 +1884,28 @@ async function salvarAvatar() {
   S.perfil.avatar = txt; if (S.liga && S.liga.ranking) S.liga.ranking.forEach(p => { if (p.eu) p.avatar = txt; });
   vib([20, 30, 20]); fecharSheet(() => { V.avatarEdit = null; toast('Avatar salvo!'); });
 }
+/* ---------- domínio por habilidade (migration 0048) ---------- */
+const ESTADOS_DOM = {dominada: ['DOMINADA', 'var(--green-dd)', 'var(--green-l)'], precisa_revisao: ['REVISAR', 'var(--orange-d)', '#FDEBD7'], em_desenvolvimento: ['EVOLUINDO', 'var(--gold-dd)', 'var(--gold-l)'], evidencia_insuficiente: ['POUCOS DADOS', 'var(--muted)', 'var(--lav)']};
+function screenDominio() {
+  const Dm = V.dom || {};
+  const lista = (Dm.lista || []).filter(h => h.estado !== 'sem_evidencia');
+  const sem = (Dm.lista || []).length - lista.length;
+  const porMat = {};
+  lista.forEach(h => { const k = h.materia_id || 'outros'; (porMat[k] = porMat[k] || []).push(h); });
+  const conta = e => lista.filter(h => h.estado === e).length;
+  return `<header class="topbar"><button class="iconbtn" data-a="go:perfil" aria-label="Voltar ao perfil">${I.back}</button><h1>Domínio por habilidade</h1></header>
+  <div class="scroll"><div class="pad">
+    ${Dm.carregando ? '<div style="text-align:center;padding:40px 0;color:var(--muted)">Calculando…</div>' : Dm.erro ? `<p class="sub" style="text-align:center;padding-top:30px">${esc(Dm.erro)}</p>` :
+    !lista.length ? `<div style="display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;padding-top:30px">${mascot(110)}<p class="sub" style="max-width:300px">${(Dm.lista || []).length ? 'Responda mais lições para a gente estimar seu domínio — cada questão conta.' : 'A equipe ainda está mapeando as habilidades de cada questão. Em breve você vê aqui o que já domina e o que vale revisar.'}</p></div>` : `
+    <div class="stats3">
+      <div class="stat num" style="color:var(--green-d)">${conta('dominada')}<small>dominadas</small></div>
+      <div class="stat num" style="color:var(--gold-d)">${conta('em_desenvolvimento')}<small>evoluindo</small></div>
+      <div class="stat num" style="color:var(--orange-d)">${conta('precisa_revisao')}<small>para revisar</small></div></div>
+    ${Object.entries(porMat).map(([mid, hs]) => `<h2 class="h2">${esc(materiaNome(mid) || 'Outras')}</h2><div class="card">${hs.map(h => { const [rot, cor, bg] = ESTADOS_DOM[h.estado] || ['—', 'var(--muted)', 'var(--lav)']; return `
+      <div class="row"><div class="grow"><span class="t15">${esc(h.nome)}</span><span class="sub">${esc(h.codigo)} · ${h.n_tentativas} tentativa${h.n_tentativas === 1 ? '' : 's'}${h.taxa != null ? ' · ' + Math.round(h.taxa * 100) + '% de acerto' : ''}</span></div><span class="px pill-dom" style="color:${cor};background:${bg}">${rot}</span></div>`; }).join('')}</div>`).join('')}
+    <p style="margin:0;font-size:12px;color:var(--muted);text-align:center;line-height:1.5">Calculado pelas suas últimas respostas em cada habilidade. "Dominada" pede acerto alto em pelo menos 3 tentativas; sem praticar por algumas semanas, vira "Revisar".${sem > 0 ? ` Outras ${sem} habilidades ainda não têm respostas suas.` : ''}</p>`}
+  </div></div>`;
+}
 function screenPerfil() {
   const coroas = Object.values(S.progresso).reduce((n, c) => n + c, 0);
   return `<header class="topbar"><h1>Perfil</h1></header>
@@ -1899,6 +1922,7 @@ function screenPerfil() {
       <div class="row"><span class="tile" style="background:var(--lav);color:var(--primary)">${I.bolt(24)}</span><div class="grow"><span class="t15">Sons</span><span class="sub">${SND.muted ? 'Desligados' : 'Ligados · no iPhone, tire do modo silencioso; no Android, suba o volume de mídia'}</span></div><button class="chipbtn" data-a="mute">${SND.muted ? 'Ligar' : 'Desligar'}</button></div>
       <div class="row"><span class="tile" style="background:var(--lav);color:var(--primary)">${I.book}</span><div class="grow"><span class="t15">Conteúdo</span><span class="sub">${S.versaoConteudo ? 'Versão ' + S.versaoConteudo : 'Nenhuma versão publicada'}</span></div><button class="chipbtn" data-a="recarregar">Atualizar</button></div>
       <div class="row"><span class="tile" style="background:#E3ECFA;color:#1B4F8F"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.5 9.5h17M3.5 14.5h17M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span><div class="grow"><span class="t15">Mapa do ENEM</span><span class="sub">${(() => { const L = ilhas(); return L.filter(i => i.completa).length + ' de ' + L.length + ' ilhas conquistadas'; })()}</span></div><button class="chipbtn" data-a="go:mapa">Ver</button></div>
+      <div class="row"><span class="tile" style="background:var(--green-l);color:var(--green-dd)">${I.check(22, 2.6)}</span><div class="grow"><span class="t15">Domínio por habilidade</span><span class="sub">O que você já domina e o que precisa revisar</span></div><button class="chipbtn" data-a="dominio">Ver</button></div>
       <div class="row"><span class="tile" style="background:var(--teal-l);color:var(--teal-d)">${I.target(24)}</span><div class="grow"><span class="t15">Minhas turmas</span><span class="sub">${(S.turmas || []).length ? esc((S.turmas || []).map(t => t.nome).join(', ')) : 'Entre com o código do professor'}</span></div><button class="chipbtn" data-a="turmas">${(S.turmas || []).length ? 'Ver' : 'Entrar'}</button></div>
     </div>
     <button class="btn btn-outline" data-a="sair">Sair da conta</button>
@@ -1909,7 +1933,7 @@ function screenPerfil() {
 /* =====================================================================
    Render e ações
    ===================================================================== */
-const SCREENS = {jornada: screenJornada, materias: screenMaterias, secoes: screenSecoes, licao: screenLicao, fim: screenFim, ofensiva: screenOfensiva, missoes: screenMissoes, ligas: screenLigas, loja: screenLoja, praticar: screenPraticar, turma: screenTurma, perfil: screenPerfil, mapa: screenMapa, dinamica: screenDinamica};
+const SCREENS = {jornada: screenJornada, materias: screenMaterias, secoes: screenSecoes, licao: screenLicao, fim: screenFim, ofensiva: screenOfensiva, missoes: screenMissoes, ligas: screenLigas, loja: screenLoja, praticar: screenPraticar, turma: screenTurma, perfil: screenPerfil, mapa: screenMapa, dinamica: screenDinamica, dominio: screenDominio};
 let lastScreen = null;
 const TABS = new Set(['jornada', 'praticar', 'turma', 'missoes', 'ligas', 'perfil']);
 function go(screen, extra = {}) { V = {...V, screen, sheet: null, editNome: false, justDone: null, ...extra}; render(true); }
@@ -1956,6 +1980,12 @@ async function act(a) {
     case 'toast': return toast(rest);
     case 'sheet': if (!x) return fecharSheet(); V.sheet = x; return render();
     case 'node': { SND.tap(); V.open = V.open === x ? null : x; render(); const p = app.querySelector('.pop-card'); if (p) setTimeout(() => p.scrollIntoView({block: 'nearest', behavior: 'smooth'}), 40); return; }
+    case 'dominio': {
+      V.dom = {carregando: true}; go('dominio');
+      const {data, error} = await sb.rpc('dominio_habilidades');
+      V.dom = error ? {erro: /schema cache|PGRST202/i.test(error.message || '') ? 'Novidade a caminho: esta parte ainda está sendo preparada no servidor.' : traduz(error.message)} : {lista: data || []};
+      return render();
+    }
     case 'mute': SND.toggle(); return render();
     case 'recarregar': toast('Atualizando…'); await recarregarEstado(false); return render();
     case 'sair': L = null; return sb.auth.signOut();
