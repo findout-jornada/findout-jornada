@@ -1019,9 +1019,11 @@ function startLesson(mode, opts = {}) {
     title = mode === 'legend' ? 'Prova da unidade ' + u.n : mode === 'jump' ? 'Teste para pular' : 'Revisão da unidade';
   } else if (mode === 'review') {
     const n = +(PM().revisao || {}).tamanho || +E().tamanhoRevisao || 8;
-    const erros = shuffle(S.erros.map(id => QI[id]).filter(Boolean)).slice(0, Math.ceil(n / 2));
-    const resto = shuffle((PK.questoes || []).filter(q => !erros.includes(q)));
-    queue = shuffle(erros.concat(resto.slice(0, n - erros.length))).map(exercicio);
+    // Fila da revisão espaçada primeiro (rpc revisao_do_dia, migration 0049); o resto segue como antes: erros + mistura
+    const fila = [...new Set((V.revPlano || {}).questoes || [])].map(id => QI[id]).filter(Boolean).slice(0, n);
+    const erros = shuffle(S.erros.map(id => QI[id]).filter(Boolean)).filter(q => !fila.includes(q)).slice(0, Math.ceil((n - fila.length) / 2));
+    const resto = shuffle((PK.questoes || []).filter(q => !fila.includes(q) && !erros.includes(q)));
+    queue = fila.concat(shuffle(erros.concat(resto.slice(0, Math.max(0, n - fila.length - erros.length))))).map(exercicio);
     kicker = 'REVISÃO DIÁRIA · TODAS AS MATÉRIAS'; title = 'Revisão diária'; materiaId = null;
   } else if (mode === 'errors') {
     const qs = S.erros.map(id => QI[id]).filter(Boolean).slice(0, 6);
@@ -1307,7 +1309,7 @@ function screenMissoes() {
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--gold-l);border-radius:0 0 14px 14px;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--gold-dd)">Baú diário · ${doneN} de ${ms.length} missões</span><button class="chipbtn" data-a="daily-chest" ${!todas || d.bauAberto ? 'disabled' : ''} style="height:36px">${d.bauAberto ? 'Aberto' : 'Abrir'}</button></div></div>
     ${mensal.ativo ? `<h2 class="h2">${esc(mensal.titulo || 'Desafio do mês')}</h2>
     <div class="card row"><span class="tile" style="width:56px;height:56px;border-radius:14px;background:var(--lav);color:var(--primary)">${I.shield(30)}</span><div class="grow" style="gap:6px"><span style="font-size:14px;font-weight:600">Ganhe ${(+mensal.metaXp || 0).toLocaleString('pt-BR')} XP em ${MONTHS[hoje0.getMonth()]}</span><div class="bar"><i style="width:${Math.min(100, Math.round(S.economia.xpMes / (+mensal.metaXp || 1) * 100))}%"></i></div><span class="num" style="font-size:12px;color:var(--muted)">${S.economia.xpMes.toLocaleString('pt-BR')} / ${(+mensal.metaXp || 0).toLocaleString('pt-BR')} XP · faltam ${daysLeft} dias · ${mensal.moedas} moedas</span></div></div>` : ''}
-    ${(PM().revisao || {}).ativo !== false ? `<h2 class="h2">Revisão diária</h2><button class="card row" style="width:100%;text-align:left" data-a="review"><span class="tile" style="background:var(--teal-l);color:var(--teal-d)">${I.redo}</span><div class="grow"><span class="t15">Mistura de todas as matérias</span><span class="sub">${d.missoes.some(m => m.tipo === 'revisao' && m.concluida) ? 'Feita hoje. Pode repetir.' : 'Prioriza o que você errou'}</span></div>${I.chevR}</button>` : ''}
+    ${(PM().revisao || {}).ativo !== false ? `<h2 class="h2">Revisão diária</h2><button class="card row" style="width:100%;text-align:left" data-a="review"><span class="tile" style="background:var(--teal-l);color:var(--teal-d)">${I.redo}</span><div class="grow"><span class="t15">Mistura de todas as matérias</span><span class="sub">${d.missoes.some(m => m.tipo === 'revisao' && m.concluida) ? 'Feita hoje. Pode repetir.' : 'Prioriza o que está na hora de revisar'}</span></div>${I.chevR}</button>` : ''}
   </div></div>
   <div class="footer"><button class="btn btn-primary pxbtn" data-a="go:jornada">Voltar à jornada</button></div>`;
 }
@@ -1364,15 +1366,28 @@ function screenPraticar() {
     {a: 'errors', title: 'Praticar erros', desc: erros.length ? `${erros.length} exercício${erros.length > 1 ? 's' : ''} que você errou · não gasta corações · +1 coração` : 'Sem erros guardados: treina a unidade atual sem gastar corações', xp: `+${E().xpErros} XP`, bg: 'var(--red-l)', fg: 'var(--red-d)', ic: I.redo},
     T && T.curUnit ? {a: 'unitreview', title: 'Revisar unidade', desc: `${T.curUnit.uni.titulo} · reforço das lições`, xp: `+${E().xpErros} XP`, bg: 'var(--lav)', fg: 'var(--primary)', ic: I.book} : null,
     {a: S.economia.relampagoHoje ? 'toast:O desafio relâmpago grátis de hoje já foi usado. Volte amanhã.' : 'flash', title: 'Desafio relâmpago', desc: S.economia.relampagoHoje ? 'Já jogado hoje · volta amanhã' : `${Math.round((+E().segundosRelampago || 120) / 60)} minutos, XP ×${E().multiplicadorRelampago} · 1 grátis por dia`, xp: `×${E().multiplicadorRelampago} XP`, bg: 'var(--gold-l)', fg: 'var(--gold-d)', ic: I.bolt()},
-    {a: 'review', title: 'Revisão diária', desc: 'Mistura de todas as matérias, priorizando seus erros', xp: `+${(PM().revisao || {}).xp || E().xpRevisao} XP`, bg: 'var(--teal-l)', fg: 'var(--teal-d)', ic: I.books}
+    {a: 'review', title: 'Revisão diária', desc: 'Mistura de todas as matérias, priorizando o que está na hora de revisar', xp: `+${(PM().revisao || {}).xp || E().xpRevisao} XP`, bg: 'var(--teal-l)', fg: 'var(--teal-d)', ic: I.books}
   ].filter(Boolean);
+  const rec = (V.rec && V.rec.lista) || [];
   return `<header class="topbar"><h1>Treinar</h1><span style="display:flex;align-items:center;gap:4px;padding-right:8px;font-family:var(--f-display);font-weight:700;font-size:15px;color:var(--red-d)">${I.heart(18)}${heartsTxt()}</span></header>
   <div class="scroll"><div class="pad">
     <h2 class="h2">Prática personalizada</h2>
     ${cards.map(c => `<button class="card row" style="text-align:left;width:100%" data-a="${c.a}"><span class="tile" style="background:${c.bg};color:${c.fg}">${c.ic}</span><div class="grow"><span class="t15">${esc(c.title)}</span><span class="sub">${esc(c.desc)}</span></div><span class="px" style="font-size:9px;color:var(--primary);white-space:nowrap">${c.xp}</span></button>`).join('')}
+    ${rec.length ? `<h2 class="h2">Sugestões de hoje</h2>
+    <div class="card">${rec.slice(0, 4).map(r => `<div class="row" style="padding:12px 14px;align-items:flex-start"><span class="tile" style="width:34px;height:34px;flex-shrink:0;background:${r.tipo === 'revisar' ? 'var(--teal-l)' : 'var(--lav)'};color:${r.tipo === 'revisar' ? 'var(--teal-d)' : 'var(--primary)'}">${r.tipo === 'revisar' ? I.redo : I.target(18)}</span><div class="grow" style="gap:3px"><span style="font-size:13.5px;line-height:1.45">${esc(r.motivo)}</span><span class="sub num" style="font-size:11px">${esc(r.codigo)}${materiaNome(r.materia_id) ? ' · ' + esc(materiaNome(r.materia_id)) : ''}</span></div></div>`).join('')}
+      <div style="padding:10px 14px;border-top:1px solid var(--lav)"><button class="chipbtn" data-a="review" style="width:100%;justify-content:center">Revisar agora</button></div></div>` : ''}
     <h2 class="h2">Erros que mais se repetem</h2>
     <div class="card">${topics.length ? topics.map(([u, n]) => { const [ab, t] = unidadeNome(u); return `<div class="row" style="padding:11px 14px"><span class="px" style="font-size:9px;color:var(--primary);width:28px">${esc(ab)}</span><span style="flex:1;font-size:14px">${esc(t)}</span><span class="num" style="font-size:12px;color:var(--red-d);font-weight:600">${n} erro${n > 1 ? 's' : ''}</span></div>`; }).join('') : `<div class="row"><span class="sub">Nenhum erro ainda. Quando você errar um exercício, ele aparece aqui para revisar.</span></div>`}</div>
   </div></div>${nav('praticar')}`;
+}
+// Sugestões de estudo com justificativa (rpc recomendacoes, migration 0049); carregadas ao abrir o Treinar
+async function carregarRecomendacoes() {
+  if (V.rec && Date.now() - V.rec.em < 60e3) return;
+  V.rec = {em: Date.now(), lista: null};
+  const {data, error} = await sb.rpc('recomendacoes');
+  if (!V.rec) return;
+  V.rec.lista = error ? [] : (data || []);   // sem a migration, o bloco só não aparece
+  if (V.screen === 'praticar') render(false);
 }
 /* ---------- turma: atividades passadas pelo professor ---------- */
 // Ranking semanal dos colegas da turma (rpc ranking_turma); carregado ao abrir a aba
@@ -1957,6 +1972,7 @@ function render(reset) {
   const sc2 = document.getElementById('sc');
   if (V.screen === 'jornada' && V.scrollTo) { V.scrollTo = false; const n = document.getElementById('cur-node'); if (n && sc2) sc2.scrollTop = Math.max(0, n.offsetTop - sc2.clientHeight / 2 + 40); }
   if (V.screen === 'turma' && reset) { carregarRankingTurma(); carregarDinamicaAtiva(); }
+  if (V.screen === 'praticar' && reset) carregarRecomendacoes();
   if (V.screen === 'mapa' && reset) { celebrarIlhas(); try { if (V.barcoPos) localStorage.setItem('fj-barco', JSON.stringify(V.barcoPos)); } catch (e) {} }
   if (V.screen === 'ligas' && reset) { const m = document.getElementById('me-row'), s = app.querySelector('.scroll'); if (m && s) s.scrollTop = Math.max(0, m.offsetTop - s.offsetTop - s.clientHeight / 2); }
   if (V.editNome) { const i = document.getElementById('nome-inp'); if (i && document.activeElement !== i) i.focus(); }
@@ -1992,7 +2008,11 @@ async function act(a) {
     case 'lesson': return startLesson('lesson', {lic: x});
     case 'legend': return startLesson('legend', {uni: x});
     case 'jump': return startLesson('jump', {uni: x});
-    case 'review': return startLesson('review');
+    case 'review': { // busca a fila de revisão espaçada antes de montar o baralho; sem a migration 0049, segue sem ela
+      const {data, error} = await sb.rpc('revisao_do_dia');
+      V.revPlano = error ? null : data;
+      return startLesson('review');
+    }
     case 'unitreview': return startLesson('unitreview');
     case 'flash': return startLesson('flash');
     case 'errors': if (V.screen === 'licao') L = null; return startLesson('errors');

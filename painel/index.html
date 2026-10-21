@@ -737,7 +737,7 @@ async function carregar() {
   if (!V.materia || !D.materias.some(x => x.id === V.materia)) V.materia = D.materias[0] ? D.materias[0].id : null;
 }
 /* Confere se as migrations estão em dia (tabela schema_versao, migration 0022) */
-const ESQUEMA_ESPERADO = 48;
+const ESQUEMA_ESPERADO = 49;
 const CURSOS = ['dev', 'log', 'dat']; // matérias-curso: fora do Mapa do ENEM, o app mostra no grupo "Cursos"
 async function verificarEsquema() {
   const r = await sb.from('schema_versao').select('versao').order('versao', {ascending: false}).limit(1).maybeSingle();
@@ -994,7 +994,7 @@ function viewHabilidades() {
         <td><button class="btn btn-ghost btn-xs btn-danger" style="border:0" data-a="excluir-hab:${h.id}" aria-label="Excluir">${I.trash}</button></td></tr>`).join('')}
       ${!lista.length ? `<tr><td colspan="8" class="empty">${D.habilidades.length ? 'Nada com esses filtros.' : 'Nenhuma habilidade ainda. Cadastre com os códigos oficiais da BNCC ou da matriz do ENEM — não invente códigos.'}</td></tr>` : ''}
     </tbody></table></div>
-    <p style="margin:0;font-size:12px;color:var(--muted)">Vincule habilidades às questões no editor de questão (campo "Habilidades"). Pré-requisito = o que o aluno precisa dominar antes: é por ele que a plataforma vai achar lacunas (ex.: errou equação do 2º grau → revisar fatoração). As próximas fases do PLANO.md usam este cadastro com a tabela de tentativas.</p>
+    <p style="margin:0;font-size:12px;color:var(--muted)">Vincule habilidades às questões no editor de questão (campo "Habilidades"). Pré-requisito = o que o aluno precisa dominar antes: é por ele que a plataforma vai achar lacunas (ex.: errou equação do 2º grau → revisar fatoração). A revisão espaçada e as sugestões de estudo (migration 0049) usam este cadastro com a tabela de tentativas: quanto mais questões vinculadas, melhores as recomendações.</p>
   </div>`;
 }
 
@@ -2107,6 +2107,9 @@ function modalRelAlunoHtml() {
     ${R.dom && R.dom.length ? `<div class="card-b" style="padding:0;display:flex;flex-direction:column;gap:8px"><b style="font-size:13px">Domínio por habilidade</b>
       ${[['precisa_revisao', 'Precisa revisar', 'draft'], ['em_desenvolvimento', 'Em desenvolvimento', 'type'], ['dominada', 'Dominadas', 'pub'], ['evidencia_insuficiente', 'Poucos dados', 'off']].map(([e2, rot, cls]) => { const hs = R.dom.filter(x => x.estado === e2); return hs.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="pill ${cls}">${rot}</span>${hs.map(x => `<span class="pill off" title="${esc(x.nome)} · ${x.n_tentativas} tentativa${x.n_tentativas === 1 ? '' : 's'}${x.taxa != null ? ' · ' + Math.round(x.taxa * 100) + '% de acerto' : ''}">${esc(x.codigo)}</span>`).join('')}</div>` : ''; }).join('')}
       <span style="font-size:11px;color:var(--muted)">Pelas últimas respostas do aluno nas questões de cada habilidade (passe o mouse para ver os números).</span></div>` : ''}
+    ${R.rec && R.rec.length ? `<div class="card-b" style="padding:0;display:flex;flex-direction:column;gap:6px"><b style="font-size:13px">Sugestões de estudo</b>
+      ${R.rec.slice(0, 6).map(s2 => `<div style="display:flex;gap:8px;align-items:baseline"><span class="pill ${s2.tipo === 'revisar' ? 'draft' : s2.tipo === 'base' ? 'type' : 'off'}" style="flex-shrink:0">${s2.tipo === 'revisar' ? 'revisar' : s2.tipo === 'base' ? 'pré-requisito' : 'reforçar'}</span><span style="font-size:13px">${esc(s2.motivo)}</span></div>`).join('')}
+      <span style="font-size:11px;color:var(--muted)">Geradas por regras explicáveis sobre as tentativas do aluno: revisão espaçada vencida, pré-requisitos fracos e habilidades em desenvolvimento. O aluno vê as mesmas sugestões na aba Treinar do app.</span></div>` : ''}
     <div class="tbl-wrap"><table><thead><tr><th>Atividade</th><th>Prazo</th><th>Nota</th><th>Acertos</th></tr></thead><tbody>
       ${(d.atividades || []).map(a => { const sr = a.status === 'aberta' && a.prazo && new Date(a.prazo) < new Date() ? 'encerrada' : a.status; return `<tr><td><b>${esc(a.titulo)}</b><br><span style="font-size:12px;color:var(--muted)">${esc(a.turma)}${a.materia ? ' · ' + esc((materiaPorId(a.materia) || {}).nome || a.materia) : ''}</span></td><td style="white-space:nowrap;font-size:12px">${a.prazo ? fmtData(a.prazo) : '—'}</td><td class="num" style="font-weight:700;color:${a.entregue_em ? relCorNota(a.nota) : 'var(--muted)'}">${a.entregue_em ? relNota(a.nota) : sr === 'encerrada' ? '<span class="pill off">não fez</span>' : '<span class="pill draft">pendente</span>'}</td><td class="num">${a.entregue_em ? a.acertos + ' / ' + a.total : '—'}</td></tr>`; }).join('') || '<tr><td colspan="4" class="empty">Nenhuma atividade nas turmas dele.</td></tr>'}
     </tbody></table></div>`;
@@ -2135,13 +2138,15 @@ async function carregarRelAlunos(id, forcar) {
   render();
 }
 async function carregarRelAluno(uid) {
-  const [r, h] = await Promise.all([
+  const [r, h, rc] = await Promise.all([
     sb.rpc('relatorio_aluno', {p_user: uid}),
-    sb.rpc('dominio_habilidades', {p_user: uid})  // migration 0048; sem ela o bloco só não aparece
+    sb.rpc('dominio_habilidades', {p_user: uid}),  // migration 0048; sem ela o bloco só não aparece
+    sb.rpc('recomendacoes', {p_user: uid})         // migration 0049; idem
   ]);
   if (!V.rel.det || V.rel.det.uid !== uid) return;
   if (r.error) V.rel.det.erro = traduzErro(r.error.message); else V.rel.det.data = r.data;
   V.rel.det.dom = h.error ? null : (h.data || []).filter(x => x.estado !== 'sem_evidencia');
+  V.rel.det.rec = rc.error ? null : (rc.data || []);
   render();
 }
 function relUsoHtml() {
