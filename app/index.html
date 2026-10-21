@@ -322,6 +322,11 @@ button.card:active{transform:scale(.985)}
 .hero-mascot .mascot{width:112px!important;transform:translateY(6px)}
 .mascot{display:block;flex-shrink:0}
 .mascot canvas,.mascot img{width:100%;height:auto;display:block}
+/* Rapozinha pensando: sprite de 20 quadros (rapozinha-pensando.png), 120 ms por quadro */
+.mascot-pensa{display:block;position:relative;overflow:hidden;flex-shrink:0}
+.mascot-pensa img{position:absolute;left:0;top:0;height:100%;width:auto;max-width:none;animation:masc-pensa 2.4s steps(20) infinite}
+@keyframes masc-pensa{to{transform:translateX(-100%)}}
+@media (prefers-reduced-motion: reduce){.mascot-pensa img{animation:none}}
 /* Rapozinha em dúvida (escolha da primeira disciplina) */
 .duvida-wrap{position:relative;display:inline-flex}
 .duvida{position:absolute;top:-4px;right:-16px;width:36px;height:36px;border-radius:50% 50% 50% 6px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;border:3px solid #fff;box-shadow:0 3px 10px rgba(37,99,235,.35);animation:duvida-bob 1.6s ease-in-out infinite}
@@ -359,7 +364,12 @@ const GIFANIM = {feliz3: 'rapozinha-feliz3.gif'};
 const SEM_MOV = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 // Mascote animada: o vídeo é desenhado num canvas com o fundo removido (a cor do canto vira transparente).
 // Enquanto o vídeo carrega, ou se ele falhar, aparece a imagem estática.
-const mascot = (w, cls = '', alt = '', humor = 'feliz') => GIFANIM[humor] && !SEM_MOV
+// Humores em sprite PNG (ex.: 'pensando'): quadros lado a lado, animados por CSS steps();
+// com "reduzir movimento" o CSS para no primeiro quadro, então o ramo vale sempre.
+const SPRITES = {pensando: {src: 'rapozinha-pensando.png', fw: 216, fh: 240}};
+const mascot = (w, cls = '', alt = '', humor = 'feliz') => SPRITES[humor]
+  ? `<span class="mascot-pensa ${cls}" role="img" aria-label="${esc(alt)}" style="width:${w}px;height:${Math.round(w * SPRITES[humor].fh / SPRITES[humor].fw)}px"><img src="${SPRITES[humor].src}" alt=""></span>`
+  : GIFANIM[humor] && !SEM_MOV
   ? `<span class="mascot ${cls}" style="width:${w}px"><img src="${GIFANIM[humor]}" alt="${esc(alt)}"></span>`
   : `<span class="mascot ${cls}" data-humor="${VIDEO[humor] ? humor : 'feliz'}" style="width:${w}px"><canvas style="display:none" aria-hidden="true"></canvas><img src="${MASCOT}" alt="${esc(alt)}"></span>`;
 // Identidade azul/branco/laranja: os vídeos da mascote ainda são da era roxa, então
@@ -755,7 +765,7 @@ function telaNovaSenha(msg = '') {
     mostrando = ''; const {data} = await sb.auth.getSession(); rota(data.session);
   };
 }
-function telaCarregando(txt = 'Carregando sua jornada…') { telaAuth(`<div style="display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center">${mascot(120, 'bounce')}<span class="spinner spin"></span><p style="margin:0;color:var(--muted)">${esc(txt)}</p></div>`); }
+function telaCarregando(txt = 'Carregando sua jornada…') { telaAuth(`<div style="display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center">${mascot(120, '', 'Rapozinha pensando', 'pensando')}<span class="spinner spin"></span><p style="margin:0;color:var(--muted)">${esc(txt)}</p></div>`); }
 function telaErro(msg) {
   telaAuth(`<div style="display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center">${mascot(110)}<h1>Ops</h1><div class="msg err">${esc(msg)}</div><button class="btn btn-primary pxbtn" id="denovo">Tentar de novo</button><button class="btn-ghost" id="sair">Sair da conta</button></div>`);
   document.getElementById('denovo').onclick = () => { mostrando = ''; sb.auth.getSession().then(({data}) => rota(data.session)); };
@@ -978,7 +988,7 @@ function screenMaterias() {
   const escolhendo = !S.perfil.materia;
   return `<header class="topbar">${escolhendo ? '' : `<button class="iconbtn" data-a="go:jornada" aria-label="Voltar à jornada">${I.back}</button>`}<h1>${escolhendo ? 'Boas-vindas!' : 'Suas matérias'}</h1></header>
   <div class="scroll"><div class="pad">
-    ${escolhendo ? `<div style="display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:10px 0 2px"><span class="duvida-wrap">${mascot(112, '', 'Rapozinha pensativa')}<span class="duvida px" aria-hidden="true">?</span></span><h2 class="h2" style="font-size:19px">Por qual disciplina vamos começar?</h2><p class="sub" style="margin:0;max-width:280px">Dá para trocar quando quiser — o progresso de cada uma fica guardado.</p></div>` : rev.ativo !== false ? `<button class="pxbtn" data-a="review" style="background:var(--teal);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;text-align:left">${mascot(56)}
+    ${escolhendo ? `<div style="display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:10px 0 2px"><span class="duvida-wrap">${mascot(112, '', 'Rapozinha pensativa', 'pensando')}<span class="duvida px" aria-hidden="true">?</span></span><h2 class="h2" style="font-size:19px">Por qual disciplina vamos começar?</h2><p class="sub" style="margin:0;max-width:280px">Dá para trocar quando quiser — o progresso de cada uma fica guardado.</p></div>` : rev.ativo !== false ? `<button class="pxbtn" data-a="review" style="background:var(--teal);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;text-align:left">${mascot(56)}
       <div class="grow"><span class="px" style="font-size:9px"><span class="blink" aria-hidden="true">►</span> REVISÃO DIÁRIA</span><span style="font-weight:700;font-size:15px">Mistura de todas as matérias</span><span style="font-size:12px;color:var(--teal-dd)">${rev.tamanho || E().tamanhoRevisao} exercícios · +${rev.xp || E().xpRevisao} XP · conta para a ofensiva</span></div>${I.chevR}</button>` : ''}
     ${escolhendo ? '' : (() => { const L = ilhas(); const tot = L.reduce((n, i) => n + i.total, 0), feit = L.reduce((n, i) => n + i.feitas, 0), p = tot ? Math.round(feit / tot * 100) : 0, conq = L.filter(i => i.completa).length; return `<button class="mapacard pxbtn" data-a="go:mapa"><span class="mini"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.5 9.5h17M3.5 14.5h17M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span><span class="grow" style="display:flex;flex-direction:column;gap:2px"><span class="px" style="font-size:9px;opacity:.85">MAPA DO ENEM</span><span style="font-family:var(--f-display);font-weight:700;font-size:16px">Volta ao mundo: ${p}%</span><span style="font-size:12px;opacity:.85">${conq} de ${L.length} ilhas conquistadas</span></span>${I.chevR}</button>`; })()}
     ${(() => {
@@ -1949,7 +1959,7 @@ function screenDominio() {
   const conta = e => lista.filter(h => h.estado === e).length;
   return `<header class="topbar"><button class="iconbtn" data-a="go:perfil" aria-label="Voltar ao perfil">${I.back}</button><h1>Domínio por habilidade</h1></header>
   <div class="scroll"><div class="pad">
-    ${Dm.carregando ? '<div style="text-align:center;padding:40px 0;color:var(--muted)">Calculando…</div>' : Dm.erro ? `<p class="sub" style="text-align:center;padding-top:30px">${esc(Dm.erro)}</p>` :
+    ${Dm.carregando ? `<div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:30px 0;color:var(--muted)">${mascot(110, '', 'Rapozinha pensando', 'pensando')}Calculando…</div>` : Dm.erro ? `<p class="sub" style="text-align:center;padding-top:30px">${esc(Dm.erro)}</p>` :
     !lista.length ? `<div style="display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;padding-top:30px">${mascot(110)}<p class="sub" style="max-width:300px">${(Dm.lista || []).length ? 'Responda mais lições para a gente estimar seu domínio — cada questão conta.' : 'A equipe ainda está mapeando as habilidades de cada questão. Em breve você vê aqui o que já domina e o que vale revisar.'}</p></div>` : `
     <div class="stats3">
       <div class="stat num" style="color:var(--green-d)">${conta('dominada')}<small>dominadas</small></div>
