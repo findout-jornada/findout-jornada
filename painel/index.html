@@ -729,7 +729,8 @@ async function carregar() {
   if (!V.materia || !D.materias.some(x => x.id === V.materia)) V.materia = D.materias[0] ? D.materias[0].id : null;
 }
 /* Confere se as migrations estão em dia (tabela schema_versao, migration 0022) */
-const ESQUEMA_ESPERADO = 41;
+const ESQUEMA_ESPERADO = 43;
+const CURSOS = ['dev', 'log', 'dat']; // matérias-curso: fora do Mapa do ENEM, o app mostra no grupo "Cursos"
 async function verificarEsquema() {
   const r = await sb.from('schema_versao').select('versao').order('versao', {ascending: false}).limit(1).maybeSingle();
   const v = r.error || !r.data ? 0 : r.data.versao;
@@ -1095,7 +1096,7 @@ function viewTrilhas() {
   const qCount = u => D.questoes.filter(q => q.unidade_id === u.id).length;
   return topbar('Matérias e trilhas', 'Seções → unidades → lições. Cada lição recebe as questões que o app vai usar.', `<button class="btn btn-outline" data-a="nova-materia">${I.plus}Nova matéria</button>`) + `<div class="content"><div class="grid3">
     <div class="card"><div class="card-h"><h2>Matérias</h2></div><div class="list">
-      ${D.materias.map(x => `<button data-a="trilha:${x.id}" aria-current="${x.id === m.id}">${siglaMat(x)}<span style="flex:1;min-width:0"><span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.nome)}</span><span style="font-size:11px;color:var(--muted)">${secoesDe(x.id).reduce((n, s) => n + unidadesDe(s.id).length, 0)} unidades · ${D.questoes.filter(q => q.materia_id === x.id).length} questões</span></span>${x.ativa ? '' : '<span class="pill off">inativa</span>'}</button>`).join('')}
+      ${D.materias.map(x => `<button data-a="trilha:${x.id}" aria-current="${x.id === m.id}">${siglaMat(x)}<span style="flex:1;min-width:0"><span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.nome)}</span><span style="font-size:11px;color:var(--muted)">${secoesDe(x.id).reduce((n, s) => n + unidadesDe(s.id).length, 0)} unidades · ${D.questoes.filter(q => q.materia_id === x.id).length} questões</span></span>${CURSOS.includes(x.id) ? '<span class="pill type">curso</span>' : ''}${x.ativa ? '' : '<span class="pill off">inativa</span>'}</button>`).join('')}
     </div></div>
     <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
       <div class="card"><div class="card-b" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">

@@ -5,7 +5,8 @@ const fs = require('fs');
 const base = 'C:/Users/Artur Morais/Documents/GitHub/findout-jornada/supabase/migrations/';
 const ordem = ['0005_conteudo.sql', '0006_conteudo_mais_materias.sql', '0007_conteudo_5_secoes.sql',
   '0013_conteudo_mais_secoes.sql', '0015_espanhol.sql', '0029_literatura.sql', '0030_conhecimentos_gerais.sql',
-  '0035_etica_cidadania.sql', '0036_arte.sql', '0037_ciencias.sql', '0041_curso_dev.sql'];
+  '0035_etica_cidadania.sql', '0036_arte.sql', '0037_ciencias.sql', '0041_curso_dev.sql',
+  '0042_logica_programacao.sql', '0043_analise_ciencia_dados.sql'];
 const t = s => String(s == null ? '' : s).trim();
 const banco = new Map();   // id(lic|enun) -> {arq, lic, mat, tipo, enun, dados}
 let erros = [], avisos = [];

@@ -943,16 +943,24 @@ function screenMaterias() {
     ${escolhendo ? `<div style="display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:10px 0 2px"><span class="duvida-wrap">${mascot(112, '', 'Rapozinha pensativa')}<span class="duvida px" aria-hidden="true">?</span></span><h2 class="h2" style="font-size:19px">Por qual disciplina vamos começar?</h2><p class="sub" style="margin:0;max-width:280px">Dá para trocar quando quiser — o progresso de cada uma fica guardado.</p></div>` : rev.ativo !== false ? `<button class="pxbtn" data-a="review" style="background:var(--teal);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;text-align:left">${mascot(56)}
       <div class="grow"><span class="px" style="font-size:9px"><span class="blink" aria-hidden="true">►</span> REVISÃO DIÁRIA</span><span style="font-weight:700;font-size:15px">Mistura de todas as matérias</span><span style="font-size:12px;color:var(--teal-dd)">${rev.tamanho || E().tamanhoRevisao} exercícios · +${rev.xp || E().xpRevisao} XP · conta para a ofensiva</span></div>${I.chevR}</button>` : ''}
     ${escolhendo ? '' : (() => { const L = ilhas(); const tot = L.reduce((n, i) => n + i.total, 0), feit = L.reduce((n, i) => n + i.feitas, 0), p = tot ? Math.round(feit / tot * 100) : 0, conq = L.filter(i => i.completa).length; return `<button class="mapacard pxbtn" data-a="go:mapa"><span class="mini"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.5 9.5h17M3.5 14.5h17M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span><span class="grow" style="display:flex;flex-direction:column;gap:2px"><span class="px" style="font-size:9px;opacity:.85">MAPA DO ENEM</span><span style="font-family:var(--f-display);font-weight:700;font-size:16px">Volta ao mundo: ${p}%</span><span style="font-size:12px;opacity:.85">${conq} de ${L.length} ilhas conquistadas</span></span>${I.chevR}</button>`; })()}
-    ${escolhendo ? '' : `<div style="display:flex;justify-content:space-between;align-items:baseline"><h2 class="h2">Jornadas por matéria</h2><span class="num" style="font-size:12px;color:var(--muted)">toque para trocar</span></div>`}
-    <div class="card" style="overflow:hidden">
-      ${materias().map(m => { const a = m.id === S.perfil.materia; const T = trilha(m); const p = T.total ? Math.round(T.done / T.total * 100) : 0; const onde = !T.total ? 'Sem lições ainda' : T.cur < 0 ? 'Concluída' : T.done === 0 ? 'Ainda não começou' : `Seção ${T.curUnit.si + 1} · Unidade ${T.curUnit.n}`; return `
+    ${(() => {
+      const linhaMateria = m => { const a = m.id === S.perfil.materia; const T = trilha(m); const p = T.total ? Math.round(T.done / T.total * 100) : 0; const onde = !T.total ? 'Sem lições ainda' : T.cur < 0 ? 'Concluída' : T.done === 0 ? 'Ainda não começou' : `Seção ${T.curUnit.si + 1} · Unidade ${T.curUnit.n}`; return `
       <button data-a="subject:${m.id}" aria-pressed="${a}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--lav);background:${a ? 'var(--lav)' : '#fff'};width:100%;text-align:left">
         <span class="px" style="width:44px;height:44px;border-radius:12px;background:${a ? 'var(--primary)' : 'var(--lav)'};color:${a ? '#fff' : 'var(--primary)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px">${esc(m.sigla)}</span>
         <div class="grow" style="gap:5px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:15px;font-weight:600">${esc(m.nome)}</span><span class="num" style="font-size:11px;color:var(--muted);white-space:nowrap">${onde}</span></div>
         <div class="bar" style="height:6px"><i style="width:${p}%;background:${p ? 'var(--primary)' : 'var(--line2)'}"></i></div></div>
         <span style="width:26px;height:26px;border-radius:50%;border:2px solid var(--primary);background:${a ? 'var(--primary)' : '#fff'};color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0">${a ? I.check(14) : ''}</span>
-      </button>`; }).join('') || '<div class="row"><span class="sub">Nenhuma matéria publicada ainda.</span></div>'}
-    </div>
+      </button>`; };
+      const cursos = materias().filter(m => CURSOS.includes(m.id)), comuns = materias().filter(m => !CURSOS.includes(m.id));
+      // Na primeira escolha, tudo numa lista só; depois, as matérias da escola e os cursos em grupos separados
+      const listaComuns = escolhendo ? materias() : comuns;
+      return `${listaComuns.length || !cursos.length ? `${escolhendo ? '' : `<div style="display:flex;justify-content:space-between;align-items:baseline"><h2 class="h2">Jornadas por matéria</h2><span class="num" style="font-size:12px;color:var(--muted)">toque para trocar</span></div>`}
+      <div class="card" style="overflow:hidden">
+        ${listaComuns.map(linhaMateria).join('') || '<div class="row"><span class="sub">Nenhuma matéria publicada ainda.</span></div>'}
+      </div>` : ''}
+      ${!escolhendo && cursos.length ? `<div style="display:flex;justify-content:space-between;align-items:baseline"><h2 class="h2">Cursos</h2><span class="num" style="font-size:12px;color:var(--muted)">não entram no Mapa do ENEM</span></div>
+      <div class="card" style="overflow:hidden">${cursos.map(linhaMateria).join('')}</div>` : ''}`;
+    })()}
     ${!escolhendo && materiaAtual() ? `<button class="btn btn-primary pxbtn" data-a="go:jornada">Abrir jornada de ${esc(materiaAtual().nome)}</button>` : ''}
     <p style="margin:0;font-size:12px;color:var(--muted);text-align:center;line-height:1.45">A ofensiva, as moedas, os corações e a liga são os mesmos em todas as matérias. Só a trilha muda.</p>
   </div></div>`;
@@ -1557,7 +1565,8 @@ function screenDinamica() {
 // Cada ilha agrupa matérias. A ilha é conquistada quando todas as lições publicadas das matérias dela foram concluídas.
 // Matérias fora dessas listas caem na ilha "Atualidades", exceto as de FORA_DO_MAPA, que não entram no mapa
 // (ficam só em "Suas matérias"). A ordem da lista é a ordem da viagem.
-const FORA_DO_MAPA = ['lit', 'cge', 'eti', 'art', 'cie', 'dev']; // Literatura, Conhecimentos Gerais, Ética e Cidadania, Arte, Ciências e o curso de Desenvolvimento de Software: não fazem parte do ENEM
+const FORA_DO_MAPA = ['lit', 'cge', 'eti', 'art', 'cie', 'dev', 'log', 'dat']; // Literatura, Conhecimentos Gerais, Ética e Cidadania, Arte, Ciências e os cursos: não fazem parte do ENEM
+const CURSOS = ['dev', 'log', 'dat']; // matérias-curso (Desenvolvimento de Software, Lógica de Programação, Análise e Ciência de Dados): aparecem no grupo "Cursos" em Suas matérias
 const ILHAS = [
   // x/y no mapa base de 360×600 (o y é esticado conforme a altura da tela); barco: âncora do barco em relação ao pino, para não cobrir rótulos
   // idiomas: na viagem o aluno escolhe um deles (como no ENEM); só o escolhido conta para a ilha
