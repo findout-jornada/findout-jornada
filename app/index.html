@@ -586,8 +586,8 @@ function patch(o, n) {
 /* =====================================================================
    Estado: sessão, estado do aluno (servidor) e pacote de conteúdo
    ===================================================================== */
-let sessao = null, S = null, PK = null, QI = {}, L = null, lastResult = null, mostrando = '';
-let V = {screen: 'jornada', open: null, tier: null, toast: null, sheet: null, scrollTo: true, celebrate: false, salvando: false, editNome: false, justDone: null, bau: null};
+let sessao = null, S = null, PK = null, QI = {}, L = null, DIN = null, lastResult = null, mostrando = '';
+let V = {screen: 'jornada', open: null, tier: null, toast: null, sheet: null, scrollTo: true, celebrate: false, salvando: false, editNome: false, justDone: null, bau: null, dinAtiva: null};
 let toastTimer;
 function toast(msg) {
   V.toast = msg; render(); anuncia(msg); clearTimeout(toastTimer);
@@ -1375,6 +1375,7 @@ function screenTurma() {
   const urgentes = pend.filter(a => a.prazo && new Date(a.prazo) - Date.now() < 24 * HOUR).length;
   return `<header class="topbar"><h1>Turma</h1><button class="chipbtn" data-a="turmas" style="margin-right:10px">${ts.length ? 'Minhas turmas' : 'Entrar na turma'}</button></header>
   <div class="scroll"><div class="pad">
+    ${V.dinAtiva ? `<button class="card row" style="width:100%;text-align:left;border-color:var(--primary);background:var(--lav)" data-a="din-entrar:${V.dinAtiva.id}" data-key="din-ativa"><span class="tile" style="background:var(--primary);color:#fff">${I.bolt(22)}</span><div class="grow"><span class="t15">Dinâmica ao vivo: ${esc(V.dinAtiva.titulo)}</span><span class="sub" style="color:var(--primary);font-weight:600">${esc(V.dinAtiva.turma)} · ${V.dinAtiva.status === 'lobby' ? 'esperando começar' : 'em andamento'} · toque para entrar</span></div>${I.chevR}</button>` : ''}
     ${(S.convites || []).map(c => `<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;border-color:var(--primary);background:var(--lav)" data-key="conv:${c.id}"><div style="display:flex;gap:12px;align-items:center"><span class="tile" style="background:var(--primary);color:#fff">${I.users}</span><div class="grow"><span class="t15">Convite para a turma ${esc(c.nome)}</span><span class="sub">${c.escola ? esc(c.escola) + ' · ' : ''}${c.professor ? 'convite de ' + esc(c.professor) + ' · ' : ''}${c.alunos} aluno${c.alunos === 1 ? '' : 's'}</span></div></div><div style="display:flex;gap:8px"><button class="btn btn-primary pxbtn" style="flex:2" data-a="convite:${c.id}:1">Aceitar</button><button class="btn btn-outline" style="flex:1" data-a="convite:${c.id}:0">Recusar</button></div></div>`).join('')}
     ${!ts.length ? `<div class="pad" style="padding:20px 0 6px;align-items:center;text-align:center">${mascot(110)}<h2 class="h2" style="font-size:18px">Você ainda não está numa turma</h2><p class="sub" style="max-width:280px;margin:0">Peça o código de 6 letras ao seu professor e entre pelo botão acima. As atividades que ele passar aparecem aqui.</p><button class="btn btn-primary pxbtn" data-a="turmas" style="margin-top:6px">Entrar com o código</button></div>` : `
     <div class="card row" data-key="turma-info"><span class="tile" style="background:var(--lav);color:var(--primary)">${I.users}</span><div class="grow"><span class="t15">${ts.map(t => esc(t.nome)).join(' · ')}</span><span class="sub">${ts.length === 1 ? (ts[0].escola ? esc(ts[0].escola) : 'Turma do professor') : ts.length + ' turmas'}</span></div></div>
@@ -1404,6 +1405,154 @@ function sheetTurma() {
     <div><label for="cod-turma">Entrar numa turma com o código</label><div style="display:flex;gap:8px"><input id="cod-turma" class="inp" maxlength="8" autocapitalize="characters" autocomplete="off" placeholder="Ex.: K7M2PX" style="text-transform:uppercase;letter-spacing:.12em;font-family:var(--f-display);font-weight:700"><button class="chipbtn" style="height:50px;padding:0 16px" data-a="entrar-turma">Entrar</button></div>${V.codigoErro ? `<div class="msg err" style="margin-top:8px">${esc(V.codigoErro)}</div>` : ''}</div>
     <button class="btn-ghost" data-a="sheet:">Fechar</button></section>`;
 }
+/* ---------- dinâmica ao vivo (quiz de sala): o professor comanda pelo painel ---------- */
+async function carregarDinamicaAtiva() {
+  if (!(S.turmas || []).length) { V.dinAtiva = null; return; }
+  const {data, error} = await sb.rpc('dinamica_ativa');
+  V.dinAtiva = error ? null : (data || null);
+  if (V.screen === 'turma') render(false);
+}
+function entrarDinamica(id) {
+  DIN = {id, data: null, ans: blankAns(), e: null, builtFor: null, enviando: false, enviado: false, travou: false, offset: 0};
+  go('dinamica');
+  atualizarDin();
+}
+async function atualizarDin() {
+  if (!DIN || DIN.buscando) return;
+  DIN.buscando = true;
+  const {data, error} = await sb.rpc('estado_dinamica', {p_dinamica: DIN.id});
+  if (!DIN) return;
+  DIN.buscando = false;
+  if (error) { toast(traduz(error.message)); DIN = null; return go('turma'); }
+  DIN.data = data;
+  DIN.offset = new Date(data.agora).getTime() - Date.now();
+  if ((data.status === 'pergunta' || data.status === 'revelada') && data.questaoPub && DIN.builtFor !== data.questao) {
+    const q = data.questaoPub, dd = q.dados || {};
+    const e = {id: q.id, t: q.tipo, q: q.enunciado, img: q.imagem || null, cega: true};
+    if (q.tipo === 'mc') e.opts = dd.opts || [];
+    if (q.tipo === 'tf') e.stmt = dd.stmt || '';
+    if (q.tipo === 'bank') { e.parts = [dd.parts?.[0] || '', dd.parts?.[1] || '', dd.parts?.[2] || '']; e.words = (dd.words || []).filter(Boolean); }
+    if (q.tipo === 'order') e.items = dd.items || [];
+    if (q.tipo === 'match') { e.left = dd.left || []; e.right = dd.right || []; }
+    DIN.e = e; DIN.ans = blankAns(); DIN.builtFor = data.questao; DIN.enviado = false; DIN.travou = false;
+    if (data.status === 'pergunta') { SND.tap(); vib(20); }
+  }
+  if (data.respondi) DIN.enviado = true;
+  if (V.screen === 'dinamica') render(false);
+}
+setInterval(() => { if (V.screen === 'dinamica' && DIN && DIN.data && DIN.data.status !== 'fim' && document.visibilityState !== 'hidden') atualizarDin(); }, 2000);
+const dinResta = () => { const d = DIN && DIN.data; if (!d || !d.fimEm || d.status !== 'pergunta') return null; return new Date(d.fimEm).getTime() - (Date.now() + (DIN.offset || 0)); };
+const dinEsgotado = () => { const r = dinResta(); return r !== null && r <= 0; };
+const dinTravado = () => !DIN || !DIN.e || DIN.enviado || DIN.enviando || !DIN.data || DIN.data.status !== 'pergunta' || dinEsgotado();
+async function responderDin() {
+  const d = DIN && DIN.data, e = DIN && DIN.e;
+  if (!e || DIN.enviando || DIN.enviado || d.status !== 'pergunta') return;
+  DIN.enviando = true; render(false);
+  const {error} = await sb.rpc('responder_dinamica', {p_dinamica: DIN.id, p_questao: d.questao, p_resposta: respostaDe(e, DIN.ans)});
+  if (!DIN) return;
+  DIN.enviando = false;
+  if (error) { toast(traduz(error.message)); if (/já respondeu/i.test(error.message)) DIN.enviado = true; render(false); return atualizarDin(); }
+  DIN.enviado = true; SND.ok(); vib(25); render(false);
+  atualizarDin();
+}
+function dinRankingAluno(d, limite) {
+  const r = d.ranking || [], meu = r.findIndex(p => p.eu);
+  const lista = limite ? r.slice(0, limite) : r;
+  const linha = (p, i) => `<div class="row" style="padding:9px 14px;${p.eu ? 'background:var(--lav)' : ''}"><span class="num" style="width:30px;font-weight:700;font-size:${i < 3 ? '17px' : '13px'};color:${i < 3 ? 'var(--gold-d)' : 'var(--muted)'}">${['🥇', '🥈', '🥉'][i] || (i + 1) + 'º'}</span><span style="flex:1;font-size:14px;font-weight:${p.eu ? 700 : 500}">${esc(p.nome)}${p.eu ? (d.modo === 'grupos' ? ' (seu grupo)' : ' (você)') : ''}</span><span class="num" style="font-size:13px;font-weight:700;color:var(--primary)">${p.acertos} acerto${p.acertos === 1 ? '' : 's'}</span></div>`;
+  return `<div class="card">${lista.map(linha).join('') || '<div class="row"><span class="sub">Ainda sem pontos no placar.</span></div>'}${limite && meu >= limite ? linha(r[meu], meu) : ''}</div>`;
+}
+function dinGrupoCard(d) {
+  if (d.modo !== 'grupos') return '';
+  if (!d.grupo) return `<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:4px"><span class="t15">${d.temGrupos ? 'Você ainda está sem grupo' : 'O professor vai montar os grupos'}</span><span class="sub">${d.temGrupos ? 'Avise o professor para te colocar em um grupo.' : 'Quando ele sortear, seu grupo aparece aqui.'}</span></div>`;
+  return `<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:4px;border-color:var(--primary);background:var(--lav)"><span class="px" style="font-size:9px;color:var(--primary)">SEU GRUPO</span><span style="font-family:var(--f-display);font-size:19px;font-weight:700">${esc(d.grupo.nome)}</span><span class="sub">${(d.grupo.colegas || []).length ? 'Com ' + d.grupo.colegas.map(esc).join(', ') : 'Só você por enquanto.'}</span></div>`;
+}
+function dinCertaTxt(d) {
+  const c = d.certa, e = DIN.e;
+  if (c == null || !e) return '';
+  if (e.t === 'mc') return 'Resposta certa: <b>' + esc(String(c)) + '</b>.';
+  if (e.t === 'tf') return 'Resposta certa: <b>' + (c === true ? 'Verdadeiro' : 'Falso') + '</b>.';
+  if (e.t === 'bank') return 'Palavras certas: <b>' + (Array.isArray(c) ? c.map(w => esc(String(w))).join(', ') : '') + '</b>.';
+  if (e.t === 'order') return 'Ordem certa: <b>' + (Array.isArray(c) ? c.map(w => esc(String(w))).join(' → ') : '') + '</b>.';
+  if (e.t === 'match') return 'Pares certos: ' + (Array.isArray(c) ? c.map(p => '<b>' + esc(String(p[0])) + ' → ' + esc(String(p[1])) + '</b>').join(' · ') : '') + '.';
+  return '';
+}
+function dinBodyAluno(e, a, locked, d) {
+  const rev = d.status === 'revelada';
+  if (e.t === 'mc') return `<div role="radiogroup" aria-label="Alternativas" style="display:flex;flex-direction:column;gap:8px">${e.opts.map((o, i) => {
+    const cls = rev ? (d.certa === o ? 'ok' : d.minhaResposta === o ? 'bad' : '') : a.pick === i ? 'sel' : '';
+    return `<button class="opt ${cls}" role="radio" aria-checked="${a.pick === i}" data-a="dq-mc:${i}" ${locked ? 'disabled' : ''}><span class="letter">${'ABCDE'[i] || i + 1}</span><span class="txt">${esc(o)}</span></button>`;
+  }).join('')}</div>`;
+  if (e.t === 'tf') return `<div class="card stmt">${esc(e.stmt)}</div><div class="tfgrid">${[[true, 'Verdadeiro'], [false, 'Falso']].map(([v, t]) => {
+    const cls = rev ? (d.certa === v ? 'ok' : d.minhaResposta === v ? 'bad' : '') : a.pick === v ? 'sel' : '';
+    return `<button class="chip ${cls}" data-a="dq-tf:${v}" aria-pressed="${a.pick === v}" ${locked ? 'disabled' : ''}>${t}</button>`;
+  }).join('')}</div>`;
+  if (e.t === 'bank') {
+    const slot = k => { const v = a.slots[k]; return `<button class="slot ${v ? 'filled' : ''}" data-a="dq-slot:${k}" ${locked ? 'disabled' : ''} aria-label="${v ? 'Remover ' + esc(v) : 'Espaço vazio ' + (k + 1)}">${v ? esc(v) : '&nbsp;'}</button>`; };
+    return `<p class="bankline">${esc(e.parts[0])}${slot(0)}${esc(e.parts[1])}${slot(1)}${esc(e.parts[2])}</p>
+      <div class="wordbank" aria-label="Banco de palavras">${e.words.map((w, i) => { const used = a.slots.includes(w); return `<button class="chip ${used ? 'used' : ''}" data-a="dq-word:${i}" ${used || locked ? 'disabled' : ''}>${esc(w)}</button>`; }).join('')}</div>`;
+  }
+  if (e.t === 'order') return `<div class="orderbox" aria-label="Sua ordem">${a.order.length ? a.order.map((w, i) => `<button class="chip sel" data-a="dq-unorder:${i}" ${locked ? 'disabled' : ''} aria-label="Remover ${esc(w)}">${esc(w)}</button>`).join('') : '<span style="font-size:13px;color:var(--muted);padding-left:4px">Toque nos itens na ordem certa</span>'}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">${e.items.map((w, i) => { const used = a.order.includes(w); return `<button class="chip ${used ? 'used' : ''}" data-a="dq-order:${i}" ${used || locked ? 'disabled' : ''}>${esc(w)}</button>`; }).join('')}</div>`;
+  if (e.t === 'match') {
+    const par = (side, t) => a.pairs.findIndex(p => p[side === 'L' ? 0 : 1] === t) + 1;
+    const col = (list, side) => list.map((t, i) => { const n = par(side, t); const sel = a.sel && a.sel.side === side && a.sel.t === t; return `<button class="chip ${n || sel ? 'sel' : ''}" data-a="dq-match:${side}:${i}" aria-pressed="${!!(n || sel)}" ${locked ? 'disabled' : ''}>${n ? `<b class="num" style="margin-right:4px">${n}·</b>` : ''}${esc(t)}</button>`; }).join('');
+    return `<div class="matchgrid"><div class="col">${col(e.left, 'L')}</div><div class="col">${col(e.right, 'R')}</div></div><p style="margin:0;font-size:13px;color:var(--muted)">Ligue cada item da esquerda a um da direita; o número mostra o par. A correção sai quando o professor revelar.</p>`;
+  }
+  return '';
+}
+function dinPerguntaAluno(d) {
+  const e = DIN.e, a = DIN.ans;
+  if (!e) return `<div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:30px">${mascot(100)}<span class="sub">Carregando a questão…</span></div>`;
+  const rev = d.status === 'revelada';
+  const semGrupo = d.modo === 'grupos' && !d.grupo;
+  const locked = rev || DIN.enviado || dinEsgotado() || semGrupo;
+  let status = '';
+  if (rev) {
+    const ok = d.acertei === true;
+    status = `<div class="banner ${ok ? 'ok' : 'bad'}" style="border-radius:16px;padding:16px;animation:none">
+      <div style="display:flex;align-items:flex-start;gap:12px"><span class="ic">${ok ? I.check(22, 3.2) : I.close}</span><div class="grow">
+      <span style="font-family:var(--f-display);font-weight:700;font-size:18px">${!d.respondi ? (d.modo === 'grupos' ? 'Seu grupo não respondeu' : 'Você não respondeu') : ok ? (d.modo === 'grupos' ? 'Seu grupo acertou!' : 'Você acertou!') : 'Não foi dessa vez'}</span>
+      <span style="font-size:14px;line-height:1.45">${dinCertaTxt(d)}${d.explicacao ? '<br>' + esc(d.explicacao) : ''}</span></div></div></div>`;
+  } else if (DIN.enviado) status = `<div class="msg ok"><b>Resposta enviada!</b> ${d.respondeuPor ? esc(d.respondeuPor) + ' respondeu pelo seu grupo. ' : ''}Agora é esperar o professor revelar.</div>`;
+  else if (dinEsgotado()) status = `<div class="msg err"><b>Tempo esgotado.</b> Espere a resposta ser revelada no telão.</div>`;
+  else if (semGrupo) status = `<div class="msg err">Você está sem grupo nesta dinâmica. Avise o professor.</div>`;
+  const ready = e.t === 'mc' || e.t === 'tf' ? a.pick !== null : e.t === 'bank' ? a.slots[0] !== null && a.slots[1] !== null : e.t === 'order' ? a.order.length === e.items.length : e.t === 'match' ? a.pairs.length === e.left.length : false;
+  const botao = rev || locked ? '' : `<button class="btn btn-primary pxbtn" data-a="din-responder" ${ready && !DIN.enviando ? '' : 'disabled'}>${DIN.enviando ? 'Enviando…' : d.modo === 'grupos' ? 'Responder pelo grupo' : 'Responder'}</button>`;
+  return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="tag px">QUESTÃO ${d.questao + 1} DE ${d.total}</span><span class="tag px">${TIPO_LABEL[e.t] || e.t}</span>${d.modo === 'grupos' && d.grupo ? `<span class="tag px" style="border-color:var(--primary);color:var(--primary)">${esc(d.grupo.nome.toUpperCase())}</span>` : ''}</div>
+    <h1 class="q">${esc(e.q)}</h1>
+    ${e.img ? `<img class="qimg" src="${esc(e.img)}" alt="Imagem da questão">` : ''}
+    ${dinBodyAluno(e, a, locked, d)}
+    ${status}
+    ${botao}
+    ${rev && (d.ranking || []).length ? `<h2 class="h2">Placar</h2>${dinRankingAluno(d, 5)}` : ''}`;
+}
+function dinFimAluno(d) {
+  const r = d.ranking || [], meu = r.findIndex(p => p.eu);
+  const top = meu >= 0 && meu < 3;
+  return `<div style="display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding-top:8px">
+    ${top ? mascot(130, 'bounce', 'Rapozinha comemorando', 'feliz') : mascot(110)}
+    <span class="px" style="font-size:10px;color:var(--gold-d)">★ FIM DA DINÂMICA ★</span>
+    <h1 style="margin:0;font-family:var(--f-display);font-size:24px;font-weight:700">${meu < 0 ? esc(d.titulo) : (d.modo === 'grupos' ? 'Seu grupo ficou em ' : 'Você ficou em ') + (meu + 1) + 'º lugar'}</h1>
+    ${meu >= 0 ? `<p class="sub" style="margin:0">${esc(r[meu].nome)} · ${r[meu].acertos} acerto${r[meu].acertos === 1 ? '' : 's'}</p>` : ''}
+  </div>
+  ${dinRankingAluno(d)}
+  <button class="btn btn-primary pxbtn" data-a="din-sair">Voltar à turma</button>`;
+}
+function screenDinamica() {
+  const d = DIN && DIN.data;
+  const resta = dinResta();
+  const timer = d && d.status === 'pergunta' && d.tempo ? `<span class="num" style="display:flex;align-items:center;gap:4px;font-weight:700;font-size:18px;color:${dinEsgotado() ? 'var(--red-d)' : 'var(--primary)'}">${I.clock(20)}<span id="din-t">${resta === null ? '' : Math.max(0, Math.ceil(resta / 1000))}</span></span>`
+    : d && d.total ? `<span class="num" style="font-weight:700;font-size:14px;color:var(--primary);white-space:nowrap">${Math.max(1, d.questao + 1)} / ${d.total}</span>` : '';
+  const head = `<header class="topbar lhead"><button class="iconbtn" data-a="din-sair" aria-label="Sair da dinâmica">${I.close}</button><div class="grow" style="gap:2px;min-width:0"><span class="px" style="font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">DINÂMICA · ${esc(((d && d.turma) || '').toUpperCase())}</span><span style="font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc((d && d.titulo) || 'Dinâmica ao vivo')}</span></div>${timer}</header>`;
+  let corpo;
+  if (!d) corpo = `<div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding-top:50px">${mascot(110, 'bounce')}<span class="spinner spin"></span><p class="sub" style="margin:0">Entrando na dinâmica…</p></div>`;
+  else if (d.status === 'lobby') corpo = `<div style="display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding-top:8px">${mascot(120, 'bounce')}<h1 style="margin:0;font-family:var(--f-display);font-size:22px;font-weight:700">${esc(d.titulo)}</h1><p class="sub" style="margin:0">Aguardando o professor começar…</p></div>${dinGrupoCard(d)}<div class="msg" style="font-size:13px">${d.origem === 'manual' ? 'As perguntas serão feitas em sala; acompanhe o placar por aqui.' : (d.modo === 'grupos' ? 'Quando começar, a questão aparece aqui: combine com o seu grupo, porque vale a primeira resposta enviada!' : 'Quando começar, a questão aparece aqui. Responda dentro do tempo!')}</div>`;
+  else if (d.status === 'fim') corpo = dinFimAluno(d);
+  else if (d.origem === 'manual') corpo = `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">${mascot(100)}<h2 class="h2" style="margin:0">Dinâmica em sala</h2><p class="sub" style="margin:0">O professor marca os acertos e o placar atualiza aqui.</p></div>${dinGrupoCard(d)}<h2 class="h2">Placar ao vivo</h2>${dinRankingAluno(d)}`;
+  else corpo = dinPerguntaAluno(d);
+  return head + `<main class="scroll"><div class="pad" style="gap:14px">${corpo}</div></main>`;
+}
+
 /* ---------- Mapa do ENEM: arquipélago com uma ilha por área de conhecimento ---------- */
 // Cada ilha agrupa matérias. A ilha é conquistada quando todas as lições publicadas das matérias dela foram concluídas.
 // Matérias fora dessas listas caem na ilha "Atualidades", exceto as de FORA_DO_MAPA, que não entram no mapa
@@ -1735,7 +1884,7 @@ function screenPerfil() {
 /* =====================================================================
    Render e ações
    ===================================================================== */
-const SCREENS = {jornada: screenJornada, materias: screenMaterias, secoes: screenSecoes, licao: screenLicao, fim: screenFim, ofensiva: screenOfensiva, missoes: screenMissoes, ligas: screenLigas, loja: screenLoja, praticar: screenPraticar, turma: screenTurma, perfil: screenPerfil, mapa: screenMapa};
+const SCREENS = {jornada: screenJornada, materias: screenMaterias, secoes: screenSecoes, licao: screenLicao, fim: screenFim, ofensiva: screenOfensiva, missoes: screenMissoes, ligas: screenLigas, loja: screenLoja, praticar: screenPraticar, turma: screenTurma, perfil: screenPerfil, mapa: screenMapa, dinamica: screenDinamica};
 let lastScreen = null;
 const TABS = new Set(['jornada', 'praticar', 'turma', 'missoes', 'ligas', 'perfil']);
 function go(screen, extra = {}) { V = {...V, screen, sheet: null, editNome: false, justDone: null, ...extra}; render(true); }
@@ -1744,6 +1893,7 @@ function abrirAtual() { const m = materiaAtual(); const T = m && trilha(m); V.op
 function render(reset) {
   if (!S) return;
   if (V.screen === 'licao' && !L) V.screen = 'jornada';
+  if (V.screen === 'dinamica' && !DIN) V.screen = 'turma';
   const html = SCREENS[V.screen]() + (V.sheet === 'bau' ? sheetBau() : '') + (V.toast ? `<div class="toast" data-key="toast">${esc(V.toast)}</div>` : '');
   if (reset) {
     const dir = lastScreen === V.screen ? 'push' : TABS.has(V.screen) ? (!lastScreen || TABS.has(lastScreen) ? 'tab' : 'pop') : 'push';
@@ -1757,7 +1907,7 @@ function render(reset) {
   }
   const sc2 = document.getElementById('sc');
   if (V.screen === 'jornada' && V.scrollTo) { V.scrollTo = false; const n = document.getElementById('cur-node'); if (n && sc2) sc2.scrollTop = Math.max(0, n.offsetTop - sc2.clientHeight / 2 + 40); }
-  if (V.screen === 'turma' && reset) carregarRankingTurma();
+  if (V.screen === 'turma' && reset) { carregarRankingTurma(); carregarDinamicaAtiva(); }
   if (V.screen === 'mapa' && reset) { celebrarIlhas(); try { if (V.barcoPos) localStorage.setItem('fj-barco', JSON.stringify(V.barcoPos)); } catch (e) {} }
   if (V.screen === 'ligas' && reset) { const m = document.getElementById('me-row'), s = app.querySelector('.scroll'); if (m && s) s.scrollTop = Math.max(0, m.offsetTop - s.offsetTop - s.clientHeight / 2); }
   if (V.editNome) { const i = document.getElementById('nome-inp'); if (i && document.activeElement !== i) i.focus(); }
@@ -1825,6 +1975,24 @@ async function act(a) {
       S = data.estado; V.codigoErro = ''; render(); SND.ok(); vib(25); toast(`Você entrou na turma ${data.nome}.`); return;
     }
     case 'after-streak': { const r = lastResult; abrirAtual(); return go('jornada', {scrollTo: true, celebrate: false, justDone: r ? r.justDone : null}); }
+    /* dinâmica ao vivo */
+    case 'din-entrar': return entrarDinamica(x);
+    case 'din-sair': DIN = null; go('turma'); return carregarDinamicaAtiva();
+    case 'din-responder': return responderDin();
+    case 'dq-mc': if (!dinTravado()) { SND.tap(); DIN.ans.pick = +x; } return render(false);
+    case 'dq-tf': if (!dinTravado()) { SND.tap(); DIN.ans.pick = x === 'true'; } return render(false);
+    case 'dq-word': { if (dinTravado()) return; SND.tap(); const e = DIN.e, w = e.words[+x], s = DIN.ans.slots, i = s[0] === null ? 0 : s[1] === null ? 1 : -1; if (i >= 0) s[i] = w; return render(false); }
+    case 'dq-slot': if (!dinTravado()) { SND.tap(); DIN.ans.slots[+x] = null; } return render(false);
+    case 'dq-order': { if (dinTravado()) return; SND.tap(); DIN.ans.order.push(DIN.e.items[+x]); return render(false); }
+    case 'dq-unorder': if (!dinTravado()) { SND.tap(); DIN.ans.order.splice(+x, 1); } return render(false);
+    case 'dq-match': {
+      if (dinTravado()) return;
+      const e = DIN.e, side = x, t = (side === 'L' ? e.left : e.right)[+y], an = DIN.ans;
+      const j = an.pairs.findIndex(p => p[side === 'L' ? 0 : 1] === t);
+      if (j >= 0) { SND.tap(); an.pairs.splice(j, 1); an.sel = null; return render(false); }
+      if (!an.sel || an.sel.side === side) { SND.tap(); an.sel = {side, t}; return render(false); }
+      an.pairs.push([side === 'L' ? t : an.sel.t, side === 'R' ? t : an.sel.t]); an.sel = null; SND.match(); return render(false);
+    }
     /* lição */
     case 'quit': V.sheet = 'quit'; return render();
     case 'stay': return fecharSheet();
@@ -1882,6 +2050,11 @@ setInterval(() => {
     const t = document.getElementById('flash-t');
     if (Date.now() >= L.deadline && L.result === null && !V.salvando) { finish(true); return; }
     if (t) t.lastChild.textContent = mmss(L.deadline - Date.now());
+  }
+  if (V.screen === 'dinamica' && DIN && DIN.data && DIN.data.status === 'pergunta') {
+    const dt = document.getElementById('din-t'), r = dinResta();
+    if (dt && r !== null) dt.textContent = String(Math.max(0, Math.ceil(r / 1000)));
+    if (r !== null && r <= 0 && !DIN.enviado && !DIN.travou) { DIN.travou = true; render(false); }
   }
   const ht = document.getElementById('heart-t'); if (ht) ht.textContent = 'PRÓXIMO CORAÇÃO EM ' + hms(nextHeartMs());
   const mt = document.getElementById('mid-t'); if (mt) mt.textContent = 'renovam em ' + hms(renovaMissoesEm() - Date.now());

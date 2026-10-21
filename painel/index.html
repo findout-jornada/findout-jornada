@@ -101,6 +101,19 @@ aside::-webkit-scrollbar{display:none}
 .checkgroup{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px}
 .chk{display:flex;gap:9px;align-items:center;font-size:13px;cursor:pointer}
 .chk input{width:16px;height:16px;accent-color:var(--primary);flex-shrink:0}
+.dinwrap{display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);gap:18px;align-items:start}
+.dinopts{display:flex;flex-direction:column;gap:8px}
+.dinopt{display:flex;align-items:center;gap:12px;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;font-size:17px}
+.dinopt .lt{width:30px;height:30px;border-radius:9px;background:var(--primary-l);color:var(--primary);display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.dinopt.ok{border-color:var(--green-d);background:rgba(85,170,110,.1);font-weight:600}
+.dinopt.ok .lt{background:var(--green-d);color:#fff}
+.dinopt.fraca{opacity:.5}
+.dinlac{padding:2px 10px;border-bottom:2.5px solid var(--primary);margin:0 4px;white-space:nowrap}
+.dinlac.ok{color:var(--green-d);border-color:var(--green-d)}
+.dintimer{font-size:26px;font-weight:700;color:var(--primary);margin-left:auto}
+.dintimer.urgente{color:var(--red-d)}
+.dintimer.esgotado{font-size:14px;color:var(--red-d)}
+.dingrp{border:1.5px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center}
 main{min-width:0;display:flex;flex-direction:column}
 .topbar{display:flex;align-items:center;gap:14px;padding:16px 28px;border-bottom:1px solid var(--line);background:var(--topbar);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);position:sticky;top:0;z-index:5;flex-wrap:wrap}
 body{background-image:radial-gradient(700px 300px at 70% -80px,rgba(142,127,207,.16),transparent 70%),radial-gradient(640px 320px at -8% 108%,rgba(76,195,193,.10),transparent 70%);background-attachment:fixed}
@@ -289,6 +302,7 @@ pre.json{margin:0;background:var(--navy);color:#C5C9E3;padding:14px;border-radiu
 
 @media (max-width:1024px){
   #shell{grid-template-columns:204px 1fr}
+  .dinwrap{grid-template-columns:1fr}
   .topbar{padding:14px 20px}
   .content{padding:20px 20px 44px;gap:16px}
   .grid3{grid-template-columns:220px 1fr}
@@ -546,6 +560,7 @@ let sessao = null, admin = false, papel = 'aluno', D = null, T = null, mostrando
 let V = {view: 'inicio', qf: {materia: '', unidade: '', tipo: '', status: '', busca: '', assunto: '', segmento: '', nivel: ''}, materia: null, rascunho: null, licaoAtribuir: null, alunoGerenciar: null, confirmar: null, modal: null, alunos: {busca: '', lista: null, carregando: false, erro: null, sel: {}}, metricas: null, metricasErro: null, salvando: 0, notaPub: '', jsonVersao: null, jsonTexto: '',
   turma: null, turmaAlunos: null, ativ: null, ativBusca: {texto: '', materia: '', unidade: '', assunto: '', segmento: '', nivel: ''}, ativFiltroTurma: '', resultados: null, modalPrev: null,
   escola: null, escolaAba: 'segmentos', escolaAlunos: null, escolaAberto: {},
+  din: null, dinamicas: null,
   turmaFiltro: {escola: '', segmento: '', busca: ''}, ativFiltroEscola: '', alunosFiltro: {escola: '', turma: ''},
   rel: {data: null, erro: null, carregando: false},
   aud: {lista: null, usuarios: [], carregando: false, erro: null, fim: false, aberto: {}, f: {user: '', origem: '', tabela: '', acao: '', periodo: '7', busca: ''}}};
@@ -669,7 +684,7 @@ async function carregar() {
   if (!V.materia || !D.materias.some(x => x.id === V.materia)) V.materia = D.materias[0] ? D.materias[0].id : null;
 }
 /* Confere se as migrations estão em dia (tabela schema_versao, migration 0022) */
-const ESQUEMA_ESPERADO = 31;
+const ESQUEMA_ESPERADO = 32;
 async function verificarEsquema() {
   const r = await sb.from('schema_versao').select('versao').order('versao', {ascending: false}).limit(1).maybeSingle();
   const v = r.error || !r.data ? 0 : r.data.versao;
@@ -1494,6 +1509,10 @@ function viewTurma() {
         <div class="list">${profs.map(p => `<div class="item"><span style="flex:1;min-width:0"><b>${esc(nomeDe(p.user_id))}</b><br><span style="font-size:12px;color:var(--muted)">${esc((T.pessoas[p.user_id] || {}).email || '')} · ${esc(matsProf(p))}</span></span>${p.user_id === sessao.user.id ? '<span style="font-size:12px;color:var(--muted)">você</span>' : `<button class="btn btn-ghost btn-sm" data-a="remover-prof:${t.id}:${p.user_id}" aria-label="Remover professor">${I.trash}</button>`}</div>`).join('') || '<div class="empty">Sem professores.</div>'}</div>
         <div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">Cada professor pode ser responsável por uma matéria; as atividades dele ficam com essa matéria por padrão.</div></div>
     </div>
+    ${(() => { const DL = V.dinamicas && V.dinamicas.turma === t.id ? V.dinamicas : null;
+      return `<div class="card"><div class="card-h"><h2>Dinâmicas ao vivo</h2><span class="right"><button class="btn btn-primary btn-sm" data-a="nova-din:${t.id}">${I.plus}Nova dinâmica</button></span></div>
+      ${!DL || (!DL.lista && !DL.erro) ? '<div class="empty">Carregando…</div>' : DL.erro ? `<div class="warnbox">${I.warn}<span>${esc(DL.erro)}${/não existe|does not exist/i.test(DL.erro) ? ' Rode a migration 0032 no SQL Editor.' : ''}</span></div>` : DL.lista.length ? `<div class="list">${DL.lista.map(dn => `<div class="item"><span style="flex:1;min-width:0"><b>${esc(dn.titulo)}</b><br><span style="font-size:12px;color:var(--muted)">${fmtData(dn.criada_em)} · ${dn.modo === 'grupos' ? 'em grupos' : 'cada um por si'} · ${dn.origem === 'manual' ? 'pontos marcados em sala' : 'questões no app'}</span></span><span class="pill ${DIN_STATUS[dn.status][1]}">${DIN_STATUS[dn.status][0]}</span><button class="btn btn-outline btn-sm" data-a="din-abrir:${dn.id}">${dn.status === 'fim' ? 'Placar' : 'Abrir'}</button><button class="btn btn-ghost btn-sm" data-a="din-excluir:${dn.id}" aria-label="Excluir dinâmica">${I.trash}</button></div>`).join('')}</div>` : '<div class="empty">Quiz ao vivo com a turma: grupos sorteados, cronômetro e placar automático. Crie a primeira!</div>'}
+      <div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">O telão fica aqui no painel (projete esta tela); os alunos respondem pelo app, na aba Turma. Use as questões de uma atividade ou faça as perguntas em sala e marque os acertos de cada grupo.</div></div>`; })()}
     <div class="card"><div class="card-h"><h2>Atividades desta turma</h2><span class="right"><button class="btn btn-primary btn-sm" data-a="nova-ativ:${t.id}">${I.plus}Nova atividade</button></span></div>
       ${ativs.length ? `<div class="tbl-wrap tbl-wide"><table><thead><tr><th>Atividade</th><th>Status</th><th>Prazo</th><th>Entregas</th><th></th></tr></thead><tbody>${ativs.map(linhaAtiv).join('')}</tbody></table></div>` : '<div class="empty">Nenhuma atividade. Crie a primeira: escolha questões do banco por assunto ou escreva as suas.</div>'}</div>
   </div>`;
@@ -1599,10 +1618,169 @@ function viewResultados() {
   </div>`;
 }
 /* =====================================================================
+   Dinâmica ao vivo (quiz de sala): lobby com grupos, telão e placar
+   ===================================================================== */
+const DIN_TEMPOS = [['15', '15 segundos'], ['30', '30 segundos'], ['45', '45 segundos'], ['60', '1 minuto'], ['90', '1 minuto e meio'], ['120', '2 minutos'], ['0', 'Sem cronômetro']];
+const DIN_STATUS = {lobby: ['No lobby', 'draft'], pergunta: ['Em andamento', 'pub'], revelada: ['Em andamento', 'pub'], fim: ['Encerrada', 'off']};
+const embaralha = arr => arr.map(v => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+const dinSegundos = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return s >= 60 ? Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') : String(s); };
+async function carregarDinamicas(tid) {
+  V.dinamicas = {turma: tid, lista: null, erro: null};
+  const {data, error} = await sb.from('dinamicas').select('id,titulo,modo,origem,status,criada_em').eq('turma_id', tid).order('criada_em', {ascending: false}).limit(20);
+  if (!V.dinamicas || V.dinamicas.turma !== tid) return;
+  if (error) V.dinamicas.erro = traduzErro(error.message); else V.dinamicas.lista = data || [];
+  if (V.view === 'turma') render();
+}
+async function atualizarDinamica() {
+  const W = V.din; if (!W || W.carregando) return;
+  W.carregando = true;
+  const {data, error} = await sb.rpc('painel_dinamica', {p_dinamica: W.id});
+  if (!V.din || V.din.id !== W.id) return;
+  W.carregando = false;
+  if (error) W.erro = traduzErro(error.message);
+  else { W.erro = null; W.data = data; W.offset = new Date(data.agora).getTime() - Date.now(); }
+  if (V.view === 'dinamica') render();
+}
+/* O telão se atualiza sozinho enquanto a dinâmica está aberta */
+setInterval(() => { if (V.view === 'dinamica' && V.din && V.din.data && V.din.data.status !== 'fim' && document.visibilityState !== 'hidden') atualizarDinamica(); }, 2500);
+/* Cronômetro: mexe só no texto, sem re-renderizar a tela */
+setInterval(() => {
+  const W = V.din, el = document.getElementById('din-timer');
+  if (!el || !W || !W.data || !W.data.fimEm || W.data.status !== 'pergunta') return;
+  const resta = new Date(W.data.fimEm).getTime() - (Date.now() + (W.offset || 0));
+  el.textContent = resta <= 0 ? 'Tempo esgotado' : dinSegundos(resta);
+  el.classList.toggle('esgotado', resta <= 0); el.classList.toggle('urgente', resta > 0 && resta <= 10000);
+}, 500);
+function dinRankingHtml(d, final) {
+  const r = d.ranking || [], max = Math.max(1, ...r.map(x => x.acertos));
+  const pos = i => final && i < 3 ? ['🥇', '🥈', '🥉'][i] : (i + 1) + 'º';
+  return `<div class="card"><div class="card-h"><h2>${final ? 'Placar final' : 'Placar'}</h2><span class="pill type">${d.modo === 'grupos' ? 'grupos' : 'alunos'}</span>${final ? `<span class="right"><button class="btn btn-ghost btn-sm" data-a="csv-din">${I.baixar}Baixar CSV</button></span>` : ''}</div>
+    <div class="card-b" style="display:flex;flex-direction:column;gap:10px">
+    ${r.map((x, i) => `<div style="display:grid;grid-template-columns:44px 1fr 110px;gap:10px;align-items:center"><b style="font-size:${final && i < 3 ? '22px' : '13px'};color:${i ? 'var(--muted)' : 'var(--primary)'}">${pos(i)}</b><span style="display:flex;flex-direction:column;gap:3px;min-width:0"><b style="font-size:${i === 0 ? '16px' : '14px'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.nome)}</b><span class="bar"><i style="width:${Math.round(x.acertos / max * 100)}%;background:${i === 0 ? '#E8A33D' : 'var(--primary)'}"></i></span></span><b class="num" style="text-align:right">${x.acertos} acerto${x.acertos === 1 ? '' : 's'}</b></div>`).join('') || '<div class="empty">Ainda sem pontos.</div>'}
+    </div><div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">Empate é decidido pelo menor tempo somado das respostas.</div></div>`;
+}
+function dinCorpoQ(d) {
+  const gq = (d.questoes || [])[d.questao] || {}, pub = (d.publicas || [])[d.questao] || {};
+  const rev = d.status === 'revelada', resp = d.respostas || [];
+  const dd = pub.dados || {}, gd = gq.dados || {};
+  if (pub.tipo === 'mc') {
+    const certa = (gd.opts || [])[+gd.a || 0];
+    return `<div class="dinopts">${(dd.opts || []).map((o, k) => { const n = resp.filter(r => r.resposta === o).length; const ok = rev && o === certa;
+      return `<div class="dinopt ${rev ? (ok ? 'ok' : 'fraca') : ''}"><span class="lt">${'ABCDE'[k] || k + 1}</span><span style="flex:1">${esc(o)}</span>${rev && n ? `<span class="pill ${ok ? 'pub' : 'off'}">${n}</span>` : ''}</div>`; }).join('')}</div>`;
+  }
+  if (pub.tipo === 'tf') return `<div class="dinopt" style="font-size:18px">${esc(dd.stmt || '')}</div><div class="dinopts">${[[true, 'Verdadeiro'], [false, 'Falso']].map(([v, l]) => { const n = resp.filter(r => r.resposta === v).length; const ok = rev && gd.a === v;
+    return `<div class="dinopt ${rev ? (ok ? 'ok' : 'fraca') : ''}"><span style="flex:1">${l}</span>${rev && n ? `<span class="pill ${ok ? 'pub' : 'off'}">${n}</span>` : ''}</div>`; }).join('')}</div>`;
+  if (pub.tipo === 'bank') {
+    const parts = dd.parts || ['', '', ''];
+    const lac = k => rev ? `<b class="dinlac ok">${esc((gd.a || [])[k] || '')}</b>` : '<b class="dinlac">&nbsp;&nbsp;&nbsp;&nbsp;</b>';
+    return `<p style="font-size:19px;line-height:1.8;margin:0">${esc(parts[0])}${lac(0)}${esc(parts[1])}${lac(1)}${esc(parts[2])}</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${(dd.words || []).map(w => `<span class="pill ${rev && (gd.a || []).includes(w) ? 'pub' : 'off'}" style="font-size:14px">${esc(w)}</span>`).join('')}</div>`;
+  }
+  if (pub.tipo === 'order') return rev
+    ? `<ol style="margin:0;padding-left:24px;display:flex;flex-direction:column;gap:6px;font-size:17px">${(gd.items || []).map(w => `<li>${esc(w)}</li>`).join('')}</ol>`
+    : `<div style="display:flex;gap:6px;flex-wrap:wrap">${(dd.items || []).map(w => `<span class="pill off" style="font-size:14px">${esc(w)}</span>`).join('')}</div><p style="margin:0;font-size:13px;color:var(--muted)">Os alunos colocam os itens na ordem certa no app.</p>`;
+  if (pub.tipo === 'match') return rev
+    ? `<div style="display:flex;flex-direction:column;gap:6px;font-size:17px">${(gd.pairs || []).map(p => `<span>${esc(p[0])} <b style="color:var(--green-d)">→</b> ${esc(p[1])}</span>`).join('')}</div>`
+    : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${['left', 'right'].map(s => `<div style="display:flex;flex-direction:column;gap:6px">${(dd[s] || []).map(w => `<span class="pill off" style="font-size:14px">${esc(w)}</span>`).join('')}</div>`).join('')}</div><p style="margin:0;font-size:13px;color:var(--muted)">Os alunos ligam os pares no app.</p>`;
+  return '';
+}
+function dinRespStatus(d) {
+  const resp = d.respostas || [], rev = d.status === 'revelada';
+  if (d.modo === 'grupos') return `<div style="display:flex;gap:6px;flex-wrap:wrap">${(d.grupos || []).map(g => { const r = resp.find(z => z.grupoId === g.id);
+    const estilo = r && rev && !r.acertou ? 'background:var(--red-l);color:var(--red-d)' : '';
+    return `<span class="pill ${!r ? 'off' : rev ? (r.acertou ? 'pub' : '') : 'type'}" style="font-size:12px;${estilo}">${esc(g.nome)} · ${!r ? 'esperando…' : rev ? (r.acertou ? 'acertou' : 'errou') : esc((r.nome || '').split(' ')[0]) + ' respondeu'}</span>`; }).join('')}</div>`;
+  return rev ? `<div style="display:flex;gap:6px;flex-wrap:wrap">${resp.map(r => `<span class="pill ${r.acertou ? 'pub' : ''}" style="font-size:11px;${r.acertou ? '' : 'background:var(--red-l);color:var(--red-d)'}">${esc(r.nome)}</span>`).join('') || '<span style="font-size:12px;color:var(--muted)">Ninguém respondeu.</span>'}</div>` : '';
+}
+function dinLobby(d) {
+  const online = (d.alunos || []).filter(a => a.online);
+  const presenca = `<div class="card"><div class="card-h"><h2>Quem já entrou no app</h2><span class="pill ${online.length ? 'pub' : 'off'}">${online.length} de ${(d.alunos || []).length}</span></div>
+    <div class="card-b" style="display:flex;gap:6px;flex-wrap:wrap">${(d.alunos || []).map(a => `<span class="pill ${a.online ? 'pub' : 'off'}" style="font-size:12px">${esc(a.nome)}</span>`).join('') || '<span style="font-size:13px;color:var(--muted)">Nenhum aluno na turma ainda.</span>'}</div>
+    <div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">O aluno abre o app na aba Turma e toca em "Dinâmica ao vivo". Quem entrar fica verde aqui.</div></div>`;
+  let grupos = '';
+  if (d.modo === 'grupos') {
+    const S2 = V.din.sorteio;
+    if (S2) grupos = `<div class="card"><div class="card-h"><h2>Grupos</h2><span class="right"><button class="btn btn-ghost btn-sm" data-a="din-sortear">Sortear de novo</button></span></div>
+      <div class="card-b" style="display:flex;flex-direction:column;gap:12px">
+      ${S2.grupos.map((g, gi) => `<div style="border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+        <input class="inline-edit" style="font-weight:700;min-width:160px" value="${esc(S2.nomes[gi])}" data-f="dinNome.${gi}" aria-label="Nome do grupo ${gi + 1}">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${g.map(uid => `<span class="pill off" style="font-size:12px;display:inline-flex;align-items:center;gap:5px">${esc(((d.alunos || []).find(a => a.user_id === uid) || {}).nome || '?')}<select class="inp sm" style="height:22px;font-size:11px;padding:0 4px;width:auto" data-a="din-mover:${uid}" aria-label="Mover de grupo">${S2.grupos.map((_, k) => `<option value="${k}" ${k === gi ? 'selected' : ''}>G${k + 1}</option>`).join('')}</select></span>`).join('') || '<span style="font-size:12px;color:var(--muted)">vazio</span>'}</div>
+      </div>`).join('')}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn btn-primary" data-a="din-salvar-grupos">${I.check}Salvar grupos</button><span style="font-size:12px;color:var(--muted)">Depois de salvar, cada aluno vê o próprio grupo no app.</span></div></div></div>`;
+    else if ((d.grupos || []).length) grupos = `<div class="card"><div class="card-h"><h2>Grupos</h2><span class="pill type">${d.grupos.length}</span><span class="right"><button class="btn btn-ghost btn-sm" data-a="din-sortear-ui">${I.edit}Ajustar</button></span></div>
+      <div class="card-b" style="display:flex;flex-direction:column;gap:10px">
+      ${d.grupos.map(g => `<div><b>${esc(g.nome)}</b><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">${(g.membros || []).map(m => `<span class="pill ${m.online ? 'pub' : 'off'}" style="font-size:12px">${esc(m.nome)}</span>`).join('') || '<span style="font-size:12px;color:var(--muted)">vazio</span>'}</div></div>`).join('')}</div></div>`;
+    else grupos = `<div class="card"><div class="card-h"><h2>Grupos</h2></div><div class="card-b" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px">Quantos grupos <select class="inp sm" style="width:auto" data-a="din-sortn" aria-label="Número de grupos">${[2, 3, 4, 5, 6, 7, 8].map(n => `<option value="${n}" ${n === (V.din.sorteioN || 4) ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+      <button class="btn btn-primary" data-a="din-sortear">Sortear os grupos</button>
+      <span style="font-size:12px;color:var(--muted);flex:1;min-width:200px">Sorteia todos os alunos da turma de forma aleatória; depois dá para ajustar um por um e renomear cada grupo.</span></div></div>`;
+  }
+  const pronto = d.modo !== 'grupos' || ((d.grupos || []).length >= 2 && !V.din.sorteio);
+  return `<div class="grid2">${grupos || presenca}${grupos ? presenca : ''}</div>
+    <div class="card"><div class="card-b" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-primary" style="font-size:16px;height:48px;padding:0 24px" data-a="din-cmd:iniciar" ${pronto ? '' : 'disabled'}>Começar a dinâmica</button>
+      <span style="font-size:13px;color:var(--fg2);flex:1;min-width:220px">${d.origem === 'manual' ? 'Você faz as perguntas em sala e marca aqui qual grupo acertou; o placar atualiza para todo mundo.' : 'A primeira questão abre para todos ao mesmo tempo. Projete esta tela para a turma acompanhar.'}${d.modo === 'grupos' && !pronto ? ' Monte e salve os grupos antes de começar.' : ''}</span>
+    </div></div>`;
+}
+function dinTelao(d) {
+  const resp = d.respostas || [];
+  const nResp = d.modo === 'grupos' ? new Set(resp.map(r => r.grupoId)).size : resp.length;
+  const nTot = d.modo === 'grupos' ? (d.grupos || []).length : (d.alunos || []).length;
+  const pub = (d.publicas || [])[d.questao] || {}, gq = (d.questoes || [])[d.questao] || {};
+  const rev = d.status === 'revelada';
+  return `<div class="dinwrap">
+    <div class="card"><div class="card-b" style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span class="pill type">Questão ${d.questao + 1} de ${d.total}</span>
+        <span class="pill on">${TIPOS[pub.tipo] || pub.tipo || ''}</span>
+        <span class="pill ${nTot && nResp >= nTot ? 'pub' : 'off'}">${nResp} de ${nTot} ${d.modo === 'grupos' ? 'grupos' : 'alunos'} responderam</span>
+        ${!rev && d.tempo ? `<b id="din-timer" class="dintimer num"></b>` : rev ? `<span class="pill pub" style="margin-left:auto">Resposta revelada</span>` : ''}
+      </div>
+      <h2 style="font-size:24px;line-height:1.4;margin:0">${esc(pub.enunciado || '')}</h2>
+      ${pub.imagem ? `<img class="qimg" src="${esc(pub.imagem)}" alt="" style="max-height:280px;align-self:flex-start;border-radius:10px">` : ''}
+      ${dinCorpoQ(d)}
+      ${rev && gq.explicacao ? `<div style="border:1.5px solid var(--primary-l);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--fg2)"><b>Explicação:</b> ${esc(gq.explicacao)}</div>` : ''}
+      ${dinRespStatus(d)}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:12px">
+        ${rev ? `<button class="btn btn-primary" data-a="din-cmd:proxima">${d.questao + 1 >= d.total ? 'Ver o placar final' : 'Próxima questão →'}</button>` : `<button class="btn btn-primary" data-a="din-cmd:revelar">Revelar a resposta</button>`}
+      </div>
+    </div></div>
+    ${rev ? dinRankingHtml(d, false) : `<div class="card"><div class="card-h"><h2>Placar</h2></div><div class="card-b" style="font-size:13px;color:var(--muted)">O placar aparece quando você revelar a resposta, para ninguém se distrair antes.</div></div>`}
+  </div>`;
+}
+function dinManual(d) {
+  return `<div class="dinwrap">
+    <div class="card"><div class="card-h"><h2>Marcar acertos</h2><span class="right" style="font-size:12px;color:var(--muted)">Fez a pergunta em sala? Marque o grupo que acertou.</span></div>
+      <div class="card-b" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px">
+      ${(d.grupos || []).map(g => `<div class="dingrp">
+        <b style="font-size:16px">${esc(g.nome)}</b>
+        <b class="num" style="font-size:36px;line-height:1">${g.pontos_manual}</b>
+        <div style="display:flex;gap:8px"><button class="btn btn-primary btn-sm" data-a="din-ponto:${g.id}:1">+1 acerto</button><button class="btn btn-ghost btn-sm" data-a="din-ponto:${g.id}:-1" ${g.pontos_manual ? '' : 'disabled'}>−1</button></div>
+        <span style="font-size:11px;color:var(--muted)">${(g.membros || []).map(m => esc((m.nome || '').split(' ')[0])).join(', ')}</span>
+      </div>`).join('')}
+      </div></div>
+    ${dinRankingHtml(d, false)}
+  </div>`;
+}
+function viewDinamica() {
+  const W = V.din; if (!W) { V.view = 'turmas'; return viewTurmas(); }
+  const d = W.data, volta = `<button class="btn btn-ghost" data-a="din-voltar">← Turma</button>`;
+  if (!d) return topbar('Dinâmica', '', volta) + `<div class="content">${W.erro ? `<div class="warnbox">${I.warn}<span>${esc(W.erro)}${/não existe|does not exist/i.test(W.erro) ? ' Rode a migration 0032 no SQL Editor.' : ''}</span></div>` : '<div class="empty">Carregando…</div>'}</div>`;
+  const t = turmaPorId(d.turma_id);
+  const sub = `${t ? esc(t.nome) + ' · ' : ''}${d.modo === 'grupos' ? 'em grupos' : 'cada um por si'} · ${d.origem === 'manual' ? 'perguntas em sala, pontos no painel' : d.total + ' questões' + (d.tempo ? ' · ' + d.tempo + ' s por questão' : ' · sem cronômetro')}`;
+  const corpo = d.status === 'lobby' ? dinLobby(d)
+    : d.status === 'fim' ? dinRankingHtml(d, true) + `<div style="display:flex;gap:8px"><button class="btn btn-primary" data-a="din-voltar">Voltar à turma</button></div>`
+    : d.origem === 'manual' ? dinManual(d) : dinTelao(d);
+  return topbar(esc(d.titulo), sub, volta + (d.status !== 'fim' ? `<button class="btn btn-outline" data-a="din-cmd:encerrar">Encerrar</button>` : '')) + `<div class="content">
+    ${W.erro ? `<div class="warnbox">${I.warn}<span>${esc(W.erro)}</span></div>` : ''}
+    ${corpo}
+  </div>`;
+}
+
+/* =====================================================================
    Auditoria (admin)
    ===================================================================== */
-const ACOES_AUD = {insert: ['Criou', 'pub'], update: ['Alterou', 'draft'], delete: ['Excluiu', ''], login: ['Entrou', 'type'], sair: ['Saiu', 'off'], tela: ['Abriu a tela', 'off'], busca: ['Buscou', 'on'], copia: ['Copiou', 'on'], resultados: ['Viu resultados', 'on'], turma: ['Abriu a turma', 'on'], escola: ['Abriu a escola', 'on'], novo_aluno: ['Criou conta', 'pub'], bloqueio: ['Bloqueou', ''], liberacao: ['Liberou', 'pub'], recursos: ['Deu moedas/corações', 'pub'], respostas: ['Viu respostas', 'on'], papel: ['Definiu papel', 'pub'], relatorio: ['Viu relatório', 'on'], clique: ['Clicou', 'off'], nota_manual: ['Nota manual', 'draft'], recorrecao: ['Recorrigiu', 'pub'], segmentos_coord: ['Segmentos do coordenador', 'type'], exclusao_conta: ['Excluiu conta', '']};
-const TABELAS_AUD = {materias: 'Matérias', secoes: 'Seções', unidades: 'Unidades', licoes: 'Lições', questoes: 'Questões', licao_questoes: 'Questões da lição', missoes: 'Missões', itens_loja: 'Loja', parametros: 'Parâmetros', publicacoes: 'Publicações', segmentos: 'Segmentos', escolas: 'Escolas', escola_membros: 'Membros da escola', turmas: 'Turmas', turma_professores: 'Professores da turma', turma_alunos: 'Alunos da turma', atividades: 'Atividades', perfis: 'Perfis', admins: 'Administradores', painel: 'Painel', alunos: 'Alunos', resultados: 'Resultados'};
+const ACOES_AUD = {insert: ['Criou', 'pub'], update: ['Alterou', 'draft'], delete: ['Excluiu', ''], login: ['Entrou', 'type'], sair: ['Saiu', 'off'], tela: ['Abriu a tela', 'off'], busca: ['Buscou', 'on'], copia: ['Copiou', 'on'], resultados: ['Viu resultados', 'on'], turma: ['Abriu a turma', 'on'], escola: ['Abriu a escola', 'on'], novo_aluno: ['Criou conta', 'pub'], bloqueio: ['Bloqueou', ''], liberacao: ['Liberou', 'pub'], recursos: ['Deu moedas/corações', 'pub'], respostas: ['Viu respostas', 'on'], papel: ['Definiu papel', 'pub'], relatorio: ['Viu relatório', 'on'], clique: ['Clicou', 'off'], nota_manual: ['Nota manual', 'draft'], recorrecao: ['Recorrigiu', 'pub'], segmentos_coord: ['Segmentos do coordenador', 'type'], exclusao_conta: ['Excluiu conta', ''], dinamica: ['Dinâmica', 'type']};
+const TABELAS_AUD = {materias: 'Matérias', secoes: 'Seções', unidades: 'Unidades', licoes: 'Lições', questoes: 'Questões', licao_questoes: 'Questões da lição', missoes: 'Missões', itens_loja: 'Loja', parametros: 'Parâmetros', publicacoes: 'Publicações', segmentos: 'Segmentos', escolas: 'Escolas', escola_membros: 'Membros da escola', turmas: 'Turmas', turma_professores: 'Professores da turma', turma_alunos: 'Alunos da turma', atividades: 'Atividades', dinamicas: 'Dinâmicas', perfis: 'Perfis', admins: 'Administradores', painel: 'Painel', alunos: 'Alunos', resultados: 'Resultados'};
 /* =====================================================================
    Relatórios de uso (admin): atividade por dia, modos e questões mais erradas
    ===================================================================== */
@@ -1751,10 +1929,10 @@ function confirmHtml() {
 /* =====================================================================
    Render
    ===================================================================== */
-const VIEWS = {inicio: () => admin ? viewInicio() : viewInicioEducador(), trilhas: viewTrilhas, questoes: viewQuestoes, missoes: viewMissoes, economia: viewEconomia, ligas: viewLigas, alunos: viewAlunos, publicar: viewPublicar, turmas: viewTurmas, turma: viewTurma, escolas: viewEscolas, escola: viewEscola, atividades: viewAtividades, resultados: viewResultados, auditoria: viewAuditoria, relatorios: viewRelatorios};
+const VIEWS = {inicio: () => admin ? viewInicio() : viewInicioEducador(), trilhas: viewTrilhas, questoes: viewQuestoes, missoes: viewMissoes, economia: viewEconomia, ligas: viewLigas, alunos: viewAlunos, publicar: viewPublicar, turmas: viewTurmas, turma: viewTurma, escolas: viewEscolas, escola: viewEscola, atividades: viewAtividades, resultados: viewResultados, dinamica: viewDinamica, auditoria: viewAuditoria, relatorios: viewRelatorios};
 function render() {
   if (!D) return;
-  if (!VIEWS[V.view] || (!admin && !['inicio', 'turmas', 'turma', 'atividades', 'resultados', 'questoes', ...(gestor() ? ['escolas', 'escola'] : [])].includes(V.view))) V.view = 'inicio';
+  if (!VIEWS[V.view] || (!admin && !['inicio', 'turmas', 'turma', 'atividades', 'resultados', 'dinamica', 'questoes', ...(gestor() ? ['escolas', 'escola'] : [])].includes(V.view))) V.view = 'inicio';
   const focado = document.activeElement, fkey = focado && focado.dataset ? focado.dataset.f : null, sel = focado && focado.selectionStart;
   const scroll = window.scrollY;
   shell.className = '';
@@ -1775,6 +1953,7 @@ function setCampo(path, value) {
     case 'ativBusca': V.ativBusca[p[1]] = value; if (p[1] === 'materia') V.ativBusca.unidade = ''; return 'ui';
     case 'aud': V.aud.f[p[1]] = value; return 'nada';
     case 'ativFiltroTurma': V.ativFiltroTurma = value; return 'ui';
+    case 'dinNome': { const S2 = V.din && V.din.sorteio; if (S2) S2.nomes[+p[1]] = value; return 'nada'; }
     case 'ativFiltroEscola': V.ativFiltroEscola = value; V.ativFiltroTurma = ''; return 'ui';
     case 'turmaFiltro': V.turmaFiltro[p[1]] = value; return 'ui';
     case 'alunosFiltro': V.alunosFiltro[p[1]] = value; if (p[1] === 'escola') V.alunosFiltro.turma = ''; return 'ui';
@@ -1814,7 +1993,7 @@ shell.addEventListener('change', ev => {
   if (f.startsWith('ativ.')) { if (f === 'ativ.turma_id') V.ativBusca.segmento = (turmaPorId(V.ativ.turma_id) || {}).segmento_id || ''; if (f === 'ativ.turma_id' || f === 'ativ.materia_id' || f === 'ativ.status' || el.type === 'number') render(); return; }
   if (el.tagName === 'SELECT' || el.type === 'number' || el.type === 'color' || f.startsWith('param.')) render();
 });
-shell.addEventListener('change', ev => { const el = ev.target; if (el.tagName === 'SELECT' && el.dataset.a && (el.dataset.a.startsWith('papel:') || el.dataset.a.startsWith('disciplina:'))) act(el.dataset.a, el).catch(e => console.error(e)); });
+shell.addEventListener('change', ev => { const el = ev.target; if (el.tagName === 'SELECT' && el.dataset.a && (el.dataset.a.startsWith('papel:') || el.dataset.a.startsWith('disciplina:') || el.dataset.a.startsWith('din-mover:') || el.dataset.a === 'din-sortn')) act(el.dataset.a, el).catch(e => console.error(e)); });
 shell.addEventListener('submit', ev => {
   if (ev.target.id === 'f-alunos') { ev.preventDefault(); buscarAlunos(); }
   if (ev.target.id === 'f-aud') { ev.preventDefault(); carregarAuditoria(false); }
@@ -1926,13 +2105,13 @@ async function carregarResultados(aid) {
   render();
 }
 /* Toda ação do painel é registrada; estas já têm um registro mais descritivo em seu próprio código */
-const ACOES_COM_REGISTRO_PROPRIO = new Set(['view', 'sair', 'abrir-turma', 'resultados', 'copiar-notas', 'copiar-json', 'buscar-alunos', 'bloq', 'novo-aluno', 'dar', 'dar-lote', 'ver-respostas', 'relatorio', 'csv-notas', 'csv-turma', 'csv-alunos', 'csv-aud', 'csv-erradas', 'nota-manual', 'nota-restaurar', 'recorrigir', 'seg-coord', 'excluir-conta', 'abrir-escola', 'escola-aba', 'esc-abrir', 'csv-esc-alunos']);
+const ACOES_COM_REGISTRO_PROPRIO = new Set(['view', 'sair', 'abrir-turma', 'resultados', 'copiar-notas', 'copiar-json', 'buscar-alunos', 'bloq', 'novo-aluno', 'dar', 'dar-lote', 'ver-respostas', 'relatorio', 'csv-notas', 'csv-turma', 'csv-alunos', 'csv-aud', 'csv-erradas', 'nota-manual', 'nota-restaurar', 'recorrigir', 'seg-coord', 'excluir-conta', 'abrir-escola', 'escola-aba', 'esc-abrir', 'csv-esc-alunos', 'nova-din', 'din-abrir', 'din-voltar', 'din-cmd', 'din-sortn', 'din-sortear', 'din-sortear-ui', 'din-mover', 'din-salvar-grupos', 'din-ponto', 'csv-din']);
 async function act(a, el) {
   const [k, x, y, z] = a.split(':');
   if (!ACOES_COM_REGISTRO_PROPRIO.has(k)) auditar('clique', 'painel', a, 'Ação no painel: ' + k + (x ? ' · ' + [x, y, z].filter(v => v != null).join(':') : ''), {tela: V.view});
   const M = materiaPorId(V.materia);
   switch (k) {
-    case 'view': V.view = x; V.rascunho = null; V.licaoAtribuir = null; V.jsonVersao = null; V.ativ = null; V.modalPrev = null; V.respostas = null; if (x !== 'turma') V.turma = null; window.scrollTo(0, 0); render(); if (x === 'alunos' && !V.alunos.lista) buscarAlunos(); if (x === 'inicio' && admin) carregarMetricas(); if (x === 'auditoria' && !V.aud.lista) carregarAuditoria(false); if (x === 'relatorios' && !V.rel.data) carregarRelatorio(); auditar('tela', 'painel', x, 'Abriu a tela ' + x); return;
+    case 'view': V.view = x; V.rascunho = null; V.licaoAtribuir = null; V.jsonVersao = null; V.ativ = null; V.modalPrev = null; V.respostas = null; V.din = null; if (x !== 'turma') V.turma = null; window.scrollTo(0, 0); render(); if (x === 'alunos' && !V.alunos.lista) buscarAlunos(); if (x === 'inicio' && admin) carregarMetricas(); if (x === 'auditoria' && !V.aud.lista) carregarAuditoria(false); if (x === 'relatorios' && !V.rel.data) carregarRelatorio(); auditar('tela', 'painel', x, 'Abriu a tela ' + x); return;
     case 'rel-recarregar': V.rel.data = null; return carregarRelatorio();
     case 'csv-notas': { const d = V.resultados && V.resultados.data; if (!d) return; const at = T.atividades.find(z => z.id === V.resultados.id); auditar('copia', 'resultados', V.resultados.id, 'Baixou o CSV de notas da atividade', {alunos: d.alunos.length}); return baixarCsv(`notas-${slug((at && at.titulo) || 'atividade')}.csv`, ['Aluno', 'E-mail', 'Nota', 'Acertos', 'Total', 'Entregue em'], d.alunos.map(z => [z.nome, z.email || '', z.entregueEm ? String(z.nota).replace('.', ',') : '', z.entregueEm ? z.acertos : '', z.entregueEm ? z.total : '', z.entregueEm ? fmtData(z.entregueEm) : 'não entregou'])); }
     case 'csv-turma': { const L2 = (V.turmaAlunos && V.turmaAlunos.lista) || []; if (!L2.length) return toast('Nenhum aluno na turma.'); const t2 = turmaPorId(V.turma); auditar('copia', 'turmas', V.turma, 'Baixou o CSV de alunos da turma'); return baixarCsv(`alunos-${slug((t2 && t2.nome) || 'turma')}.csv`, ['Aluno', 'E-mail', 'XP', 'Ofensiva (dias)', 'Entregas', 'Convite aceito', 'Entrou em'], L2.map(z => [z.nome, z.email || '', z.xp, z.ofensiva, z.entregas, z.aceito === false ? 'não' : 'sim', fmtDia(z.entrou_em)])); }
@@ -2017,7 +2196,7 @@ async function act(a, el) {
     ], ok: 'Criar turma', fn: async v => {
       const row = await db(sb.rpc('criar_turma', {p_nome: v.nome.trim(), p_escola: naEscola || v.escola || null, p_materias: v.materias || [], p_segmento: v.segmento || null})); await carregarTurmas(); V.turma = row.id; V.view = 'turma'; V.turmaAlunos = {lista: [], erro: null}; toast(`Turma criada. Código: ${row.codigo}`);
     }}; return render(); }
-    case 'abrir-turma': { const t = turmaPorId(x); V.turma = x; V.view = 'turma'; V.turmaAlunos = null; window.scrollTo(0, 0); render(); auditar('turma', 'turmas', x, 'Abriu a turma ' + (t ? t.nome : x)); return carregarAlunosTurma(x); }
+    case 'abrir-turma': { const t = turmaPorId(x); V.turma = x; V.view = 'turma'; V.turmaAlunos = null; V.din = null; window.scrollTo(0, 0); render(); auditar('turma', 'turmas', x, 'Abriu a turma ' + (t ? t.nome : x)); carregarDinamicas(x); return carregarAlunosTurma(x); }
     case 'abrir-escola': { const e = escolaPorId(x); V.view = 'escola'; if (V.escola !== x) { V.escola = x; V.escolaAba = 'segmentos'; V.escolaAlunos = null; V.escolaAberto = {}; } window.scrollTo(0, 0); render(); auditar('escola', 'escolas', x, 'Abriu a escola ' + (e ? e.nome : x)); return; }
     case 'escola-aba': V.escolaAba = x; if (x === 'alunos' && !V.escolaAlunos) carregarAlunosEscola(V.escola); return render();
     case 'esc-abrir': { const k2 = x + ':' + y; V.escolaAberto[k2] = !V.escolaAberto[k2]; return render(); }
@@ -2035,6 +2214,55 @@ async function act(a, el) {
       const r = await db(sb.rpc('adicionar_professor_turma', {p_turma: x, p_email: v.email.trim(), p_materias: v.materias || []})); await carregarTurmas(); toast(`${r.nome} agora dá aula nesta turma.`);
     }}; return render();
     case 'remover-prof': return confirmar('Remover professor da turma?', 'As atividades que ele criou continuam na turma.', async () => { await db(sb.from('turma_professores').delete().eq('turma_id', x).eq('user_id', y)); await carregarTurmas(); }, 'Remover');
+
+    /* dinâmica ao vivo */
+    case 'nova-din': {
+      const tid = x || V.turma; if (!tid) return;
+      const ativs = T.atividades.filter(a2 => a2.turma_id === tid && (a2.questoes || []).length);
+      auditar('dinamica', 'dinamicas', null, 'Abriu o formulário de nova dinâmica', {turma: tid});
+      V.modal = {titulo: 'Nova dinâmica', texto: 'Quiz ao vivo na sala: você projeta o telão, os alunos respondem pelo app e o placar atualiza sozinho. Também dá para fazer as perguntas "por fora" e só marcar os acertos de cada grupo.', ok: 'Criar dinâmica', campos: [
+        {k: 'titulo', label: 'Nome da dinâmica', valor: 'Dinâmica · ' + new Date().toLocaleDateString('pt-BR'), obrigatorio: true},
+        {k: 'origem', label: 'Perguntas', tipo: 'select', opcoes: [...(ativs.length ? [['questoes', 'De uma atividade (banco ou questões próprias)']] : []), ['manual', 'Feitas em sala: eu marco os acertos por grupo']], valor: ativs.length ? 'questoes' : 'manual'},
+        ...(ativs.length ? [{k: 'atividade', label: 'Atividade com as questões (vale até rascunho)', tipo: 'select', opcoes: ativs.map(a2 => [a2.id, a2.titulo + ' · ' + a2.questoes.length + ' questões'])}] : []),
+        {k: 'modo', label: 'Disputa', tipo: 'select', opcoes: [['grupos', 'Em grupos (sorteados ou montados por você)'], ['individual', 'Cada aluno por si']]},
+        {k: 'tempo', label: 'Tempo por questão', tipo: 'select', opcoes: DIN_TEMPOS, valor: '60'}
+      ], fn: async v => {
+        const r = await db(sb.rpc('criar_dinamica', {p_turma: tid, p_titulo: v.titulo.trim(), p_modo: v.origem === 'manual' ? 'grupos' : v.modo, p_origem: v.origem, p_atividade: v.origem === 'questoes' ? v.atividade : null, p_tempo: +v.tempo || 0}));
+        V.turma = tid; V.din = {id: r.id, data: null, erro: null, sorteio: null, sorteioN: 4}; V.view = 'dinamica'; window.scrollTo(0, 0); render(); return atualizarDinamica();
+      }}; return render();
+    }
+    case 'din-abrir': V.din = {id: x, data: null, erro: null, sorteio: null, sorteioN: 4}; V.view = 'dinamica'; window.scrollTo(0, 0); render(); return atualizarDinamica();
+    case 'din-voltar': { const tid = (V.din && V.din.data && V.din.data.turma_id) || V.turma; V.din = null; if (tid && turmaPorId(tid)) { V.turma = tid; V.view = 'turma'; render(); carregarDinamicas(tid); if (!V.turmaAlunos) carregarAlunosTurma(tid); } else { V.view = 'turmas'; render(); } return; }
+    case 'din-cmd': {
+      if (!V.din) return;
+      if (x === 'encerrar') return confirmar('Encerrar a dinâmica?', 'O placar de agora vira o resultado final para todo mundo.', async () => { await db(sb.rpc('comando_dinamica', {p_dinamica: V.din.id, p_acao: 'encerrar'})); return atualizarDinamica(); }, 'Encerrar');
+      await db(sb.rpc('comando_dinamica', {p_dinamica: V.din.id, p_acao: x}));
+      return atualizarDinamica();
+    }
+    case 'din-sortn': if (V.din) V.din.sorteioN = +el.value || 4; return;
+    case 'din-sortear': case 'din-sortear-ui': {
+      const d2 = V.din && V.din.data; if (!d2) return;
+      if (k === 'din-sortear-ui' && (d2.grupos || []).length) { V.din.sorteio = {grupos: d2.grupos.map(g => (g.membros || []).map(m => m.user_id)), nomes: d2.grupos.map(g => g.nome)}; return render(); }
+      const ids = (d2.alunos || []).map(a2 => a2.user_id);
+      if (ids.length < 2) return toast('A turma precisa de pelo menos 2 alunos.');
+      const n = Math.max(2, Math.min(V.din.sorteioN || 4, ids.length));
+      const gs = Array.from({length: n}, () => []);
+      embaralha(ids).forEach((uid, i2) => gs[i2 % n].push(uid));
+      V.din.sorteio = {grupos: gs, nomes: gs.map((_, i2) => 'Grupo ' + (i2 + 1))};
+      return render();
+    }
+    case 'din-mover': { const S2 = V.din && V.din.sorteio; if (!S2) return; const dest = Math.max(0, Math.min(+el.value || 0, S2.grupos.length - 1)); S2.grupos.forEach(g => { const i2 = g.indexOf(x); if (i2 >= 0) g.splice(i2, 1); }); S2.grupos[dest].push(x); return render(); }
+    case 'din-salvar-grupos': {
+      const S2 = V.din && V.din.sorteio; if (!S2) return;
+      const payload = S2.grupos.map((g, i2) => ({nome: (S2.nomes[i2] || '').trim() || 'Grupo ' + (i2 + 1), membros: g}));
+      if (payload.length < 2) return toast('Monte pelo menos 2 grupos.');
+      await db(sb.rpc('definir_grupos_dinamica', {p_dinamica: V.din.id, p_grupos: payload}));
+      V.din.sorteio = null; toast('Grupos salvos. Cada aluno já vê o próprio grupo no app.');
+      return atualizarDinamica();
+    }
+    case 'din-ponto': { if (!V.din) return; await db(sb.rpc('marcar_ponto_dinamica', {p_dinamica: V.din.id, p_grupo: x, p_delta: +y})); return atualizarDinamica(); }
+    case 'din-excluir': return confirmar('Excluir dinâmica?', 'O placar e as respostas somem. Não dá para desfazer. Para guardar o resultado, baixe o CSV antes.', async () => { await db(sb.from('dinamicas').delete().eq('id', x)); if (V.dinamicas && V.dinamicas.lista) V.dinamicas.lista = V.dinamicas.lista.filter(z2 => z2.id !== x); toast('Dinâmica excluída.'); render(); });
+    case 'csv-din': { const d2 = V.din && V.din.data; if (!d2 || !(d2.ranking || []).length) return; auditar('copia', 'dinamicas', V.din.id, 'Baixou o CSV do placar da dinâmica'); return baixarCsv(`placar-${slug(d2.titulo)}.csv`, ['Posição', d2.modo === 'grupos' ? 'Grupo' : 'Aluno', 'Acertos'], d2.ranking.map((r2, i2) => [i2 + 1, r2.nome, r2.acertos])); }
 
     /* atividades */
     case 'nova-ativ': if (!T || !T.turmas.length) return toast('Crie uma turma primeiro.'); V.ativ = novaAtiv(x || V.turma); V.ativBusca = {texto: '', materia: V.ativ.materia_id || '', unidade: '', assunto: '', segmento: (turmaPorId(V.ativ.turma_id) || {}).segmento_id || '', nivel: ''}; return render();
