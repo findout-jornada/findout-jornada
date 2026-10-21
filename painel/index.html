@@ -114,6 +114,23 @@ aside::-webkit-scrollbar{display:none}
 .dintimer.urgente{color:var(--red-d)}
 .dintimer.esgotado{font-size:14px;color:var(--red-d)}
 .dingrp{border:1.5px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center}
+.dinenun{font-size:24px;line-height:1.4;margin:0}
+/* Modo telão: sem menu, tela cheia e letras grandes para projetar no quadro */
+#shell.telao{grid-template-columns:1fr}
+#shell.telao aside{display:none}
+#shell.telao main>.topbar{display:none}
+#shell.telao .content{padding:30px 42px;max-width:1500px;width:100%;margin:0 auto}
+#shell.telao .dinenun{font-size:38px;line-height:1.35}
+#shell.telao .dinopt{font-size:26px;padding:16px 20px;border-radius:14px;gap:16px}
+#shell.telao .dinopt .lt{width:42px;height:42px;font-size:19px;border-radius:11px}
+#shell.telao .dintimer{font-size:48px}
+#shell.telao .dinlac{border-bottom-width:3px}
+#shell.telao .pill{font-size:13px}
+#shell.telao .card-h h2{font-size:19px}
+#shell.telao .dingrp b.num{font-size:52px}
+#shell.telao .dingrp{padding:20px}
+.telao-sair{position:fixed;right:18px;bottom:18px;z-index:60;opacity:.55}
+.telao-sair:hover,.telao-sair:focus-visible{opacity:1}
 main{min-width:0;display:flex;flex-direction:column}
 .topbar{display:flex;align-items:center;gap:14px;padding:16px 28px;border-bottom:1px solid var(--line);background:var(--topbar);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);position:sticky;top:0;z-index:5;flex-wrap:wrap}
 body{background-image:radial-gradient(700px 300px at 70% -80px,rgba(142,127,207,.16),transparent 70%),radial-gradient(640px 320px at -8% 108%,rgba(76,195,193,.10),transparent 70%);background-attachment:fixed}
@@ -1655,6 +1672,17 @@ setInterval(() => {
   el.textContent = resta <= 0 ? 'Tempo esgotado' : dinSegundos(resta);
   el.classList.toggle('esgotado', resta <= 0); el.classList.toggle('urgente', resta > 0 && resta <= 10000);
 }, 500);
+/* Telão: sair da tela cheia (Esc) desliga o modo; espaço/seta direita revelam e avançam */
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && V.din && V.din.telao) { V.din.telao = false; render(); } });
+document.addEventListener('keydown', ev => {
+  if (V.view !== 'dinamica' || !V.din || !V.din.data || V.modal || V.confirmar) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName || '')) return;
+  const d = V.din.data;
+  if ((ev.key === ' ' || ev.key === 'ArrowRight') && d.origem === 'questoes') {
+    if (d.status === 'pergunta') { ev.preventDefault(); act('din-cmd:revelar').catch(() => {}); }
+    else if (d.status === 'revelada') { ev.preventDefault(); act('din-cmd:proxima').catch(() => {}); }
+  }
+});
 function dinRankingHtml(d, final) {
   const r = d.ranking || [], max = Math.max(1, ...r.map(x => x.acertos));
   const pos = i => final && i < 3 ? ['🥇', '🥈', '🥉'][i] : (i + 1) + 'º';
@@ -1739,7 +1767,7 @@ function dinTelao(d) {
         <span class="pill ${nTot && nResp >= nTot ? 'pub' : 'off'}">${nResp} de ${nTot} ${d.modo === 'grupos' ? 'grupos' : 'alunos'} responderam</span>
         ${!rev && d.tempo ? `<b id="din-timer" class="dintimer num"></b>` : rev ? `<span class="pill pub" style="margin-left:auto">Resposta revelada</span>` : ''}
       </div>
-      <h2 style="font-size:24px;line-height:1.4;margin:0">${esc(pub.enunciado || '')}</h2>
+      <h2 class="dinenun">${esc(pub.enunciado || '')}</h2>
       ${pub.imagem ? `<img class="qimg" src="${esc(pub.imagem)}" alt="" style="max-height:280px;align-self:flex-start;border-radius:10px">` : ''}
       ${dinCorpoQ(d)}
       ${rev && gq.explicacao ? `<div style="border:1.5px solid var(--primary-l);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--fg2)"><b>Explicação:</b> ${esc(gq.explicacao)}</div>` : ''}
@@ -1774,9 +1802,11 @@ function viewDinamica() {
   const corpo = d.status === 'lobby' ? dinLobby(d)
     : d.status === 'fim' ? dinRankingHtml(d, true) + `<div style="display:flex;gap:8px"><button class="btn btn-primary" data-a="din-voltar">Voltar à turma</button></div>`
     : d.origem === 'manual' ? dinManual(d) : dinTelao(d);
-  return topbar(esc(d.titulo), sub, volta + (d.status !== 'fim' ? `<button class="btn btn-outline" data-a="din-cmd:encerrar">Encerrar</button>` : '')) + `<div class="content">
+  return topbar(esc(d.titulo), sub, volta + `<button class="btn btn-primary" data-a="din-telao">${I.eye}Telão</button>` + (d.status !== 'fim' ? `<button class="btn btn-outline" data-a="din-cmd:encerrar">Encerrar</button>` : '')) + `<div class="content">
+    ${W.telao ? `<div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap"><b style="font-size:22px;font-family:var(--f-display)">${esc(d.titulo)}</b><span style="font-size:14px;color:var(--muted)">${t ? esc(t.nome) : ''}${d.modo === 'grupos' ? ' · em grupos' : ' · cada um por si'}</span></div>` : ''}
     ${W.erro ? `<div class="warnbox">${I.warn}<span>${esc(W.erro)}</span></div>` : ''}
     ${corpo}
+    ${W.telao ? `<button class="btn btn-outline telao-sair" data-a="din-telao-sair">Sair do telão (Esc)</button>` : ''}
   </div>`;
 }
 
@@ -1939,7 +1969,7 @@ function render() {
   if (!VIEWS[V.view] || (!admin && !['inicio', 'turmas', 'turma', 'atividades', 'resultados', 'dinamica', 'questoes', ...(gestor() ? ['escolas', 'escola'] : [])].includes(V.view))) V.view = 'inicio';
   const focado = document.activeElement, fkey = focado && focado.dataset ? focado.dataset.f : null, sel = focado && focado.selectionStart;
   const scroll = window.scrollY;
-  shell.className = '';
+  shell.className = V.view === 'dinamica' && V.din && V.din.telao ? 'telao' : '';
   shell.innerHTML = sidebar() + `<main>${VIEWS[V.view]()}</main>` + (V.ativ ? drawerAtividade() : '') + (V.rascunho ? drawerQuestao() : '') + (V.licaoAtribuir ? drawerAtribuir() : '') + (V.modalPrev ? modalPrevHtml() : '') + (V.relatorio ? modalRelatorioHtml() : '') + (V.respostas ? modalRespostasHtml() : '') + (V.modal ? modalHtml() : '') + (V.confirmar ? confirmHtml() : '');
   window.scrollTo(0, scroll);
   if (fkey) { const el = shell.querySelector(`[data-f="${fkey}"]`); if (el && el.tagName !== 'SELECT' && el.type !== 'radio' && el.type !== 'color') { el.focus(); try { el.setSelectionRange(sel, sel); } catch (e) {} } }
@@ -2109,7 +2139,7 @@ async function carregarResultados(aid) {
   render();
 }
 /* Toda ação do painel é registrada; estas já têm um registro mais descritivo em seu próprio código */
-const ACOES_COM_REGISTRO_PROPRIO = new Set(['view', 'sair', 'abrir-turma', 'resultados', 'copiar-notas', 'copiar-json', 'buscar-alunos', 'bloq', 'novo-aluno', 'dar', 'dar-lote', 'ver-respostas', 'relatorio', 'csv-notas', 'csv-turma', 'csv-alunos', 'csv-aud', 'csv-erradas', 'nota-manual', 'nota-restaurar', 'recorrigir', 'seg-coord', 'excluir-conta', 'abrir-escola', 'escola-aba', 'esc-abrir', 'csv-esc-alunos', 'nova-din', 'din-abrir', 'din-voltar', 'din-cmd', 'din-sortn', 'din-sortear', 'din-sortear-ui', 'din-mover', 'din-salvar-grupos', 'din-ponto', 'csv-din', 'din-criar-com-questoes']);
+const ACOES_COM_REGISTRO_PROPRIO = new Set(['view', 'sair', 'abrir-turma', 'resultados', 'copiar-notas', 'copiar-json', 'buscar-alunos', 'bloq', 'novo-aluno', 'dar', 'dar-lote', 'ver-respostas', 'relatorio', 'csv-notas', 'csv-turma', 'csv-alunos', 'csv-aud', 'csv-erradas', 'nota-manual', 'nota-restaurar', 'recorrigir', 'seg-coord', 'excluir-conta', 'abrir-escola', 'escola-aba', 'esc-abrir', 'csv-esc-alunos', 'nova-din', 'din-abrir', 'din-voltar', 'din-cmd', 'din-sortn', 'din-sortear', 'din-sortear-ui', 'din-mover', 'din-salvar-grupos', 'din-ponto', 'csv-din', 'din-criar-com-questoes', 'din-telao', 'din-telao-sair']);
 async function act(a, el) {
   const [k, x, y, z] = a.split(':');
   if (!ACOES_COM_REGISTRO_PROPRIO.has(k)) auditar('clique', 'painel', a, 'Ação no painel: ' + k + (x ? ' · ' + [x, y, z].filter(v => v != null).join(':') : ''), {tela: V.view});
@@ -2250,11 +2280,14 @@ async function act(a, el) {
     case 'din-abrir': V.din = {id: x, data: null, erro: null, sorteio: null, sorteioN: 4}; V.view = 'dinamica'; window.scrollTo(0, 0); render(); return atualizarDinamica();
     case 'din-voltar': { const tid = (V.din && V.din.data && V.din.data.turma_id) || V.turma; V.din = null; if (tid && turmaPorId(tid)) { V.turma = tid; V.view = 'turma'; render(); carregarDinamicas(tid); if (!V.turmaAlunos) carregarAlunosTurma(tid); } else { V.view = 'turmas'; render(); } return; }
     case 'din-cmd': {
-      if (!V.din) return;
+      if (!V.din || V.din.cmdRodando) return;
       if (x === 'encerrar') return confirmar('Encerrar a dinâmica?', 'O placar de agora vira o resultado final para todo mundo.', async () => { await db(sb.rpc('comando_dinamica', {p_dinamica: V.din.id, p_acao: 'encerrar'})); return atualizarDinamica(); }, 'Encerrar');
-      await db(sb.rpc('comando_dinamica', {p_dinamica: V.din.id, p_acao: x}));
+      V.din.cmdRodando = true;
+      try { await db(sb.rpc('comando_dinamica', {p_dinamica: V.din.id, p_acao: x})); } finally { if (V.din) V.din.cmdRodando = false; }
       return atualizarDinamica();
     }
+    case 'din-telao': { if (!V.din) return; V.din.telao = true; render(); const raiz = document.documentElement; if (raiz.requestFullscreen) raiz.requestFullscreen().catch(() => {}); return; }
+    case 'din-telao-sair': { if (V.din) V.din.telao = false; render(); if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {}); return; }
     case 'din-sortn': if (V.din) V.din.sorteioN = +el.value || 4; return;
     case 'din-sortear': case 'din-sortear-ui': {
       const d2 = V.din && V.din.data; if (!d2) return;
