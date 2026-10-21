@@ -607,7 +607,7 @@ let V = {view: 'inicio', qf: {materia: '', unidade: '', tipo: '', status: '', bu
   escola: null, escolaAba: 'segmentos', escolaAlunos: null, escolaAberto: {},
   din: null, dinamicas: null, dash: {data: null, erro: null, carregando: false},
   turmaFiltro: {escola: '', segmento: '', busca: ''}, ativFiltroEscola: '', alunosFiltro: {escola: '', turma: ''},
-  rel: {data: null, erro: null, carregando: false},
+  rel: {aba: 'visao', data: null, erro: null, carregando: false, turmas: null, terro: null, tcarregando: false, f: {escola: '', seg: '', turma: ''}, alunosPor: {}, det: null},
   aud: {lista: null, usuarios: [], carregando: false, erro: null, fim: false, aberto: {}, f: {user: '', origem: '', tabela: '', acao: '', periodo: '7', busca: ''}}};
 const PAPEIS = {aluno: 'Aluno', professor: 'Professor', coordenador: 'Coordenador', admin: 'Admin da escola'};
 const educador = () => admin || papel === 'professor' || papel === 'coordenador' || papel === 'admin';
@@ -729,7 +729,7 @@ async function carregar() {
   if (!V.materia || !D.materias.some(x => x.id === V.materia)) V.materia = D.materias[0] ? D.materias[0].id : null;
 }
 /* Confere se as migrations estão em dia (tabela schema_versao, migration 0022) */
-const ESQUEMA_ESPERADO = 39;
+const ESQUEMA_ESPERADO = 40;
 async function verificarEsquema() {
   const r = await sb.from('schema_versao').select('versao').order('versao', {ascending: false}).limit(1).maybeSingle();
   const v = r.error || !r.data ? 0 : r.data.versao;
@@ -918,12 +918,12 @@ function auditar(acao, tabela, registro, resumo, dados) {
 }
 const NAV_PROF = [
   ['', [['inicio', 'Visão geral', I.home]]],
-  ['Escola', [['turmas', 'Turmas', I.users], ['atividades', 'Atividades', I.target]]],
+  ['Escola', [['turmas', 'Turmas', I.users], ['atividades', 'Atividades', I.target], ['relatorios', 'Relatórios', I.grafico]]],
   ['Conteúdo', [['questoes', 'Banco de questões', I.q]]]
 ];
 const NAV_GESTOR = [
   ['', [['inicio', 'Visão geral', I.home]]],
-  ['Escola', [['escolas', 'Minha escola', I.predio], ['turmas', 'Turmas', I.users], ['atividades', 'Atividades', I.target]]],
+  ['Escola', [['escolas', 'Minha escola', I.predio], ['turmas', 'Turmas', I.users], ['atividades', 'Atividades', I.target], ['relatorios', 'Relatórios', I.grafico]]],
   ['Conteúdo', [['questoes', 'Banco de questões', I.q]]]
 ];
 const navItens = () => admin ? NAV_ADMIN : gestor() ? NAV_GESTOR : NAV_PROF;
@@ -1930,12 +1930,157 @@ function viewDinamica() {
 const ACOES_AUD = {insert: ['Criou', 'pub'], update: ['Alterou', 'draft'], delete: ['Excluiu', ''], login: ['Entrou', 'type'], sair: ['Saiu', 'off'], tela: ['Abriu a tela', 'off'], busca: ['Buscou', 'on'], copia: ['Copiou', 'on'], resultados: ['Viu resultados', 'on'], turma: ['Abriu a turma', 'on'], escola: ['Abriu a escola', 'on'], novo_aluno: ['Criou conta', 'pub'], bloqueio: ['Bloqueou', ''], liberacao: ['Liberou', 'pub'], recursos: ['Deu moedas/corações', 'pub'], respostas: ['Viu respostas', 'on'], papel: ['Definiu papel', 'pub'], relatorio: ['Viu relatório', 'on'], clique: ['Clicou', 'off'], nota_manual: ['Nota manual', 'draft'], recorrecao: ['Recorrigiu', 'pub'], segmentos_coord: ['Segmentos do coordenador', 'type'], exclusao_conta: ['Excluiu conta', ''], edicao_conta: ['Editou conta', 'draft'], dinamica: ['Dinâmica', 'type']};
 const TABELAS_AUD = {materias: 'Matérias', secoes: 'Seções', unidades: 'Unidades', licoes: 'Lições', questoes: 'Questões', licao_questoes: 'Questões da lição', missoes: 'Missões', itens_loja: 'Loja', parametros: 'Parâmetros', publicacoes: 'Publicações', segmentos: 'Segmentos', escolas: 'Escolas', escola_membros: 'Membros da escola', turmas: 'Turmas', turma_professores: 'Professores da turma', turma_alunos: 'Alunos da turma', atividades: 'Atividades', dinamicas: 'Dinâmicas', perfis: 'Perfis', admins: 'Administradores', painel: 'Painel', alunos: 'Alunos', resultados: 'Resultados'};
 /* =====================================================================
-   Relatórios de uso (admin): atividade por dia, modos e questões mais erradas
+   Relatórios: do geral ao aluno (escola → segmento → turma → aluno), para
+   todos os papéis do painel — cada um só recebe as turmas que o papel vê.
+   O admin tem ainda a sub-aba "Uso do app" (relatorio_uso, migration 0023).
    ===================================================================== */
 const MODOS_REL = {licao: 'Lições', pratica: 'Prática', revisao: 'Revisão diária', erros: 'Praticar erros', unidade: 'Revisão de unidade', relampago: 'Relâmpago', lendaria: 'Prova lendária', pular: 'Teste de pular', atividade: 'Atividades'};
+const relNota = n => n == null ? '—' : (+n).toFixed(1).replace('.', ',');
+const relCorNota = n => n == null ? 'var(--muted)' : +n >= 6 ? 'var(--green-d)' : 'var(--red-d)';
+const relMedia = (soma, n) => n ? Math.round(soma / n * 10) / 10 : null;
+function relTurmasFiltradas() {
+  const f = V.rel.f;
+  return (V.rel.turmas || []).filter(t => (!f.escola || (f.escola === 'sem' ? !t.escola_id : t.escola_id === f.escola)) && (!f.seg || (f.seg === 'sem' ? !t.segmento_id : t.segmento_id === f.seg)));
+}
+/* Soma as linhas de turma por uma chave (escola ou segmento); as notas vão como soma+quantidade para a média sair certa */
+function relAgrupa(linhas, chave) {
+  const g = new Map();
+  for (const t of linhas) {
+    const [id, nome] = chave(t);
+    if (!g.has(id)) g.set(id, {id, nome, turmas: 0, alunos: 0, ativos7: 0, estudos7: 0, xp7: 0, minutos7: 0, abertas: 0, entregas30: 0, ns: 0, nn: 0, dinamicas30: 0});
+    const a = g.get(id);
+    a.turmas++; a.alunos += t.alunos; a.ativos7 += t.ativos7; a.estudos7 += t.estudos7; a.xp7 += t.xp7; a.minutos7 += t.minutos7; a.abertas += t.abertas; a.entregas30 += t.entregas30; a.ns += +t.notas30_soma; a.nn += t.notas30_n; a.dinamicas30 += t.dinamicas30;
+  }
+  return [...g.values()].sort((a, b) => a.nome.localeCompare(b.nome));
+}
+function relTabelaGrupo(titulo, col, grupos, acao) {
+  return `<div class="card"><div class="card-h"><h2>${titulo}</h2></div><div class="tbl-wrap"><table><thead><tr><th>${col}</th><th style="text-align:right">Turmas</th><th style="text-align:right">Alunos</th><th style="text-align:right">Ativos · 7d</th><th style="text-align:right">XP · 7d</th><th style="text-align:right">Minutos · 7d</th><th style="text-align:right">Abertas</th><th style="text-align:right">Entregas · 30d</th><th style="text-align:right">Média · 30d</th></tr></thead><tbody>
+    ${grupos.map(g => { const m = relMedia(g.ns, g.nn); return `<tr class="rowbtn" data-a="${acao}:${g.id}"><td><b>${esc(g.nome)}</b></td><td class="num" style="text-align:right">${g.turmas}</td><td class="num" style="text-align:right">${g.alunos}</td><td class="num" style="text-align:right">${g.ativos7}</td><td class="num" style="text-align:right">${g.xp7}</td><td class="num" style="text-align:right">${g.minutos7}</td><td class="num" style="text-align:right">${g.abertas}</td><td class="num" style="text-align:right">${g.entregas30}</td><td class="num" style="text-align:right;font-weight:700;color:${relCorNota(m)}">${relNota(m)}</td></tr>`; }).join('')}
+  </tbody></table></div></div>`;
+}
 function viewRelatorios() {
+  const R = V.rel;
+  if (R.aba === 'uso' && !admin) R.aba = 'visao';
+  const uso = R.aba === 'uso';
+  const alunosT = !uso && R.f.turma ? (((R.alunosPor[R.f.turma] || {}).data || {}).alunos || []) : [];
+  const acoes = uso
+    ? `<button class="btn btn-outline" data-a="rel-recarregar">Atualizar</button>`
+    : `${R.f.turma ? `<button class="btn btn-ghost" data-a="csv-rel-alunos" ${alunosT.length ? '' : 'disabled'}>${I.baixar}Baixar CSV</button>` : `<button class="btn btn-ghost" data-a="csv-rel-turmas" ${relTurmasFiltradas().length ? '' : 'disabled'}>${I.baixar}Baixar CSV</button>`}<button class="btn btn-outline" data-a="rel-recarregar">Atualizar</button>`;
+  const sub = admin ? 'Do geral ao aluno: filtre por escola, segmento e turma — ou acompanhe o uso do app' : papel === 'professor' ? 'Como vão as suas turmas, do geral ao aluno' : 'Como vão as turmas que você acompanha, do geral ao aluno';
+  const abas = admin ? `<div class="toolbar"><button class="btn btn-sm ${uso ? 'btn-ghost' : 'btn-primary'}" data-a="rel-aba:visao">Escolas e turmas</button><button class="btn btn-sm ${uso ? 'btn-primary' : 'btn-ghost'}" data-a="rel-aba:uso">Uso do app</button></div>` : '';
+  return topbar('Relatórios', sub, acoes) + `<div class="content">${abas}${uso ? relUsoHtml() : relVisaoHtml()}</div>`;
+}
+function relVisaoHtml() {
+  const R = V.rel, f = R.f;
+  if (R.terro) return `<div class="warnbox">${I.warn}<span>${esc(R.terro)}${/não existe|does not exist/i.test(R.terro) ? ' Rode a migration 0040 no SQL Editor.' : ''}</span></div>`;
+  if (!R.turmas) return '<div class="empty">Carregando…</div>';
+  if (!R.turmas.length) return '<div class="empty">Nenhuma turma para acompanhar ainda.</div>';
+  const escolas = [...new Map(R.turmas.map(t => [t.escola_id || 'sem', t.escola || 'Sem escola'])).entries()];
+  const naEscola = f.escola ? R.turmas.filter(t => f.escola === 'sem' ? !t.escola_id : t.escola_id === f.escola) : R.turmas;
+  const segs = [...new Map(naEscola.map(t => [t.segmento_id || 'sem', t.segmento || 'Sem segmento'])).entries()];
+  const linhas = relTurmasFiltradas();
+  const filtros = `<form class="toolbar" onsubmit="return false">
+    ${escolas.length > 1 ? `<select class="inp sm" data-f="relf.escola" aria-label="Escola"><option value="">Todas as escolas</option>${escolas.map(([id, n]) => `<option value="${esc(id)}" ${f.escola === id ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>` : ''}
+    ${segs.length > 1 ? `<select class="inp sm" data-f="relf.seg" aria-label="Segmento"><option value="">Todos os segmentos</option>${segs.map(([id, n]) => `<option value="${esc(id)}" ${f.seg === id ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>` : ''}
+    <select class="inp sm" data-f="relf.turma" aria-label="Turma"><option value="">Todas as turmas</option>${linhas.map(t => `<option value="${t.id}" ${f.turma === t.id ? 'selected' : ''}>${esc(t.nome)}</option>`).join('')}</select>
+    <span style="color:var(--muted);font-size:13px">${f.turma ? '' : linhas.length + ' turma' + (linhas.length === 1 ? '' : 's')}</span></form>`;
+  if (f.turma) return filtros + relTurmaHtml(f.turma);
+  const tot = relAgrupa(linhas, () => ['tudo', ''])[0] || {turmas: 0, alunos: 0, ativos7: 0, xp7: 0, minutos7: 0, entregas30: 0, ns: 0, nn: 0, abertas: 0};
+  const m = relMedia(tot.ns, tot.nn);
+  return filtros + `<div class="tiles">
+    <div class="tile tcor t-roxo"><span class="lbl">Turmas</span><span class="val num">${tot.turmas}</span><span class="hint">${tot.abertas} atividade${tot.abertas === 1 ? '' : 's'} aberta${tot.abertas === 1 ? '' : 's'}</span></div>
+    <div class="tile tcor t-teal"><span class="lbl">Alunos</span><span class="val num">${tot.alunos}</span><span class="hint">nas turmas filtradas</span></div>
+    <div class="tile tcor t-verde"><span class="lbl">Ativos · 7 dias</span><span class="val num">${tot.ativos7}</span><span class="hint">estudaram na semana</span></div>
+    <div class="tile tcor t-ouro"><span class="lbl">XP · 7 dias</span><span class="val num">${tot.xp7}</span><span class="hint">${tot.minutos7} minuto${tot.minutos7 === 1 ? '' : 's'} de estudo</span></div>
+    <div class="tile tcor t-rosa"><span class="lbl">Média · 30 dias</span><span class="val num" style="color:${relCorNota(m)}">${relNota(m)}</span><span class="hint">${tot.entregas30} entrega${tot.entregas30 === 1 ? '' : 's'} no mês</span></div>
+  </div>
+  ${!f.escola && escolas.length > 1 ? relTabelaGrupo('Por escola', 'Escola', relAgrupa(linhas, t => [t.escola_id || 'sem', t.escola || 'Sem escola']), 'rel-escolha:escola') : ''}
+  ${!f.seg && segs.length > 1 ? relTabelaGrupo('Por segmento', 'Segmento', relAgrupa(linhas, t => [t.segmento_id || 'sem', t.segmento || 'Sem segmento']), 'rel-escolha:seg') : ''}
+  <div class="card"><div class="card-h"><h2>Turmas</h2><span class="pill type">${linhas.length}</span></div><div class="tbl-wrap tbl-wide"><table><thead><tr><th>Turma</th>${!f.escola && escolas.length > 1 ? '<th>Escola</th>' : ''}<th>Segmento</th><th style="text-align:right">Alunos</th><th style="text-align:right">Ativos · 7d</th><th style="text-align:right">Estudos · 7d</th><th style="text-align:right">XP · 7d</th><th style="text-align:right">Minutos · 7d</th><th style="text-align:right">Abertas</th><th style="text-align:right">Entregas · 30d</th><th style="text-align:right">Média · 30d</th></tr></thead><tbody>
+    ${linhas.map(t => { const mt = relMedia(+t.notas30_soma, t.notas30_n); return `<tr class="rowbtn" data-a="rel-turma:${t.id}"><td><b>${esc(t.nome)}</b>${t.ativa ? '' : ' <span class="pill off">inativa</span>'}</td>${!f.escola && escolas.length > 1 ? `<td style="font-size:12px">${esc(t.escola || '—')}</td>` : ''}<td style="font-size:12px">${esc(t.segmento || '—')}</td><td class="num" style="text-align:right">${t.alunos}</td><td class="num" style="text-align:right;color:${t.alunos && !t.ativos7 ? 'var(--red-d)' : 'inherit'}">${t.ativos7}</td><td class="num" style="text-align:right">${t.estudos7}</td><td class="num" style="text-align:right">${t.xp7}</td><td class="num" style="text-align:right">${t.minutos7}</td><td class="num" style="text-align:right">${t.abertas}</td><td class="num" style="text-align:right">${t.entregas30}</td><td class="num" style="text-align:right;font-weight:700;color:${relCorNota(mt)}">${relNota(mt)}</td></tr>`; }).join('') || '<tr><td colspan="11" class="empty">Nenhuma turma neste filtro.</td></tr>'}
+  </tbody></table></div><div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">Clique numa linha para abrir a turma aluno por aluno. "Ativos" conta quem estudou no app nos últimos 7 dias; a média é das notas das atividades entregues nos últimos 30 dias.</div></div>`;
+}
+function relTurmaHtml(id) {
+  const R = V.rel, info = (R.turmas || []).find(t2 => t2.id === id) || {};
+  const C = R.alunosPor[id] || {};
+  if (C.erro) return `<div class="warnbox">${I.warn}<span>${esc(C.erro)}</span></div>`;
+  if (!C.data) return '<div class="empty">Carregando alunos…</div>';
+  const L = C.data.alunos || [], t = C.data.turma || {};
+  const xp7 = L.reduce((s, a) => s + a.xp7, 0), min7 = L.reduce((s, a) => s + a.minutos7, 0), pend = L.reduce((s, a) => s + a.pendentes, 0);
+  const ativos = L.filter(a => a.xp7 > 0 || a.minutos7 > 0).length;
+  const m = relMedia(+(info.notas30_soma || 0), info.notas30_n || 0);
+  const pct = a => { const n = a.acertos30 + a.erros30; return n ? Math.round(a.acertos30 / n * 100) : null; };
+  return `<div class="tiles">
+    <div class="tile tcor t-roxo"><span class="lbl">Alunos</span><span class="val num">${L.length}</span><span class="hint">${esc(t.nome || info.nome || '')}</span></div>
+    <div class="tile tcor t-verde"><span class="lbl">Ativos · 7 dias</span><span class="val num">${ativos}</span><span class="hint">com XP ou minutos na semana</span></div>
+    <div class="tile tcor t-ouro"><span class="lbl">XP · 7 dias</span><span class="val num">${xp7}</span><span class="hint">${min7} minuto${min7 === 1 ? '' : 's'} de estudo</span></div>
+    <div class="tile tcor t-rosa"><span class="lbl">Média · 30 dias</span><span class="val num" style="color:${relCorNota(m)}">${relNota(m)}</span><span class="hint">notas das atividades</span></div>
+    <div class="tile tcor t-azul"><span class="lbl">Entregas pendentes</span><span class="val num" style="color:${pend ? 'var(--red-d)' : 'inherit'}">${pend}</span><span class="hint">nas atividades abertas</span></div>
+  </div>
+  <div class="card"><div class="card-h"><h2>${esc(t.nome || 'Turma')}</h2>${t.escola ? `<span class="pill type">${esc(t.escola)}</span>` : ''}${t.segmento ? `<span class="pill draft">${esc(t.segmento)}</span>` : ''}<span class="right"><button class="btn btn-ghost btn-sm" data-a="rel-voltar">Ver todas as turmas</button></span></div>
+  <div class="tbl-wrap tbl-wide"><table><thead><tr><th>Aluno</th><th style="text-align:right">XP</th><th style="text-align:right">XP · 7d</th><th style="text-align:right">Lições</th><th style="text-align:right">Minutos · 7d</th><th style="text-align:right">Ofensiva</th><th>Último estudo</th><th style="text-align:right">Entregas</th><th style="text-align:right">Pendentes</th><th style="text-align:right">Média</th><th style="text-align:right">Acertos · 30d</th></tr></thead><tbody>
+    ${L.map(a => { const p2 = pct(a); return `<tr class="rowbtn" data-a="rel-aluno:${a.user_id}"><td><b>${esc(a.nome)}</b><br><span style="font-size:12px;color:var(--muted)">${esc(a.email || '')}</span></td><td class="num" style="text-align:right">${a.xp}</td><td class="num" style="text-align:right;color:${a.xp7 ? 'inherit' : 'var(--muted)'}">${a.xp7}</td><td class="num" style="text-align:right">${a.licoes}</td><td class="num" style="text-align:right">${a.minutos7}</td><td class="num" style="text-align:right">${a.ofensiva}</td><td style="font-size:12px;white-space:nowrap;color:${a.ultimo ? 'inherit' : 'var(--red-d)'}">${a.ultimo ? fmtDia(a.ultimo) : 'nunca estudou'}</td><td class="num" style="text-align:right">${a.entregues}</td><td class="num" style="text-align:right;color:${a.pendentes ? 'var(--red-d)' : 'var(--muted)'}">${a.pendentes}</td><td class="num" style="text-align:right;font-weight:700;color:${relCorNota(a.media)}">${relNota(a.media)}</td><td class="num" style="text-align:right">${p2 == null ? '—' : p2 + '%'}</td></tr>`; }).join('') || '<tr><td colspan="11" class="empty">A turma ainda não tem alunos.</td></tr>'}
+  </tbody></table></div><div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">Clique num aluno para ver o raio-x: evolução de 14 dias, progresso por matéria e todas as atividades. Entregas, pendências e média valem para esta turma; XP, lições, ofensiva e acertos valem para tudo que o aluno faz no app.</div></div>`;
+}
+/* Raio-x de um aluno (relatorio_aluno): série de 14 dias, matérias e atividades */
+function modalRelAlunoHtml() {
+  const R = V.rel.det; if (!R) return '';
+  const d = R.data;
+  let corpo;
+  if (R.erro) corpo = `<div class="warnbox">${I.warn}<span>${esc(R.erro)}</span></div>`;
+  else if (!d) corpo = '<div class="empty">Carregando…</div>';
+  else {
+    const r = d.resumo || {};
+    const nAc = r.acertos30 + r.erros30, pctAc = nAc ? Math.round(r.acertos30 / nAc * 100) : null;
+    const maxXp = Math.max(1, ...d.dias.map(x => x.xp));
+    const mats = (d.materias || []).filter(m2 => m2.feitas > 0);
+    corpo = `
+    <div class="tiles" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
+      <div class="tile"><span class="lbl">XP total</span><span class="val num">${d.xp || 0}</span><span class="hint">${r.xp30} nos últimos 30 dias</span></div>
+      <div class="tile"><span class="lbl">Ofensiva</span><span class="val num">${d.ofensiva}</span><span class="hint">dia${d.ofensiva === 1 ? '' : 's'} seguido${d.ofensiva === 1 ? '' : 's'}</span></div>
+      <div class="tile"><span class="lbl">Minutos · 30d</span><span class="val num">${r.minutos30}</span><span class="hint">tempo de estudo</span></div>
+      <div class="tile"><span class="lbl">Acertos · 30d</span><span class="val num">${pctAc == null ? '—' : pctAc + '%'}</span><span class="hint">${r.acertos30} de ${nAc} questões</span></div>
+    </div>
+    <div class="card-b" style="padding:0"><div style="display:flex;align-items:flex-end;gap:3px;height:64px;padding:0 2px">${d.dias.map(x => `<span title="${fmtDia(x.dia)}: ${x.xp} XP · ${x.minutos} min · ${x.licoes} liç${x.licoes === 1 ? 'ão' : 'ões'}" style="flex:1;height:${Math.max(3, Math.round(x.xp / maxXp * 60))}px;border-radius:3px 3px 0 0;background:${x.xp ? 'var(--primary)' : 'var(--line)'}"></span>`).join('')}</div><div style="font-size:11px;color:var(--muted);padding:2px 4px">XP por dia nos últimos 14 dias (passe o mouse para ver os detalhes)</div></div>
+    <div class="card-b" style="padding:0;display:flex;flex-direction:column;gap:6px"><b style="font-size:13px">Progresso por matéria</b>
+      ${mats.map(m2 => `<div class="barrow"><span>${esc(m2.nome)}</span><span class="bar"><i style="width:${Math.round(m2.feitas / Math.max(1, m2.total) * 100)}%;background:${esc(m2.cor || 'var(--primary)')}"></i></span><b class="num">${m2.feitas}/${m2.total}</b></div>`).join('') || '<span style="color:var(--muted);font-size:13px">Ainda não concluiu nenhuma lição.</span>'}
+    </div>
+    <div class="tbl-wrap"><table><thead><tr><th>Atividade</th><th>Prazo</th><th>Nota</th><th>Acertos</th></tr></thead><tbody>
+      ${(d.atividades || []).map(a => { const sr = a.status === 'aberta' && a.prazo && new Date(a.prazo) < new Date() ? 'encerrada' : a.status; return `<tr><td><b>${esc(a.titulo)}</b><br><span style="font-size:12px;color:var(--muted)">${esc(a.turma)}${a.materia ? ' · ' + esc((materiaPorId(a.materia) || {}).nome || a.materia) : ''}</span></td><td style="white-space:nowrap;font-size:12px">${a.prazo ? fmtData(a.prazo) : '—'}</td><td class="num" style="font-weight:700;color:${a.entregue_em ? relCorNota(a.nota) : 'var(--muted)'}">${a.entregue_em ? relNota(a.nota) : sr === 'encerrada' ? '<span class="pill off">não fez</span>' : '<span class="pill draft">pendente</span>'}</td><td class="num">${a.entregue_em ? a.acertos + ' / ' + a.total : '—'}</td></tr>`; }).join('') || '<tr><td colspan="4" class="empty">Nenhuma atividade nas turmas dele.</td></tr>'}
+    </tbody></table></div>`;
+  }
+  const p = (d && d.perfil) || {};
+  return `<div class="drawer-bg" data-a="rel-det-fechar"></div><div class="card modal wide" role="dialog" aria-modal="true" aria-label="Relatório de ${esc(p.nome || R.nome || 'aluno')}">
+    <div style="display:flex;gap:10px;align-items:flex-start"><div style="flex:1;min-width:0"><h2 style="margin:0">${esc(p.nome || R.nome || 'Aluno')}${p.plus ? ' <span class="pill pub">Findout+</span>' : ''}</h2><p style="margin:4px 0 0;font-size:13px;color:var(--muted)">${esc(p.email || '')}${d && (d.turmas || []).length ? ' · ' + esc(d.turmas.join(', ')) : ''}${p.criado_em ? ' · no app desde ' + fmtDia(p.criado_em) : ''}</p></div><button class="btn btn-ghost btn-sm" data-a="rel-det-fechar" aria-label="Fechar">${I.close}</button></div>
+    ${corpo}
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" data-a="rel-det-fechar">Fechar</button></div></div>`;
+}
+async function carregarRelTurmas() {
+  const R = V.rel; if (R.tcarregando) return;
+  R.tcarregando = true; R.terro = null; render();
+  const {data, error} = await sb.rpc('relatorio_turmas');
+  R.tcarregando = false;
+  if (error) R.terro = traduzErro(error.message); else R.turmas = data;
+  render();
+}
+async function carregarRelAlunos(id, forcar) {
+  const R = V.rel, C = R.alunosPor[id] || (R.alunosPor[id] = {data: null, erro: null, carregando: false});
+  if (C.carregando || (C.data && !forcar)) return;
+  C.carregando = true; C.erro = null; render();
+  const {data, error} = await sb.rpc('relatorio_turma', {p_turma: id});
+  C.carregando = false;
+  if (error) C.erro = traduzErro(error.message); else C.data = data;
+  render();
+}
+async function carregarRelAluno(uid) {
+  const {data, error} = await sb.rpc('relatorio_aluno', {p_user: uid});
+  if (!V.rel.det || V.rel.det.uid !== uid) return;
+  if (error) V.rel.det.erro = traduzErro(error.message); else V.rel.det.data = data;
+  render();
+}
+function relUsoHtml() {
   const R = V.rel, d = R.data;
-  return topbar('Relatórios', 'Uso do app pelos alunos: atividade por dia, modos de estudo e onde eles mais erram', `<button class="btn btn-outline" data-a="rel-recarregar">Atualizar</button>`) + `<div class="content">
+  return `
     ${R.erro ? `<div class="warnbox">${I.warn}<span>${esc(R.erro)}${/não existe|does not exist/i.test(R.erro) ? ' Rode a migration 0023 no SQL Editor.' : ''}</span></div>` : ''}
     ${!d ? '<div class="empty">Carregando…</div>' : `
     <div class="tiles">
@@ -1957,8 +2102,7 @@ function viewRelatorios() {
       <div class="tbl-wrap"><table><thead><tr><th>Questão</th><th>Matéria</th><th>Tipo</th><th style="text-align:right">Alunos errando</th></tr></thead><tbody>
       ${(d.erradas || []).map(q => `<tr><td style="max-width:420px">${esc(q.enunciado)}</td><td style="white-space:nowrap">${esc((materiaPorId(q.materia) || {}).nome || q.materia || '')}</td><td><span class="pill type">${TIPOS[q.tipo] || esc(q.tipo)}</span></td><td class="num" style="text-align:right">${q.alunos}</td></tr>`).join('') || '<tr><td colspan="4" style="color:var(--muted)">Nenhum erro pendente — ou ninguém estudou ainda.</td></tr>'}
       </tbody></table></div>
-      <div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">Conta os alunos que estão com a questão na lista de erros do app agora (ela sai da lista quando o aluno acerta em "Praticar erros"). Bom ponto de partida para revisar enunciados ou reforçar o conteúdo.</div></div>`}
-  </div>`;
+      <div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">Conta os alunos que estão com a questão na lista de erros do app agora (ela sai da lista quando o aluno acerta em "Praticar erros"). Bom ponto de partida para revisar enunciados ou reforçar o conteúdo.</div></div>`}`;
 }
 async function carregarRelatorio() {
   const R = V.rel; if (R.carregando) return;
@@ -2081,12 +2225,12 @@ const VIEWS = {inicio: () => admin ? viewInicio() : viewInicioEducador(), dashbo
 let ultimaViewRender = null;
 function render() {
   if (!D) return;
-  if (!VIEWS[V.view] || (!admin && !['inicio', 'turmas', 'turma', 'atividades', 'resultados', 'dinamica', 'questoes', ...(gestor() ? ['escolas', 'escola'] : [])].includes(V.view))) V.view = 'inicio';
+  if (!VIEWS[V.view] || (!admin && !['inicio', 'turmas', 'turma', 'atividades', 'resultados', 'dinamica', 'questoes', 'relatorios', ...(gestor() ? ['escolas', 'escola'] : [])].includes(V.view))) V.view = 'inicio';
   const focado = document.activeElement, fkey = focado && focado.dataset ? focado.dataset.f : null, sel = focado && focado.selectionStart;
   const scroll = window.scrollY;
   const trocouView = V.view !== ultimaViewRender; ultimaViewRender = V.view;
   shell.className = V.view === 'dinamica' && V.din && V.din.telao ? 'telao' : '';
-  shell.innerHTML = sidebar() + `<main${trocouView ? ' class="view-anim"' : ''}>${VIEWS[V.view]()}</main>` + (V.ativ ? drawerAtividade() : '') + (V.rascunho ? drawerQuestao() : '') + (V.licaoAtribuir ? drawerAtribuir() : '') + (V.modalPrev ? modalPrevHtml() : '') + (V.relatorio ? modalRelatorioHtml() : '') + (V.respostas ? modalRespostasHtml() : '') + (V.modal ? modalHtml() : '') + (V.confirmar ? confirmHtml() : '');
+  shell.innerHTML = sidebar() + `<main${trocouView ? ' class="view-anim"' : ''}>${VIEWS[V.view]()}</main>` + (V.ativ ? drawerAtividade() : '') + (V.rascunho ? drawerQuestao() : '') + (V.licaoAtribuir ? drawerAtribuir() : '') + (V.modalPrev ? modalPrevHtml() : '') + (V.relatorio ? modalRelatorioHtml() : '') + (V.rel.det ? modalRelAlunoHtml() : '') + (V.respostas ? modalRespostasHtml() : '') + (V.modal ? modalHtml() : '') + (V.confirmar ? confirmHtml() : '');
   window.scrollTo(0, scroll);
   if (fkey) { const el = shell.querySelector(`[data-f="${fkey}"]`); if (el && el.tagName !== 'SELECT' && el.type !== 'radio' && el.type !== 'color') { el.focus(); try { el.setSelectionRange(sel, sel); } catch (e) {} } }
   if (V.modal) { const first = shell.querySelector('#f-modal input'); if (first) first.focus(); }
@@ -2102,6 +2246,7 @@ function setCampo(path, value) {
     case 'atribuirBusca': V.atribuirBusca = value; return 'ui';
     case 'ativBusca': V.ativBusca[p[1]] = value; if (p[1] === 'materia') V.ativBusca.unidade = ''; return 'ui';
     case 'aud': V.aud.f[p[1]] = value; return 'nada';
+    case 'relf': { const R = V.rel; R.f[p[1]] = value; if (p[1] === 'escola') { R.f.seg = ''; R.f.turma = ''; } if (p[1] === 'seg') R.f.turma = ''; if (p[1] === 'turma' && value) { carregarRelAlunos(value); auditar('relatorio', 'turmas', value, 'Abriu o relatório da turma'); } return 'ui'; }
     case 'ativFiltroTurma': V.ativFiltroTurma = value; return 'ui';
     case 'dinNome': { const S2 = V.din && V.din.sorteio; if (S2) S2.nomes[+p[1]] = value; return 'nada'; }
     case 'ativFiltroEscola': V.ativFiltroEscola = value; V.ativFiltroTurma = ''; return 'ui';
@@ -2139,7 +2284,7 @@ shell.addEventListener('change', ev => {
   if (f === 'rascunho.materia_id') { const u = todasUnidades().find(x => x.m.id === V.rascunho.materia_id); V.rascunho.unidade_id = u ? u.u.id : null; return render(); }
   if (f.startsWith('rascunho.')) { if (el.tagName === 'SELECT') atualizarPrevia(); return; }
   if (f.startsWith('aud.')) { if (el.tagName === 'SELECT') carregarAuditoria(false); return; }
-  if (f.startsWith('qf.') || f === 'notaPub' || f.startsWith('alunos.') || f.startsWith('ativBusca.') || f === 'ativFiltroTurma') return;
+  if (f.startsWith('qf.') || f === 'notaPub' || f.startsWith('alunos.') || f.startsWith('ativBusca.') || f === 'ativFiltroTurma' || f.startsWith('relf.')) return;
   if (f.startsWith('ativ.')) { if (f === 'ativ.turma_id') V.ativBusca.segmento = (turmaPorId(V.ativ.turma_id) || {}).segmento_id || ''; if (f === 'ativ.turma_id' || f === 'ativ.materia_id' || f === 'ativ.status' || el.type === 'number') render(); return; }
   if (el.tagName === 'SELECT' || el.type === 'number' || el.type === 'color' || f.startsWith('param.')) render();
 });
@@ -2255,14 +2400,22 @@ async function carregarResultados(aid) {
   render();
 }
 /* Toda ação do painel é registrada; estas já têm um registro mais descritivo em seu próprio código */
-const ACOES_COM_REGISTRO_PROPRIO = new Set(['view', 'sair', 'abrir-turma', 'resultados', 'copiar-notas', 'copiar-json', 'buscar-alunos', 'bloq', 'novo-aluno', 'dar', 'dar-lote', 'ver-respostas', 'relatorio', 'csv-notas', 'csv-turma', 'csv-alunos', 'csv-aud', 'csv-erradas', 'nota-manual', 'nota-restaurar', 'recorrigir', 'seg-coord', 'excluir-conta', 'abrir-escola', 'escola-aba', 'esc-abrir', 'csv-esc-alunos', 'nova-din', 'din-abrir', 'din-voltar', 'din-cmd', 'din-sortn', 'din-sortear', 'din-sortear-ui', 'din-mover', 'din-salvar-grupos', 'din-ponto', 'csv-din', 'din-criar-com-questoes', 'din-telao', 'din-telao-sair', 'editar-conta']);
+const ACOES_COM_REGISTRO_PROPRIO = new Set(['view', 'sair', 'abrir-turma', 'resultados', 'copiar-notas', 'copiar-json', 'buscar-alunos', 'bloq', 'novo-aluno', 'dar', 'dar-lote', 'ver-respostas', 'relatorio', 'csv-notas', 'csv-turma', 'csv-alunos', 'csv-aud', 'csv-erradas', 'nota-manual', 'nota-restaurar', 'recorrigir', 'seg-coord', 'excluir-conta', 'abrir-escola', 'escola-aba', 'esc-abrir', 'csv-esc-alunos', 'rel-turma', 'rel-aluno', 'csv-rel-turmas', 'csv-rel-alunos', 'nova-din', 'din-abrir', 'din-voltar', 'din-cmd', 'din-sortn', 'din-sortear', 'din-sortear-ui', 'din-mover', 'din-salvar-grupos', 'din-ponto', 'csv-din', 'din-criar-com-questoes', 'din-telao', 'din-telao-sair', 'editar-conta']);
 async function act(a, el) {
   const [k, x, y, z] = a.split(':');
   if (!ACOES_COM_REGISTRO_PROPRIO.has(k)) auditar('clique', 'painel', a, 'Ação no painel: ' + k + (x ? ' · ' + [x, y, z].filter(v => v != null).join(':') : ''), {tela: V.view});
   const M = materiaPorId(V.materia);
   switch (k) {
-    case 'view': V.view = x; V.rascunho = null; V.licaoAtribuir = null; V.jsonVersao = null; V.ativ = null; V.modalPrev = null; V.respostas = null; V.din = null; if (x !== 'turma') V.turma = null; window.scrollTo(0, 0); render(); if (x === 'alunos' && !V.alunos.lista) buscarAlunos(); if (x === 'inicio' && admin) carregarMetricas(); if (x === 'dashboard' && !V.dash.data) carregarDashboard(); if (x === 'auditoria' && !V.aud.lista) carregarAuditoria(false); if (x === 'relatorios' && !V.rel.data) carregarRelatorio(); auditar('tela', 'painel', x, 'Abriu a tela ' + x); return;
-    case 'rel-recarregar': V.rel.data = null; return carregarRelatorio();
+    case 'view': V.view = x; V.rascunho = null; V.licaoAtribuir = null; V.jsonVersao = null; V.ativ = null; V.modalPrev = null; V.respostas = null; V.din = null; if (x !== 'turma') V.turma = null; window.scrollTo(0, 0); render(); if (x === 'alunos' && !V.alunos.lista) buscarAlunos(); if (x === 'inicio' && admin) carregarMetricas(); if (x === 'dashboard' && !V.dash.data) carregarDashboard(); if (x === 'auditoria' && !V.aud.lista) carregarAuditoria(false); if (x === 'relatorios') { if (!V.rel.turmas && !V.rel.tcarregando) carregarRelTurmas(); if (admin && V.rel.aba === 'uso' && !V.rel.data) carregarRelatorio(); } auditar('tela', 'painel', x, 'Abriu a tela ' + x); return;
+    case 'rel-recarregar': { const R2 = V.rel; if (R2.aba === 'uso') { R2.data = null; return carregarRelatorio(); } R2.turmas = null; R2.alunosPor = {}; carregarRelTurmas(); if (R2.f.turma) carregarRelAlunos(R2.f.turma, true); return; }
+    case 'rel-aba': V.rel.aba = x; if (x === 'uso' && !V.rel.data) carregarRelatorio(); if (x === 'visao' && !V.rel.turmas) carregarRelTurmas(); return render();
+    case 'rel-escolha': { const f2 = V.rel.f; if (x === 'escola') { f2.escola = y; f2.seg = ''; } else f2.seg = y; f2.turma = ''; return render(); }
+    case 'rel-turma': V.rel.f.turma = x; carregarRelAlunos(x); auditar('relatorio', 'turmas', x, 'Abriu o relatório da turma'); return render();
+    case 'rel-voltar': V.rel.f.turma = ''; return render();
+    case 'rel-aluno': { const C2 = V.rel.alunosPor[V.rel.f.turma]; const al2 = C2 && C2.data && (C2.data.alunos || []).find(a2 => a2.user_id === x); V.rel.det = {uid: x, nome: al2 ? al2.nome : '', data: null, erro: null}; auditar('relatorio', 'alunos', x, 'Viu o raio-x de ' + (al2 ? al2.nome : x)); carregarRelAluno(x); return render(); }
+    case 'rel-det-fechar': V.rel.det = null; return render();
+    case 'csv-rel-turmas': { const L2 = relTurmasFiltradas(); if (!L2.length) return; auditar('copia', 'turmas', null, 'Baixou o CSV do relatório de turmas', {turmas: L2.length}); return baixarCsv('relatorio-turmas.csv', ['Turma', 'Escola', 'Segmento', 'Alunos', 'Ativos 7d', 'Estudos 7d', 'XP 7d', 'Minutos 7d', 'Atividades abertas', 'Entregas 30d', 'Média 30d', 'Dinâmicas 30d'], L2.map(t2 => [t2.nome, t2.escola || '', t2.segmento || '', t2.alunos, t2.ativos7, t2.estudos7, t2.xp7, t2.minutos7, t2.abertas, t2.entregas30, t2.notas30_n ? String(relMedia(+t2.notas30_soma, t2.notas30_n)).replace('.', ',') : '', t2.dinamicas30])); }
+    case 'csv-rel-alunos': { const C2 = V.rel.alunosPor[V.rel.f.turma]; const d2 = C2 && C2.data; const L2 = (d2 && d2.alunos) || []; if (!L2.length) return; const nomeT = (d2.turma && d2.turma.nome) || 'turma'; auditar('copia', 'turmas', V.rel.f.turma, 'Baixou o CSV do relatório da turma', {alunos: L2.length}); return baixarCsv(`relatorio-${slug(nomeT)}.csv`, ['Aluno', 'E-mail', 'XP', 'XP 7d', 'Lições', 'Minutos 7d', 'Ofensiva (dias)', 'Último estudo', 'Entregas', 'Pendentes', 'Média', 'Acertos 30d'], L2.map(a2 => { const n2 = a2.acertos30 + a2.erros30; return [a2.nome, a2.email || '', a2.xp, a2.xp7, a2.licoes, a2.minutos7, a2.ofensiva, a2.ultimo ? fmtData(a2.ultimo) : '', a2.entregues, a2.pendentes, a2.media == null ? '' : String(a2.media).replace('.', ','), n2 ? Math.round(a2.acertos30 / n2 * 100) + '%' : '']; })); }
     case 'dash-recarregar': return carregarDashboard();
     case 'csv-notas': { const d = V.resultados && V.resultados.data; if (!d) return; const at = T.atividades.find(z => z.id === V.resultados.id); auditar('copia', 'resultados', V.resultados.id, 'Baixou o CSV de notas da atividade', {alunos: d.alunos.length}); return baixarCsv(`notas-${slug((at && at.titulo) || 'atividade')}.csv`, ['Aluno', 'E-mail', 'Nota', 'Acertos', 'Total', 'Entregue em'], d.alunos.map(z => [z.nome, z.email || '', z.entregueEm ? String(z.nota).replace('.', ',') : '', z.entregueEm ? z.acertos : '', z.entregueEm ? z.total : '', z.entregueEm ? fmtData(z.entregueEm) : 'não entregou'])); }
     case 'csv-turma': { const L2 = (V.turmaAlunos && V.turmaAlunos.lista) || []; if (!L2.length) return toast('Nenhum aluno na turma.'); const t2 = turmaPorId(V.turma); auditar('copia', 'turmas', V.turma, 'Baixou o CSV de alunos da turma'); return baixarCsv(`alunos-${slug((t2 && t2.nome) || 'turma')}.csv`, ['Aluno', 'E-mail', 'XP', 'Ofensiva (dias)', 'Entregas', 'Convite aceito', 'Entrou em'], L2.map(z => [z.nome, z.email || '', z.xp, z.ofensiva, z.entregas, z.aceito === false ? 'não' : 'sim', fmtDia(z.entrou_em)])); }
