@@ -2,8 +2,8 @@
    Rede primeiro (com limite de tempo) para o que é nosso; o supabase-js tem
    versão fixa e fica em cache (sem ele o app nem abre). Só respostas 200
    entram no cache — erro e resposta parcial (206 dos vídeos) ficam fora. */
-const CACHE = 'fj-casca-v4'; // v4: Rapozinha pensando (sprite) nos carregamentos e na escolha de disciplina
-const CASCA = ['./', 'index.html', 'config.js', 'manifest.json', 'rapozinha.png', 'rapozinha-pensando.png', 'icone-192.png', 'icone-512.png'];
+const CACHE = 'fj-casca-v5'; // v4: Rapozinha pensando (sprite) nos carregamentos e na escolha de disciplina
+const CASCA = ['./', 'index.html', 'config.js', 'manifest.json', 'rapozinha.png', 'rapozinha-pensando.png', 'rapozinha-feliz3.png', 'icone-192.png', 'icone-512.png'];
 const CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js';
 
 self.addEventListener('install', ev => {

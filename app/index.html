@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#2563EB">
+<meta name="theme-color" content="#2D4FD6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Jornada">
@@ -16,14 +16,14 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Jost:wght@400;500;600;700&display=swap">
 <style>
 :root{
-  --primary:#2563EB;--primary-d:#1A47B8;--primary-dd:#143390;--lilac:#6D9BF2;--lilac-l:#C9DCFF;
-  --navy:#010F2E;--bg:#F2F7FF;--lav:#E3EEFF;--line:#D8E4F7;--line2:#B9CBE8;--white:#FFFFFF;
+  --primary:#2D4FD6;--primary-d:#213DB0;--primary-dd:#172C85;--lilac:#6E8CF0;--lilac-l:#D6E0FF;
+  --navy:#010F2E;--bg:#FFFFFF;--lav:#EAF0FF;--line:#DCE4F5;--line2:#BCC9EA;--white:#FFFFFF;
   --teal:#F7941E;--teal-d:#B85E08;--teal-dd:#7A3D05;--teal-l:#FFEBD2;
   --blue:#4C86E8;--blue-d:#2763CE;--blue-l:#E1EBFC;
   --green:#8FB569;--green-d:#5E8A3B;--green-dd:#2F5A14;--green-l:#EAF3DF;--green-b:#DCEBC9;
   --gold:#FFD36A;--gold-d:#8A6207;--gold-dd:#5A3F03;--gold-s:#C9A23E;--gold-l:#FFF8E1;
   --red:#E0475B;--red-d:#B8313F;--red-dd:#8A1F2B;--red-l:#FBE4E6;--red-b:#F8D7DA;
-  --orange:#F08A24;--orange-d:#C8571D;--muted:#6F7172;--ink2:#444D69;--backdrop:#D4E0F2;
+  --orange:#F08A24;--orange-d:#C8571D;--muted:#6F7172;--ink2:#444D69;--backdrop:#E4EBF9;
   --f-pixel:'Press Start 2P',ui-monospace,monospace;--f-display:'Jost',system-ui,sans-serif;--f-body:'Jost',system-ui,sans-serif;
   color-scheme:light;
 }
@@ -38,7 +38,7 @@ body{margin:0;background:var(--bg);color:var(--navy);font-family:var(--f-body);f
 }
 /* Computador (mouse): moldura de celular no meio da tela */
 @media (min-width:520px) and (hover:hover) and (pointer:fine){
-  body{background:#0B1230;background-image:radial-gradient(900px 520px at 15% -10%,rgba(142,127,207,.55),transparent 60%),radial-gradient(760px 480px at 100% 110%,rgba(76,195,193,.45),transparent 55%),radial-gradient(500px 300px at 80% 10%,rgba(255,211,106,.18),transparent 60%);display:flex;align-items:center;justify-content:center;padding:24px 16px}
+  body{background:#0B1230;background-image:radial-gradient(900px 520px at 15% -10%,rgba(45,79,214,.55),transparent 60%),radial-gradient(760px 480px at 100% 110%,rgba(76,195,193,.45),transparent 55%),radial-gradient(500px 300px at 80% 10%,rgba(255,211,106,.18),transparent 60%);display:flex;align-items:center;justify-content:center;padding:24px 16px}
   #app{max-width:430px;height:min(100%,880px);border-radius:40px;border:10px solid #070C22;box-shadow:0 0 0 2px rgba(255,255,255,.08),0 40px 90px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.04)}
   .nav{margin-bottom:14px}
 }
@@ -48,7 +48,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(-
 a{color:inherit;text-decoration:none}
 svg{flex-shrink:0}
 input{font:inherit}
-#app{height:100%;width:100%;margin:0 auto;background:var(--bg);background-image:radial-gradient(600px 300px at 50% -80px,rgba(142,127,207,.18),transparent 70%);display:flex;flex-direction:column;position:relative;overflow:hidden}
+#app{height:100%;width:100%;margin:0 auto;background:var(--bg);background-image:radial-gradient(600px 300px at 50% -80px,rgba(45,79,214,.10),transparent 70%);display:flex;flex-direction:column;position:relative;overflow:hidden}
 .px{font-family:var(--f-pixel);letter-spacing:.02em}
 .num{font-family:var(--f-display);font-variant-numeric:tabular-nums}
 .pxbtn{box-shadow:4px 4px 0 var(--sh,var(--navy));transition:transform .06s}
@@ -99,12 +99,12 @@ input{font:inherit}
 .nav button{height:56px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px;padding:0 2px;font-weight:600;color:var(--muted);transition:background-color .15s,color .15s,transform .1s}
 .nav button:active{transform:scale(.95)}
 .nav button[aria-current="page"]{color:var(--primary);font-weight:700;background:var(--lav)}
-.nav button[aria-current="page"] svg{filter:drop-shadow(0 2px 0 rgba(37,99,235,.25))}
+.nav button[aria-current="page"] svg{filter:drop-shadow(0 2px 0 rgba(45,79,214,.25))}
 .navbadge{position:absolute;top:6px;right:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--red);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff}
 
 .btn{height:54px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px;width:100%;transition:transform .08s}
 .btn:not(.pxbtn):active{transform:scale(.98)}
-.btn-primary{background:linear-gradient(180deg,#4A7FF0 0%,var(--primary) 60%,#1A47B8 100%);color:var(--white)}
+.btn-primary{background:linear-gradient(180deg,#4D6EE6 0%,var(--primary) 60%,#213DB0 100%);color:var(--white)}
 .btn-dark{background:linear-gradient(180deg,#1A2650,var(--navy));color:var(--white)}
 .btn-gold{background:linear-gradient(180deg,#FFE08F,var(--gold) 60%,#F2C14E);color:var(--navy);--sh:var(--gold-s)}
 .btn-outline{height:48px;border:2px solid var(--primary);color:var(--primary);background:var(--white);font-size:14px;font-weight:600}
@@ -114,7 +114,7 @@ input{font:inherit}
 .chipbtn{height:40px;padding:0 12px;border-radius:10px;border:2px solid var(--primary);background:var(--white);color:var(--primary);font-size:13px;font-weight:700;display:flex;align-items:center;gap:5px;white-space:nowrap}
 .chipbtn:disabled{border-color:transparent;background:var(--line);color:var(--muted)}
 input.inp{width:100%;height:50px;padding:0 16px;border:2px solid var(--line);border-radius:14px;background:#fff;box-shadow:0 2px 8px rgba(1,15,46,.04)}
-input.inp:focus{outline:0;border-color:var(--primary);box-shadow:0 0 0 4px rgba(37,99,235,.14)}
+input.inp:focus{outline:0;border-color:var(--primary);box-shadow:0 0 0 4px rgba(45,79,214,.14)}
 label{font-size:12px;font-weight:600;color:var(--ink2);display:block;margin-bottom:5px}
 .msg{padding:12px 14px;border-radius:12px;font-size:14px;line-height:1.4;background:var(--lav)}
 .msg.err{background:var(--red-l);color:var(--red-d)}.msg.ok{background:var(--green-l);color:var(--green-dd)}
@@ -141,7 +141,7 @@ button.card:active{transform:scale(.985)}
 .trail{padding:12px 0 110px;display:flex;flex-direction:column;gap:10px;position:relative}
 .trail::before{content:"";position:absolute;left:50%;top:0;bottom:60px;width:0;border-left:3px dashed var(--line2);transform:translateX(-50%);z-index:0}
 .trail>*{position:relative;z-index:1}
-.unit{margin:4px 20px 6px;border-radius:18px;padding:16px 18px;display:flex;align-items:center;gap:12px;border:2px solid var(--ub,var(--primary));background:linear-gradient(135deg,var(--ua,#4A7FF0) 0%,var(--ub,var(--primary)) 55%,var(--uc,#1A47B8) 100%);color:var(--white);box-shadow:0 10px 24px rgba(var(--urgb,37,99,235),.28);overflow:hidden}
+.unit{margin:4px 20px 6px;border-radius:18px;padding:16px 18px;display:flex;align-items:center;gap:12px;border:2px solid var(--ub,var(--primary));background:linear-gradient(135deg,var(--ua,#4D6EE6) 0%,var(--ub,var(--primary)) 55%,var(--uc,#213DB0) 100%);color:var(--white);box-shadow:0 10px 24px rgba(var(--urgb,37,99,235),.28);overflow:hidden}
 .trail .nodewrap+.unit,.trail .pop-card+.unit{margin-top:26px}
 .unit::after{content:"";position:absolute;right:-30px;top:-40px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.08);pointer-events:none}
 .unit.locked{background:var(--white);color:var(--muted);border-color:var(--line);box-shadow:none}
@@ -167,11 +167,11 @@ button.card:active{transform:scale(.985)}
 .tag{font-size:9px;border-radius:999px;padding:6px 10px;background:var(--lav);color:var(--primary)}
 .combo{display:flex;align-items:center;gap:5px;background:var(--teal);color:var(--navy);border-radius:999px;padding:6px 10px;font-size:9px}
 .q{margin:0;font-size:21px;font-weight:700;line-height:1.3;text-wrap:balance;font-family:var(--f-display);letter-spacing:-.01em}
-.card.stmt{border-radius:18px;box-shadow:0 8px 24px rgba(37,99,235,.10)}
+.card.stmt{border-radius:18px;box-shadow:0 8px 24px rgba(45,79,214,.10)}
 .slot{border-radius:10px}
 .qimg{width:100%;max-height:220px;object-fit:contain;border-radius:12px;background:#fff;border:1px solid var(--line)}
 .opt{min-height:56px;border-radius:16px;padding:8px 12px;display:flex;align-items:center;gap:12px;text-align:left;background:var(--white);border:2px solid var(--line);border-bottom-width:4px;width:100%}
-.opt.sel{box-shadow:0 0 0 4px rgba(37,99,235,.12)}
+.opt.sel{box-shadow:0 0 0 4px rgba(45,79,214,.12)}
 .opt .letter{width:30px;height:30px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-weight:700;font-size:14px;border:1.5px solid var(--primary)}
 .opt .txt{font-size:17px;font-family:var(--f-display);font-weight:500;flex:1}
 .opt.sel{border-color:var(--primary);background:var(--lav)}
@@ -214,7 +214,7 @@ button.card:active{transform:scale(.985)}
 .overlay{position:absolute;inset:0;background:rgba(244,244,254,.85);z-index:25;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-weight:600;color:var(--primary)}
 .spinner{width:36px;height:36px;border-radius:50%;border:4px solid var(--lav);border-top-color:var(--primary)}
 
-.fullpurple{background:var(--primary);background-image:radial-gradient(520px 320px at 50% 0%,rgba(240,138,36,.25),transparent 70%),linear-gradient(180deg,#4A7FF0 0%,var(--primary) 45%,#143390 100%);color:var(--white)}
+.fullpurple{background:var(--primary);background-image:radial-gradient(520px 320px at 50% 0%,rgba(240,138,36,.25),transparent 70%),linear-gradient(180deg,#4D6EE6 0%,var(--primary) 45%,#172C85 100%);color:var(--white)}
 .statbox{border:2px solid;border-radius:18px;background:var(--white);color:var(--navy);overflow:hidden;display:flex;flex-direction:column;text-align:center;box-shadow:0 10px 24px rgba(0,0,0,.18)}
 .unitprog{display:flex;align-items:center;gap:8px;margin-top:6px}
 .unitprog .bar{flex:1;height:6px;background:rgba(255,255,255,.25)}
@@ -230,8 +230,8 @@ button.card:active{transform:scale(.985)}
 .toast{position:absolute;left:16px;right:16px;top:calc(72px + env(safe-area-inset-top,0px));background:rgba(1,15,46,.94);backdrop-filter:blur(8px);color:var(--white);border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.4;z-index:40;box-shadow:4px 4px 0 var(--teal),0 10px 30px rgba(0,0,0,.25);animation:toastin .25s ease-out}
 .toast.out{animation:toastout .2s ease-in forwards}
 .opt,.chip{box-shadow:0 1px 2px rgba(1,15,46,.04)}
-.subjbtn{background:var(--white);box-shadow:0 2px 8px rgba(37,99,235,.12)}
-.fab{box-shadow:4px 4px 0 var(--primary),0 10px 24px rgba(37,99,235,.25)}
+.subjbtn{background:var(--white);box-shadow:0 2px 8px rgba(45,79,214,.12)}
+.fab{box-shadow:4px 4px 0 var(--primary),0 10px 24px rgba(45,79,214,.25)}
 .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;text-align:center}
 .cal span{height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-size:13px}
 .lrow{display:flex;align-items:center;gap:12px;padding:10px 20px;background:var(--white);border-left:4px solid transparent}
@@ -316,20 +316,22 @@ button.card:active{transform:scale(.985)}
 @media (prefers-reduced-motion:reduce){.mapa .ilha,.mapa .castelo,.mapa .nuvem,.mapa .onda,.mapa .rota,.mapa .barco,.mapa .bandeira,.mapa .halo,.mapa .chama,.mapa .brasa,.mapa .luz,.mapa .baleia,.mapa .jato,.mapa .barco.navega,.mapa .aura,.mapa .estrela,.mapa .sol,.mapa .peixe,.mapa .palmeira,.mapa .asa,.mapa .fumaca,.mapa .brilho,.mapa .esteira,.mapa .pula,.mapa .foco{animation:none}.mapa .halo,.mapa .peixe,.mapa .fumaca,.mapa .brilho{display:none}}
 .zone{display:flex;align-items:center;gap:8px;padding:10px 20px;font-size:9px}
 .zone::before,.zone::after{content:"";flex:1;height:2px;background:currentColor}
-.auth{flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:calc(24px + env(safe-area-inset-top,0px)) 20px calc(24px + env(safe-area-inset-bottom,0px));overflow-y:auto;background-image:radial-gradient(420px 260px at 50% -40px,rgba(142,127,207,.35),transparent 70%)}
+.auth{flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:calc(24px + env(safe-area-inset-top,0px)) 20px calc(24px + env(safe-area-inset-bottom,0px));overflow-y:auto;background-image:radial-gradient(420px 260px at 50% -40px,rgba(45,79,214,.35),transparent 70%)}
 .auth h1{font-family:var(--f-display);font-size:clamp(24px,6.5vw,28px);margin:0;line-height:1.2}
-.hero-mascot{width:132px;height:132px;border-radius:50%;background:linear-gradient(135deg,#4A7FF0,var(--primary));box-shadow:0 14px 34px rgba(37,99,235,.35),inset 0 0 0 4px rgba(255,255,255,.25);display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
+.hero-mascot{width:132px;height:132px;border-radius:50%;background:var(--white);box-shadow:0 14px 34px rgba(45,79,214,.22),inset 0 0 0 4px var(--teal);display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
 .hero-mascot .mascot{width:112px!important;transform:translateY(6px)}
 .mascot{display:block;flex-shrink:0}
 .mascot canvas,.mascot img{width:100%;height:auto;display:block}
-/* Rapozinha pensando: sprite de 20 quadros (rapozinha-pensando.png), 120 ms por quadro */
+/* Disco branco atrás da mascote nas telas de fundo azul (a Rapozinha é azul royal e sumiria) */
+.mascot-disc{width:196px;height:196px;border-radius:50%;background:var(--white);display:flex;align-items:flex-end;justify-content:center;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,.22),inset 0 0 0 5px var(--teal)}
+/* Rapozinha em sprite (pensando, feliz3): quadros lado a lado; duração e número de quadros vêm do inline style gerado por mascot() */
 .mascot-pensa{display:block;position:relative;overflow:hidden;flex-shrink:0}
 .mascot-pensa img{position:absolute;left:0;top:0;height:100%;width:auto;max-width:none;animation:masc-pensa 2.4s steps(20) infinite}
 @keyframes masc-pensa{to{transform:translateX(-100%)}}
 @media (prefers-reduced-motion: reduce){.mascot-pensa img{animation:none}}
 /* Rapozinha em dúvida (escolha da primeira disciplina) */
 .duvida-wrap{position:relative;display:inline-flex}
-.duvida{position:absolute;top:-4px;right:-16px;width:36px;height:36px;border-radius:50% 50% 50% 6px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;border:3px solid #fff;box-shadow:0 3px 10px rgba(37,99,235,.35);animation:duvida-bob 1.6s ease-in-out infinite}
+.duvida{position:absolute;top:-4px;right:-16px;width:36px;height:36px;border-radius:50% 50% 50% 6px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;border:3px solid #fff;box-shadow:0 3px 10px rgba(45,79,214,.35);animation:duvida-bob 1.6s ease-in-out infinite}
 @keyframes duvida-bob{0%,100%{transform:translateY(0) rotate(8deg)}50%{transform:translateY(-6px) rotate(8deg)}}
 @media (prefers-reduced-motion:reduce){.duvida{animation:none}}
 .stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
@@ -349,7 +351,7 @@ button.card:active{transform:scale(.985)}
 'use strict';
 if (!window.supabase || !window.FJ_CONFIG) {
   // primeiro acesso sem internet (o CDN não carregou): avisa em vez de deixar a tela branca
-  document.getElementById('app').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;height:100%;padding:24px;text-align:center"><b style="font-size:18px">Sem conexão</b><p style="margin:0;color:#6A6F8C;font-size:14px;max-width:260px">Não deu para carregar o app. Verifique a internet e tente de novo.</p><button style="padding:12px 22px;border:0;border-radius:12px;background:#2563EB;color:#fff;font-weight:700;font-size:15px" onclick="location.reload()">Tentar de novo</button></div>';
+  document.getElementById('app').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;height:100%;padding:24px;text-align:center"><b style="font-size:18px">Sem conexão</b><p style="margin:0;color:#6A6F8C;font-size:14px;max-width:260px">Não deu para carregar o app. Verifique a internet e tente de novo.</p><button style="padding:12px 22px;border:0;border-radius:12px;background:#2D4FD6;color:#fff;font-weight:700;font-size:15px" onclick="location.reload()">Tentar de novo</button></div>';
   return;
 }
 const sb = supabase.createClient(FJ_CONFIG.supabaseUrl, FJ_CONFIG.supabaseAnonKey);
@@ -358,23 +360,22 @@ const MASCOT = 'rapozinha.png';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const VIDEO = {feliz: 'rapozinha-feliz.mp4', feliz2: 'rapozinha-feliz2.mp4', triste: 'rapozinha-triste.mp4'};
-// Humores em GIF: já convertidos para a identidade azul (mesmo remapeamento do recor(), feito
-// offline em ferramentas de conversão) e com transparência — vão direto num <img>, sem canvas.
-const GIFANIM = {feliz3: 'rapozinha-feliz3.gif'};
 const SEM_MOV = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+// A tela de carregamento fica pelo menos este tempo na tela, para a animação da Rapozinha pensando aparecer inteira
+const MIN_CARREGANDO = 2000;
 // Mascote animada: o vídeo é desenhado num canvas com o fundo removido (a cor do canto vira transparente).
 // Enquanto o vídeo carrega, ou se ele falhar, aparece a imagem estática.
-// Humores em sprite PNG (ex.: 'pensando'): quadros lado a lado, animados por CSS steps();
+// Humores em sprite PNG ('pensando', 'feliz3'): quadros lado a lado, animados por CSS steps();
 // com "reduzir movimento" o CSS para no primeiro quadro, então o ramo vale sempre.
-const SPRITES = {pensando: {src: 'rapozinha-pensando.png', fw: 216, fh: 240}};
-const mascot = (w, cls = '', alt = '', humor = 'feliz') => SPRITES[humor]
-  ? `<span class="mascot-pensa ${cls}" role="img" aria-label="${esc(alt)}" style="width:${w}px;height:${Math.round(w * SPRITES[humor].fh / SPRITES[humor].fw)}px"><img src="${SPRITES[humor].src}" alt=""></span>`
-  : GIFANIM[humor] && !SEM_MOV
-  ? `<span class="mascot ${cls}" style="width:${w}px"><img src="${GIFANIM[humor]}" alt="${esc(alt)}"></span>`
-  : `<span class="mascot ${cls}" data-humor="${VIDEO[humor] ? humor : 'feliz'}" style="width:${w}px"><canvas style="display:none" aria-hidden="true"></canvas><img src="${MASCOT}" alt="${esc(alt)}"></span>`;
+// n = quadros, dur = segundos de um ciclo. feliz3 veio do GIF (60 quadros a 40 ms → 30 quadros a 80 ms), já recolorido.
+const SPRITES = {pensando: {src: 'rapozinha-pensando.png', fw: 216, fh: 240, n: 20, dur: 2}, feliz3: {src: 'rapozinha-feliz3.png', fw: 240, fh: 267, n: 30, dur: 2.4}};
+const mascot = (w, cls = '', alt = '', humor = 'feliz') => { const sp = SPRITES[humor]; return sp
+  ? `<span class="mascot-pensa ${cls}" role="img" aria-label="${esc(alt)}" style="width:${w}px;height:${Math.round(w * sp.fh / sp.fw)}px"><img src="${sp.src}" alt="" style="animation-duration:${sp.dur}s;animation-timing-function:steps(${sp.n})"></span>`
+  : `<span class="mascot ${cls}" data-humor="${VIDEO[humor] ? humor : 'feliz'}" style="width:${w}px"><canvas style="display:none" aria-hidden="true"></canvas><img src="${MASCOT}" alt="${esc(alt)}"></span>`; };
 // Identidade azul/branco/laranja: os vídeos da mascote ainda são da era roxa, então
 // cada quadro novo passa pelo MESMO remapeamento usado para recolorir o rapozinha.png:
-// roxos (matiz 225–320) giram −32° para o azul (tons claros dessaturam rumo ao branco)
+// azuis/roxos médios (matiz 200–300) viram azul royal (matiz 227, mais saturado; os escuros viram a sombra),
+// lavanda/cinza claro e rosa viram quase branco, bege/laranja (fones) vira o laranja da marca
 // e teal/ciano (matiz 140–205) vira laranja (matiz 27). Cache por cor: a arte é chapada,
 // tem poucas cores distintas, então o custo por quadro é quase só o do chroma key que já existia.
 const RECOR = new Map();
@@ -396,8 +397,10 @@ function recor(r, g, b) {
     h = (max === r1 ? (g1 - b1) / d + (g1 < b1 ? 6 : 0) : max === g1 ? (b1 - r1) / d + 2 : (r1 - g1) / d + 4) * 60;
   }
   let novo = null;
-  if (h >= 225 && h <= 320 && s > .04) { h -= 32; if (l >= .72) s *= .55; novo = hsl2rgb(h, s, l); }
-  else if (h >= 140 && h <= 205 && s > .08) novo = hsl2rgb(27, s, l);
+  if (h >= 200 && h <= 300 && s > .25 && l >= .15 && l < .65) novo = l < .36 ? hsl2rgb(227, .66, Math.min(.42, l * 1.22)) : hsl2rgb(227, .68, Math.max(.48, Math.min(.56, l * 1.2)));
+  else if (l > .65 && (s < .35 || (h >= 290 && h <= 350) || (h >= 200 && h <= 290 && s < .6))) { if (l < .97) novo = hsl2rgb(227, .5, .95); }
+  else if (h >= 10 && h <= 45 && s > .3 && l >= .3 && l <= .75) novo = hsl2rgb(31, .93, .54);
+  else if (h >= 140 && h <= 205 && s > .08 && l > .3) novo = hsl2rgb(27, s, l);
   RECOR.set(k, novo);
   return novo;
 }
@@ -416,7 +419,10 @@ const MASC = (() => {
     document.querySelectorAll('.mascot[data-humor]').forEach(el => {
       if (el._ok) return; el._ok = true;
       const cv = el.querySelector('canvas'), im = el.querySelector('img'); if (!cv || !im) return;
-      telas.add({el, v: video(el.dataset.humor), cv, im, g: cv.getContext('2d'), t0: Date.now()});
+      const h = el.dataset.humor, v = video(h);
+      // Mascote nova na tela: o vídeo volta ao começo, para a animação aparecer inteira (a menos que outra mascote do mesmo humor já esteja visível)
+      if (![...telas].some(t => t.el.dataset.humor === h && t.el.isConnected)) { try { v.currentTime = 0; } catch (e) {} }
+      telas.add({el, v, cv, im, g: cv.getContext('2d'), t0: Date.now()});
     });
     if (!loop && telas.size) { loop = true; requestAnimationFrame(quadro); }
   }
@@ -487,7 +493,7 @@ const I = {
   close: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
   chevR: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
   chevD: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>',
-  filter: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h7"/><circle cx="17" cy="17" r="2"/></svg>',
+  filter: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D4FD6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h7"/><circle cx="17" cy="17" r="2"/></svg>',
   flame: (s = 20, f = '#F08A24', st = '#C8571D') => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="${f}" stroke="${st}" stroke-width="1.6" stroke-linejoin="round"><path d="M12 2c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 1-3-1-5 1-9z"/></svg>`,
   coin: (s = 20) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="#FFD36A" stroke="#8A6207" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></svg>`,
   heart: (s = 20, f = '#E0475B', st = '#B8313F') => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="${f}" stroke="${st}" stroke-width="1.6" stroke-linejoin="round"><path d="M12 21s-7-4.5-9-9a4.6 4.6 0 0 1 8-4 4.6 4.6 0 0 1 8 4c-2 4.5-7 9-7 9z"/></svg>`,
@@ -567,7 +573,7 @@ function confetti(n = 90) {
   const cv = document.createElement('canvas'); cv.id = 'fx'; app.appendChild(cv);
   const r = app.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
   cv.width = r.width * dpr; cv.height = r.height * dpr; const g = cv.getContext('2d'); g.scale(dpr, dpr);
-  const cols = ['#2563EB', '#F7941E', '#FFD36A', '#8FB569', '#F08A24', '#E0475B', '#A8C6F7'];
+  const cols = ['#2D4FD6', '#F7941E', '#FFD36A', '#8FB569', '#F08A24', '#E0475B', '#A8C6F7'];
   const ps = Array.from({length: n}, () => ({x: r.width / 2 + (Math.random() - .5) * 80, y: r.height * .35, vx: (Math.random() - .5) * 9, vy: -Math.random() * 11 - 4, s: 5 + Math.random() * 6, c: cols[Math.floor(Math.random() * cols.length)], a: Math.random() * 6, va: (Math.random() - .5) * .4}));
   const t0 = performance.now();
   (function frame(t) {
@@ -583,7 +589,7 @@ const SR = document.getElementById('sr');
 const anuncia = t => { SR.textContent = ''; setTimeout(() => { SR.textContent = t; }, 30); };
 // Cada unidade da trilha ganha uma cor: ajuda o aluno a se localizar
 const UCOL = [
-  {a: '#4A7FF0', b: '#2563EB', c: '#1A47B8', dd: '#143390', rgb: '37,99,235'},
+  {a: '#4D6EE6', b: '#2D4FD6', c: '#213DB0', dd: '#172C85', rgb: '37,99,235'},
   {a: '#4CC3C1', b: '#239B99', c: '#157A78', dd: '#0B6E6C', rgb: '35,155,153'},
   {a: '#8FB569', b: '#6B9A3F', c: '#55802F', dd: '#2F5A14', rgb: '107,154,63'},
   {a: '#F6A24A', b: '#E07A1C', c: '#C8571D', dd: '#8E3D10', rgb: '224,122,28'},
@@ -765,7 +771,18 @@ function telaNovaSenha(msg = '') {
     mostrando = ''; const {data} = await sb.auth.getSession(); rota(data.session);
   };
 }
-function telaCarregando(txt = 'Carregando sua jornada…') { telaAuth(`<div style="display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center">${mascot(120, '', 'Rapozinha pensando', 'pensando')}<span class="spinner spin"></span><p style="margin:0;color:var(--muted)">${esc(txt)}</p></div>`); }
+// Se a tela de carregamento já está aberta, só troca o texto (a animação da Rapozinha não reinicia)
+let carregandoDesde = 0;
+function telaCarregando(txt = 'Carregando sua jornada…') {
+  const p = document.getElementById('carregando-txt'); if (p) { p.textContent = txt; return; }
+  carregandoDesde = Date.now();
+  telaAuth(`<div style="display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center">${mascot(120, '', 'Rapozinha pensando', 'pensando')}<span class="spinner spin"></span><p id="carregando-txt" style="margin:0;color:var(--muted)">${esc(txt)}</p></div>`);
+}
+// Espera o que falta para a tela de carregamento completar MIN_CARREGANDO (nada, com "reduzir movimento")
+function esperaAnimacao() {
+  const falta = carregandoDesde && !SEM_MOV ? MIN_CARREGANDO - (Date.now() - carregandoDesde) : 0;
+  return falta > 0 ? new Promise(r => setTimeout(r, falta)) : Promise.resolve();
+}
 function telaErro(msg) {
   telaAuth(`<div style="display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center">${mascot(110)}<h1>Ops</h1><div class="msg err">${esc(msg)}</div><button class="btn btn-primary pxbtn" id="denovo">Tentar de novo</button><button class="btn-ghost" id="sair">Sair da conta</button></div>`);
   document.getElementById('denovo').onclick = () => { mostrando = ''; sb.auth.getSession().then(({data}) => rota(data.session)); };
@@ -776,7 +793,7 @@ async function rota(s) {
   if (alvo === mostrando) return; mostrando = alvo;
   if (!s) { sessao = null; S = null; L = null; const e = erroDaUrl(); return telaEntrar('entrar', e ? `<div class="msg err">Não foi possível entrar: ${esc(e)}</div>` : ''); }
   sessao = s; telaCarregando();
-  try { await carregarEstado(); if (PK) PK._versao = S.versaoConteudo; }
+  try { await carregarEstado(); if (PK) PK._versao = S.versaoConteudo; await esperaAnimacao(); }
   catch (e) { console.error(e); return telaErro(traduz(e.message)); }
   V = {...V, screen: 'jornada', open: null, sheet: null, scrollTo: true};
   const t = PK && trilha(materiaAtual());
@@ -935,7 +952,7 @@ function headerJornada(m) {
   return `<header class="topbar jhead">
     <button class="subjbtn" data-a="go:materias" aria-label="Trocar de matéria">${I.filter}<span>${esc(m ? m.nome : 'Matérias')}</span>${I.chevD}</button>
     <div style="display:flex;align-items:center;gap:2px">
-      <button class="stat" style="color:${practicedToday() ? 'var(--orange-d)' : 'var(--muted)'}" data-a="go:ofensiva" aria-label="Ofensiva: ${streak()} dias">${practicedToday() ? I.flame() : I.flame(20, '#D8E4F7', '#9AA0BC')}${streak()}</button>
+      <button class="stat" style="color:${practicedToday() ? 'var(--orange-d)' : 'var(--muted)'}" data-a="go:ofensiva" aria-label="Ofensiva: ${streak()} dias">${practicedToday() ? I.flame() : I.flame(20, '#DCE4F5', '#9AA0BC')}${streak()}</button>
       ${S.economia.congeladores > 0 ? `<button class="stat" style="color:var(--blue-d)" data-a="go:ofensiva" aria-label="Congeladores de ofensiva: ${S.economia.congeladores}">${I.snow(20)}${S.economia.congeladores}</button>` : ''}
       <button class="stat" style="color:var(--gold-d)" data-a="go:loja" aria-label="Moedas: ${S.economia.moedas}">${I.coin()}${S.economia.moedas}</button>
       <button class="stat" style="color:var(--red-d)" data-a="hearts" aria-label="Corações: ${heartsTxt()}">${I.heart()}${heartsTxt()}</button>
@@ -1294,7 +1311,7 @@ function screenFim() {
   const r = lastResult; if (!r) return screenJornada();
   return `<div class="scroll fullpurple" style="display:flex;flex-direction:column">
   <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:calc(28px + env(safe-area-inset-top,0px)) 20px 8px">
-    ${r.passed ? mascot(160, 'bounce', 'Rapozinha comemorando', r.humor || 'feliz') : mascot(130, '', 'Rapozinha triste', 'triste')}
+    <span class="mascot-disc ${r.passed ? 'bounce' : ''}">${r.passed ? mascot(150, '', 'Rapozinha comemorando', r.humor || 'feliz') : mascot(120, '', 'Rapozinha triste', 'triste')}</span>
     <div class="reveal" style="display:flex;flex-direction:column;gap:8px;align-items:center;--d:1">
       <span class="px ${r.passed ? 'blink' : ''}" style="font-size:10px;color:var(--gold)">★ ${r.headline} ★</span>
       <h1 style="margin:0;font-family:var(--f-display);font-size:28px;font-weight:700;line-height:1.2;text-wrap:balance">${esc(r.title)}</h1>
@@ -1365,7 +1382,7 @@ function screenMissoes() {
 function screenLigas() {
   const lg = S.liga, niveis = PL().niveis || ['Bronze'], me = lg ? lg.nivel : 0, t = V.tier == null ? me : V.tier;
   const people = lg ? lg.ranking.slice().sort((a, b) => b.xp - a.xp || a.nome.localeCompare(b.nome)) : [];
-  const pal = ['#2563EB', '#F7941E', '#8FB569', '#FFD36A', '#A8C6F7', '#F08A24'];
+  const pal = ['#2D4FD6', '#F7941E', '#8FB569', '#FFD36A', '#A8C6F7', '#F08A24'];
   const now = new Date(); const end = fimSemanaLiga();
   const left = end - now, dd = Math.floor(left / (24 * HOUR)), hh = Math.floor(left % (24 * HOUR) / HOUR), mi = Math.floor(left % HOUR / 60e3);
   const sobem = +PL().sobem || 7, caem = +PL().caem || 5, topo = niveis.length - 1;
@@ -1454,7 +1471,7 @@ function rankingTurmaHtml(ts) {
   if (!ts.length) return '';
   const R = V.rank, t = ts.find(x => x.id === (R && R.turma)) || ts[0];
   const lista = (R && R.lista) || [], meu = lista.findIndex(p => p.eu);
-  const pal = ['#2563EB', '#F7941E', '#8FB569', '#FFD36A', '#A8C6F7', '#F08A24'];
+  const pal = ['#2D4FD6', '#F7941E', '#8FB569', '#FFD36A', '#A8C6F7', '#F08A24'];
   return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><h2 class="h2">Ranking da turma</h2>${ts.length > 1 ? `<select class="inp" style="height:32px;font-size:12px;width:auto;padding:0 8px" data-a="rank-turma" aria-label="Turma">${ts.map(x => `<option value="${x.id}" ${x.id === t.id ? 'selected' : ''}>${esc(x.nome)}</option>`).join('')}</select>` : `<span class="num" style="font-size:12px;color:var(--muted)">XP da semana${meu >= 0 ? ' · você é ' + (meu + 1) + 'º' : ''}</span>`}</div>
     <div class="card" data-key="rank:${t.id}">${!R || !R.lista ? '<div class="row"><span class="sub">Carregando…</span></div>' : R.erro ? `<div class="row"><span class="sub">${esc(R.erro)}</span></div>` : !lista.length ? '<div class="row"><span class="sub">Ainda sem colegas na turma.</span></div>' : lista.slice(0, 10).map((p, i) => `<div class="row" style="padding:9px 14px;${p.eu ? 'background:var(--lav)' : ''}"><span class="num" style="width:22px;font-weight:700;color:${i < 3 ? 'var(--gold-d)' : 'var(--muted)'}">${i + 1}</span>${avatarCfg(p.avatar) ? avatarSvg(avatarCfg(p.avatar), 34, p.nome) : `<span class="av" style="width:34px;height:34px;font-size:12px;background:${p.eu ? 'var(--primary)' : pal[i % 6]};color:${p.eu || i % 6 === 0 ? '#fff' : 'var(--navy)'}">${p.eu ? 'EU' : esc(p.nome.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase())}</span>`}<span style="flex:1;font-size:14px;font-weight:${p.eu ? 700 : 500}">${esc(p.nome)}${p.eu ? ' (você)' : ''}</span><span class="num" style="font-size:13px;font-weight:700;color:var(--primary)">${p.xp} XP</span></div>`).join('') + (meu >= 10 ? `<div class="row" style="padding:9px 14px;background:var(--lav)"><span class="num" style="width:22px;font-weight:700;color:var(--muted)">${meu + 1}</span><span style="flex:1;font-size:14px;font-weight:700">Você</span><span class="num" style="font-size:13px;font-weight:700;color:var(--primary)">${lista[meu].xp} XP</span></div>` : '')}</div>`;
 }
@@ -1850,7 +1867,7 @@ const clareia = hex => { const n = parseInt(hex.slice(1), 16); const m = v => Ma
 function avatarSvg(c, size = 64, alt = 'Avatar') {
   c = c || AV_PADRAO;
   const sk = AV.sk[c.sk], hc = AV.hc[c.hc], ec = AV.ec[c.ec], sh = AV.sh[c.sh], bg = AV.bg[c.bg], skd = escurece(sk, .82), ink = '#2B1B12', pelo = c.hs ? hc : ink, hcd = escurece(hc, .7);
-  const escuro = c.bg >= 7, ponto = escuro ? 'rgba(255,255,255,.22)' : 'rgba(37,99,235,.14)';
+  const escuro = c.bg >= 7, ponto = escuro ? 'rgba(255,255,255,.22)' : 'rgba(45,79,214,.14)';
   // fundo com padrão (os ids se repetem entre avatares, mas o conteúdo é o mesmo, então não há conflito)
   const fundo = [`<circle cx="50" cy="50" r="50" fill="${bg}"/>`,
     `<circle cx="50" cy="50" r="50" fill="${bg}"/><g fill="${ponto}">${[[14, 22], [30, 10], [50, 6], [70, 10], [86, 22], [92, 44], [8, 44], [12, 66], [88, 66], [20, 86], [80, 86]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3.5"/>`).join('')}</g>`,
