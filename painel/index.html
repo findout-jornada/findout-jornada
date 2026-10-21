@@ -325,7 +325,8 @@ pre.json{margin:0;background:var(--navy);color:#C5C9E3;padding:14px;border-radiu
 .link{background:none;border:0;color:var(--primary);text-decoration:underline;padding:0;font-size:13px}
 @keyframes fjModal{from{opacity:0;transform:translate(-50%,-47%) scale(.97)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 @keyframes fjToast{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
-.modal{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 32px));z-index:30;padding:20px;display:flex;flex-direction:column;gap:14px;animation:fjModal .18s ease}
+.modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 32px));max-height:calc(100vh - 32px);overflow-y:auto;z-index:30;padding:20px;display:flex;flex-direction:column;gap:14px;animation:fjModal .18s ease}
+.modal.modal-lg{width:min(600px,calc(100% - 32px))}
 .modal.wide{width:min(760px,calc(100% - 32px));top:50%;max-height:calc(100vh - 32px);overflow-y:auto}
 .resp{border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
 .resp.ok{border-color:var(--green);background:var(--green-l)}.resp.erro{border-color:var(--red);background:var(--red-l)}
@@ -2280,7 +2281,7 @@ function modalRespostasHtml() {
 function modalHtml() {
   const M = V.modal;
   // texto: parágrafo simples; html: conteúdo livre (listas de ajuda); soInfo: modal só de leitura, sem botão Cancelar
-  return `<div class="drawer-bg" data-a="modal-cancelar"></div><form class="card modal" id="f-modal" role="dialog" aria-modal="true"><h2>${esc(M.titulo)}</h2>${M.texto ? `<p style="margin:0;color:var(--fg2);font-size:13px">${M.texto}</p>` : ''}${M.html || ''}
+  return `<div class="drawer-bg" data-a="modal-cancelar"></div><form class="card modal ${M.largo ? 'modal-lg' : ''}" id="f-modal" role="dialog" aria-modal="true"><h2>${esc(M.titulo)}</h2>${M.texto ? `<p style="margin:0;color:var(--fg2);font-size:13px">${M.texto}</p>` : ''}${M.html || ''}
     ${M.campos.map(c => `<div class="field">${c.tipo === 'checks' ? `<span class="lab">${esc(c.label)}</span><div class="checkgroup" role="group" aria-label="${esc(c.label)}">${c.opcoes.map(([v, l]) => `<label class="chk"><input type="checkbox" data-md="${c.k}" value="${esc(v)}" ${(c.valores || []).includes(v) ? 'checked' : ''}>${esc(l)}</label>`).join('')}</div>` : `<label for="md-${c.k}">${esc(c.label)}</label>${c.tipo === 'select' ? `<select id="md-${c.k}" class="inp">${c.opcoes.map(([v, l]) => `<option value="${esc(v)}" ${String(c.valor ?? '') === String(v) ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>` : `<input id="md-${c.k}" class="inp" type="${c.tipo || 'text'}" value="${esc(c.valor ?? '')}" placeholder="${esc(c.placeholder || '')}" ${c.maxlength ? `maxlength="${c.maxlength}"` : ''} ${c.obrigatorio ? 'required' : ''}>`}`}</div>`).join('')}
     <div style="display:flex;gap:8px;justify-content:flex-end">${M.soInfo ? '' : '<button type="button" class="btn btn-ghost" data-a="modal-cancelar">Cancelar</button>'}<button type="submit" class="btn btn-primary" data-a="modal-ok">${esc(M.ok || 'Criar')}</button></div></form>`;
 }
@@ -2578,7 +2579,7 @@ async function act(a, el) {
         await db(sb.rpc('definir_segmentos_coordenador', {p_escola: x, p_user: y, p_segmentos: v.segmentos || []})); m.segmentos = v.segmentos || []; toast('Segmentos do coordenador salvos.');
       }}; return render(); }
     case 'remover-membro': return confirmar('Remover da escola?', 'A pessoa continua com as turmas que já tem, mas sai da lista da escola.', async () => { await db(sb.from('escola_membros').delete().eq('escola_id', x).eq('user_id', y)); await carregarTurmas(); });
-    case 'ajuda-alunos': V.modal = {titulo: 'Como funciona a tela Alunos', soInfo: true, ok: 'Entendi', campos: [], fn: async () => {}, html: `<ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:1.5;color:var(--fg2)">
+    case 'ajuda-alunos': V.modal = {titulo: 'Como funciona a tela Alunos', soInfo: true, largo: true, ok: 'Entendi', campos: [], fn: async () => {}, html: `<ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:1.5;color:var(--fg2)">
       <li><b>Editar</b> muda o nome, o e-mail de login e a senha de qualquer conta (professor, coordenador ou aluno); a mudança fica na auditoria.</li>
       <li><b>Adicionar</b> soma moedas e/ou corações para o aluno (valores negativos tiram). Para adicionar em lote, marque os alunos e use o botão lá em cima.</li>
       <li><b>Findout+</b> dá corações ilimitados e é ativado por 30 dias. A ativação aqui é manual (pagamento por Pix combinado com o aluno). Para somar mais dias a um aluno que já tem, use <b>+30 dias</b> (reinicia a contagem a partir de hoje).</li>
