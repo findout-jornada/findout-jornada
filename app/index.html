@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#2D4FD6">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Jornada">
@@ -424,6 +425,14 @@ button.card:active{transform:scale(.985)}
 button[data-a^="tier:"]{transition:width .2s,height .2s,transform .2s,filter .2s,opacity .2s}
 button[data-a^="tier:"][aria-pressed="true"]{filter:drop-shadow(0 8px 12px rgba(1,15,46,.22));animation:pop .35s cubic-bezier(.3,1.4,.5,1)}
 @media (hover:hover) and (pointer:fine){button[data-a^="tier:"]:not([aria-pressed="true"]):hover{transform:translateY(-3px) scale(1.08)}}
+/* Prova da unidade liberada e ainda não feita: troféu balança, anel laranja (via .ring com --urgb) e selo "!" pulsando */
+.node.prova-pendente>svg{animation:trofeu 2s ease-in-out infinite;transform-origin:50% 90%}
+@keyframes trofeu{0%,100%{transform:rotate(0) scale(1)}15%{transform:rotate(-10deg) scale(1.08)}30%{transform:rotate(8deg) scale(1.08)}45%{transform:rotate(-5deg) scale(1.04)}60%{transform:rotate(0) scale(1)}}
+.prova-badge{position:absolute;top:-9px;right:-9px;width:24px;height:24px;border-radius:50%;background:var(--grad-orange);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 3px 10px rgba(247,148,30,.5);animation:provapulse 1.4s ease-in-out infinite}
+@keyframes provapulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+/* a Rapozinha pensando ao lado da lição por começar usa o sprite (position:relative) mas precisa ficar absoluta ao lado do nó */
+.mascot-pensa.mascot-side{position:absolute}
+@media (prefers-reduced-motion:reduce){.node.prova-pendente>svg,.prova-badge{animation:none}}
 /* telas pequenas, baixas e grandes */
 @media (max-width:360px){
   .pad{padding:12px 14px 20px;gap:12px}
@@ -1099,16 +1108,17 @@ function screenJornada() {
     if (r.k === 'trophy') icon = I.trophy;
     if (r.k === 'jump') icon = I.up();
     const cur = r.k === 'lesson' && r.st === 'current';
+    const provaPendente = r.k === 'trophy' && r.avail && !r.won;  // prova liberada e ainda não feita: troféu animado e selo "!"
     const open = V.open === r.id;
     const c = corDaLinha(r);
     return `<div class="nodewrap" data-key="n:${r.id}" ${cur ? 'id="cur-node"' : ''}>
       <div class="nodeinner" style="transform:translateX(${off}px)">
         ${cur ? `<span class="startlbl px" style="border-color:${c.b};color:${c.b}">COMEÇAR</span>` : ''}
-        <button class="node pxbtn ${cur ? 'ring' : ''} ${r.k === 'chest' && r.avail && !r.opened ? 'wiggle' : ''} ${V.justDone === r.id ? 'justdone' : ''}" data-a="node:${r.id}" aria-expanded="${open}" aria-label="${esc(r.title)}${r.st === 'locked' ? ' (bloqueado)' : ''}" style="background:${st.bg};border-color:${st.bd};color:${st.fg};--sh:${st.sh};${corVars(c)}">
-          ${icon}
+        <button class="node pxbtn ${cur ? 'ring' : ''} ${r.k === 'chest' && r.avail && !r.opened ? 'wiggle' : ''} ${provaPendente ? 'ring prova-pendente' : ''} ${V.justDone === r.id ? 'justdone' : ''}" data-a="node:${r.id}" aria-expanded="${open}" aria-label="${esc(r.title)}${r.st === 'locked' ? ' (bloqueado)' : ''}${provaPendente ? ' (liberada, ainda não feita)' : ''}" style="background:${st.bg};border-color:${st.bd};color:${st.fg};--sh:${st.sh};${corVars(c)}${provaPendente ? ';--urgb:247,148,30;border-color:var(--teal);color:var(--teal-d);--sh:var(--teal)' : ''}">
+          ${icon}${provaPendente ? '<span class="prova-badge px" aria-hidden="true">!</span>' : ''}
           ${r.k === 'lesson' && r.st === 'done' ? `<span class="crown px" aria-hidden="true">${I.crownS()}${Math.min(r.crowns || 1, 5)}</span>` : ''}
         </button>
-        ${cur ? mascot(92, 'mascot-side' + (off > 20 ? ' left' : ''), 'Rapozinha torcendo por você') : ''}
+        ${cur ? mascot(92, 'mascot-side' + (off > 20 ? ' left' : ''), 'Rapozinha pensando na próxima lição', 'pensando') : ''}
       </div></div>${open ? popover(r, off) : ''}`;
   }).join('');
   const vazio = !T.units.length;
@@ -1632,7 +1642,7 @@ function sheetTurma() {
   const ts = S.turmas || [];
   return `<div class="sheet-bg" data-key="bg:turma" data-a="sheet:"></div><section class="sheet" data-key="sh:turma" role="dialog" aria-modal="true" aria-labelledby="tu-t"><span class="grab" aria-hidden="true"></span>
     <h1 id="tu-t" style="margin:0;font-family:var(--f-display);font-size:20px;font-weight:700">Minhas turmas</h1>
-    ${ts.length ? `<div class="card">${ts.map(t => `<div class="row"><span class="tile" style="background:var(--lav);color:var(--primary)">${I.target(22)}</span><div class="grow"><span class="t15">${esc(t.nome)}</span><span class="sub">${t.escola ? esc(t.escola) : 'Turma do professor'}</span></div></div>`).join('')}</div>` : '<p class="sub" style="margin:0">Você ainda não está em nenhuma turma. Peça o código ao seu professor.</p>'}
+    ${ts.length ? `<div class="card">${ts.map(t => `<div class="row"><span class="tile" style="background:var(--lav);color:var(--primary)">${I.target(22)}</span><div class="grow"><span class="t15">${esc(t.nome)}</span><span class="sub">${t.escola ? esc(t.escola) : 'Turma do professor'}${t.bloqueada ? ' · <b style="color:var(--red-d)">escola bloqueada</b>' : ''}</span></div></div>`).join('')}</div>` : '<p class="sub" style="margin:0">Você ainda não está em nenhuma turma. Peça o código ao seu professor.</p>'}
     <div><label for="cod-turma">Entrar numa turma com o código</label><div style="display:flex;gap:8px"><input id="cod-turma" class="inp" maxlength="8" autocapitalize="characters" autocomplete="off" placeholder="Ex.: K7M2PX" style="text-transform:uppercase;letter-spacing:.12em;font-family:var(--f-display);font-weight:700"><button class="chipbtn" style="height:50px;padding:0 16px" data-a="entrar-turma">Entrar</button></div>${V.codigoErro ? `<div class="msg err" style="margin-top:8px">${esc(V.codigoErro)}</div>` : ''}</div>
     <button class="btn-ghost" data-a="sheet:">Fechar</button></section>`;
 }
@@ -2238,6 +2248,7 @@ async function act(a) {
       const b = app.querySelector('[data-a="entrar-turma"]'); if (b) { b.disabled = true; b.textContent = 'Entrando…'; }
       const {data, error} = await sb.rpc('entrar_turma', {p_codigo: cod});
       if (error) { V.codigoErro = traduz(error.message); return render(); }
+      if (data && data.erro) { V.codigoErro = data.erro; return render(); }  // código errado ou muitas tentativas (migration 0052)
       S = data.estado; V.codigoErro = ''; render(); SND.ok(); vib(25); toast(`Você entrou na turma ${data.nome}.`); return;
     }
     case 'after-streak': { const r = lastResult; abrirAtual(); return go('jornada', {scrollTo: true, celebrate: false, justDone: r ? r.justDone : null}); }

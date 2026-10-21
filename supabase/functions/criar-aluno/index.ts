@@ -18,6 +18,7 @@ const json = (status: number, body: unknown) =>
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method !== "POST") return json(405, { erro: "Método não permitido." });
   try {
     const url = Deno.env.get("SUPABASE_URL")!;
     const service = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -45,13 +46,20 @@ Deno.serve(async (req) => {
       user_metadata: { nome: String(nome).trim().slice(0, 30) },
     });
     if (error) {
+      console.error(error);
       const msg = /already|registered|exists/i.test(error.message)
         ? "Já existe uma conta com esse e-mail."
-        : error.message;
+        : /password/i.test(error.message) ? "Senha fraca ou inválida." : "Não foi possível criar a conta. Tente de novo.";
       return json(400, { erro: msg });
     }
+    // Fica na auditoria: quem criou, para quem
+    await service.from("auditoria").insert({
+      user_id: user.id, origem: "painel", acao: "criacao_conta", tabela: "alunos", registro: data.user.id,
+      resumo: "Criou a conta de " + String(nome).trim().slice(0, 30) + " (" + String(email).trim().toLowerCase() + ")",
+    }).then(({ error: e }) => { if (e) console.error(e); });
     return json(200, { ok: true, user_id: data.user.id });
   } catch (e) {
-    return json(500, { erro: "Erro inesperado: " + String(e) });
+    console.error(e);
+    return json(500, { erro: "Erro inesperado no servidor." });
   }
 });

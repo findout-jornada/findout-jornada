@@ -18,6 +18,7 @@ const json = (status: number, body: unknown) =>
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method !== "POST") return json(405, { erro: "Método não permitido." });
   try {
     const url = Deno.env.get("SUPABASE_URL")!;
     const service = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -33,6 +34,7 @@ Deno.serve(async (req) => {
 
     const { user_id, bloquear } = await req.json().catch(() => ({}));
     if (!user_id || typeof bloquear !== "boolean") return json(400, { erro: "Pedido incompleto." });
+    if (!/^[0-9a-f-]{36}$/i.test(String(user_id))) return json(400, { erro: "Identificador inválido." });
     if (user_id === user.id) return json(400, { erro: "Você não pode bloquear a si mesmo." });
     if (bloquear) {
       const { data: alvoAdm } = await service.from("admins").select("user_id").eq("user_id", user_id).maybeSingle();
@@ -43,9 +45,17 @@ Deno.serve(async (req) => {
     const { error } = await service.auth.admin.updateUserById(user_id, {
       ban_duration: bloquear ? "876000h" : "none",
     });
-    if (error) return json(400, { erro: error.message });
+    if (error) { console.error(error); return json(400, { erro: "Não foi possível alterar o bloqueio. Tente de novo." }); }
+    // Bloqueou: derruba as sessões abertas do aluno (o token de acesso valeria por até 1 h) e registra na auditoria
+    if (bloquear) await service.auth.admin.signOut(user_id, "global").catch(() => {});
+    const { data: alvo } = await service.from("perfis").select("nome").eq("user_id", user_id).maybeSingle();
+    await service.from("auditoria").insert({
+      user_id: user.id, origem: "painel", acao: bloquear ? "bloqueio_conta" : "desbloqueio_conta", tabela: "alunos", registro: user_id,
+      resumo: (bloquear ? "Bloqueou a conta de " : "Liberou a conta de ") + (alvo?.nome ?? user_id),
+    }).then(({ error: e }) => { if (e) console.error(e); });
     return json(200, { ok: true });
   } catch (e) {
-    return json(500, { erro: "Erro inesperado: " + String(e) });
+    console.error(e);
+    return json(500, { erro: "Erro inesperado no servidor." });
   }
 });

@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#010F2E">
+<!-- Segurança: o painel só carrega script do CDN do Supabase, fontes do Google e fala só com o Supabase; nada de iframes, plugins ou envio para outros domínios -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co; connect-src https://*.supabase.co wss://*.supabase.co; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Painel · Findout Jornada</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Press+Start+2P&display=swap">
 <style>
@@ -227,6 +230,10 @@ tr.rowbtn:hover td{background:var(--surface2)}
 .pill.off{background:var(--surface2);color:var(--muted)}
 .pill.type{background:var(--primary-l);color:var(--primary)}
 .pill.on{background:var(--teal-l);color:var(--teal-d)}
+.pill.block{background:var(--red-l);color:var(--red-d)}
+.warnbox.block{background:var(--red-l);color:var(--red-d)}
+.offline{position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:60;background:var(--navy);color:#fff;border-radius:999px;padding:8px 16px;font-size:13px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.3);display:flex;gap:8px;align-items:center}
+.offline::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--red)}
 .abbr{width:32px;height:32px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-family:var(--f-pixel);font-size:8px;color:#fff;flex-shrink:0}
 .thumb{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:var(--surface)}
 
@@ -631,7 +638,7 @@ function traduzErro(m) {
   if (/relation .* does not exist/i.test(m)) return 'Tabela não existe no banco. Rode as migrations pendentes no SQL Editor do Supabase.';
   if (/column .* does not exist/i.test(m)) return 'Coluna não existe no banco. Rode as migrations pendentes no SQL Editor do Supabase.';
   if (/bucket not found/i.test(m)) return 'Bucket de imagens não existe. Rode a migration 0003 no SQL Editor.';
-  if (/Só |Sem permissão|Nenhuma conta|Código não|Dê um nome|Papel inválido|Você não/i.test(m)) return m.replace(/^.*?: /, '');
+  if (/Só |Sem permissão|Nenhuma conta|Código não|Dê um nome|Papel inválido|Você não|Escola bloqueada|Escola não/i.test(m)) return m.replace(/^.*?: /, '');
   if (/invalid login/i.test(m)) return 'E-mail ou senha incorretos.';
   if (/email not confirmed/i.test(m)) return 'Confirme seu e-mail antes de entrar.';
   if (/rate limit/i.test(m)) return 'Muitas tentativas. Espere um minuto.';
@@ -649,7 +656,12 @@ async function db(consulta) {
   V.salvando++; renderStatus();
   const {data, error} = await consulta;
   V.salvando--; renderStatus();
-  if (error) { console.error(error); toast('Erro: ' + traduzErro(error.message)); throw error; }
+  if (error) {
+    console.error(error); toast('Erro: ' + traduzErro(error.message));
+    // sessão vencida: em vez de deixar o painel "morto", sai e volta para a tela de login
+    if (/jwt expired|invalid jwt|refresh token/i.test(error.message || '')) setTimeout(() => sb.auth.signOut(), 1500);
+    throw error;
+  }
   agendarPublicacao();
   return data;
 }
@@ -738,7 +750,7 @@ async function carregar() {
   if (!V.materia || !D.materias.some(x => x.id === V.materia)) V.materia = D.materias[0] ? D.materias[0].id : null;
 }
 /* Confere se as migrations estão em dia (tabela schema_versao, migration 0022) */
-const ESQUEMA_ESPERADO = 51;
+const ESQUEMA_ESPERADO = 52;
 const CURSOS = ['dev', 'log', 'dat']; // matérias-curso: fora do Mapa do ENEM, o app mostra no grupo "Cursos"
 async function verificarEsquema() {
   const r = await sb.from('schema_versao').select('versao').order('versao', {ascending: false}).limit(1).maybeSingle();
@@ -904,6 +916,14 @@ async function rota(s) {
     telaAuth(`<div class="msg err">Erro ao carregar: ${esc(traduzErro(e.message))}</div><button class="btn btn-primary full" id="denovo">Tentar de novo</button><button class="btn btn-outline full" id="sair">Sair</button>`);
     document.getElementById('denovo').onclick = () => { mostrando = ''; rota(s); };
     document.getElementById('sair').onclick = () => sb.auth.signOut();
+    return;
+  }
+  // Educador cuja(s) escola(s) estão todas bloqueadas: não entra no painel (migration 0052)
+  if (!admin && minhasEscolas().length && minhasEscolas().every(escolaBloqueada)) {
+    const e = minhasEscolas()[0];
+    telaAuth(`<div class="msg err"><b>${esc(e.nome)}</b> está bloqueada${e.bloqueio_motivo ? ': ' + esc(e.bloqueio_motivo) : ''}.<br><br>Enquanto a escola estiver bloqueada o painel fica indisponível para professores, coordenadores e admin dela, e os alunos não veem as atividades. Fale com o suporte da Findout.</div><button class="btn btn-outline full" id="sair">Sair</button>`);
+    document.getElementById('sair').onclick = () => sb.auth.signOut();
+    auditar('login', 'painel', e.id, 'Tentou entrar no painel com a escola bloqueada');
     return;
   }
   shell.className = ''; render(); if (admin) { carregarMetricas(); verificarEsquema(); }
@@ -1526,6 +1546,12 @@ function viewPublicar() {
    Escolas e turmas (professor, coordenador e admin)
    ===================================================================== */
 function avisoTurmas() { return T && T.erro ? `<div class="warnbox">${I.warn}<span>Turmas indisponíveis: ${esc(T.erro)}</span></div>` : ''; }
+/* Escola bloqueada (migration 0052): aviso vermelho na escola e nas turmas dela; o banco barra qualquer gravação */
+const escolaBloqueada = e => !!(e && e.bloqueada_em);
+function avisoEscola(e) {
+  if (!escolaBloqueada(e)) return '';
+  return `<div class="warnbox block">${I.warn}<span><b>Escola bloqueada</b> desde ${new Date(e.bloqueada_em).toLocaleDateString('pt-BR')}${e.bloqueio_motivo ? ' · ' + esc(e.bloqueio_motivo) : ''}. ${admin ? 'Enquanto estiver bloqueada, só você consegue mexer nela; professores, coordenadores e alunos ficam sem acesso às turmas.' : 'Nada pode ser alterado nesta escola e os alunos não veem as atividades. Fale com o suporte da Findout.'}</span></div>`;
+}
 /* Visão da escola (coordenador/admin): média, entregas e alunos parados por turma */
 function resumoEscola(e) {
   const turmas = T.turmas.filter(t => t.escola_id === e.id); if (!turmas.length) return '';
@@ -1581,7 +1607,7 @@ function modalRelatorioHtml() {
 function cardTurma(t) {
   const na = alunosDaTurma(t.id).length, ativs = T.atividades.filter(a => a.turma_id === t.id), abertas = ativs.filter(a => statusReal(a) === 'aberta').length; const esc_ = escolaPorId(t.escola_id); const profs = profsDaTurma(t.id);
   return `<button class="card" style="text-align:left;padding:16px;display:flex;flex-direction:column;gap:8px;${t.ativa ? '' : 'opacity:.6'}" data-a="abrir-turma:${t.id}">
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h2 style="flex:1;min-width:0">${esc(t.nome)}</h2>${t.ativa ? '' : '<span class="pill off">inativa</span>'}<span class="pill type" style="font-family:var(--f-display);letter-spacing:.1em;${t.entrada_codigo === false ? 'opacity:.5;text-decoration:line-through' : ''}" title="${t.entrada_codigo === false ? 'Entrada por código fechada' : 'Código de convite (entrada aberta)'}">${esc(t.codigo)}</span></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h2 style="flex:1;min-width:0">${esc(t.nome)}</h2>${t.ativa ? '' : '<span class="pill off">inativa</span>'}${escolaBloqueada(esc_) ? '<span class="pill block">escola bloqueada</span>' : ''}<span class="pill type" style="font-family:var(--f-display);letter-spacing:.1em;${t.entrada_codigo === false ? 'opacity:.5;text-decoration:line-through' : ''}" title="${t.entrada_codigo === false ? 'Entrada por código fechada' : 'Código de convite (entrada aberta)'}">${esc(t.codigo)}</span></div>
     <span style="font-size:12px;color:var(--muted)">${esc_ ? esc(esc_.nome) : 'Sem escola'}${t.segmento_id ? ' · ' + esc(segNome(t.segmento_id)) : ''} · ${profs.map(p => nomeDe(p.user_id)).join(', ') || 'sem professor'}</span>
     <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="stat s-li">${I.users}<span class="num">${na}</span>&nbsp;aluno${na === 1 ? '' : 's'}</span><span class="stat s-xp">${I.bolt}<span class="num">${abertas}</span>&nbsp;aberta${abertas === 1 ? '' : 's'}</span><span class="stat">${I.book}<span class="num">${ativs.length}</span>&nbsp;atividade${ativs.length === 1 ? '' : 's'}</span></div></button>`;
 }
@@ -1613,7 +1639,7 @@ function viewEscolas() {
   const card = e => { const turmas = T.turmas.filter(t => t.escola_id === e.id); const membros = T.membros.filter(m => m.escola_id === e.id);
     const nAl = new Set(T.alunos.filter(a => turmas.some(t => t.id === a.turma_id)).map(a => a.user_id)).size;
     return `<button class="card" style="text-align:left;padding:16px;display:flex;flex-direction:column;gap:8px" data-a="abrir-escola:${e.id}">
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h2 style="flex:1;min-width:0">${esc(e.nome)}</h2>${I.seta}</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h2 style="flex:1;min-width:0">${esc(e.nome)}</h2>${escolaBloqueada(e) ? '<span class="pill block">bloqueada</span>' : ''}${I.seta}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="stat s-li">${I.users}<span class="num">${turmas.length}</span>&nbsp;turma${turmas.length === 1 ? '' : 's'}</span><span class="stat">${I.book}<span class="num">${membros.filter(m => m.papel === 'professor').length}</span>&nbsp;prof.</span><span class="stat s-xp">${I.shield}<span class="num">${membros.filter(m => m.papel !== 'professor').length}</span>&nbsp;gestão</span><span class="stat s-mo">${I.users}<span class="num">${nAl}</span>&nbsp;aluno${nAl === 1 ? '' : 's'}</span></div></button>`; };
   return topbar(admin ? 'Escolas' : 'Minha escola', admin ? 'As escolas da plataforma. Crie a escola e defina o admin dela; ele cuida do resto.' : 'As escolas de que você faz parte', admin ? `<button class="btn btn-primary" data-a="nova-escola">${I.plus}Nova escola</button>` : '') + `<div class="content">
     ${avisoTurmas()}
@@ -1661,8 +1687,9 @@ function viewEscola() {
           ${L.lista.map(a => `<tr><td><b>${esc(a.nome)}</b><br><span style="font-size:12px;color:var(--muted)">${esc(a.email || '')}</span></td><td style="font-size:12px">${(a.turmas || []).map(esc).join(', ')}</td><td class="num">${a.xp}</td><td class="num">${a.ofensiva} d</td><td class="num">${a.entregas}</td></tr>`).join('')}
         </tbody></table></div>` : '<div class="empty">Nenhum aluno ainda nas turmas desta escola.</div>'}</div>`; })()
     : `<div class="card">${resumoEscola(e) || '<div class="empty">Ainda sem turmas para resumir.</div>'}</div>`;
-  return topbar(esc(e.nome), `${turmas.length} turma${turmas.length === 1 ? '' : 's'} · ${profs.length} professor${profs.length === 1 ? '' : 'es'} · ${nAlunos} aluno${nAlunos === 1 ? '' : 's'}`, `${admin || minhasEscolas().length > 1 ? `<button class="btn btn-ghost" data-a="view:escolas">← Escolas</button>` : ''}<button class="btn btn-primary" data-a="nova-turma">${I.plus}Nova turma</button>`) + `<div class="content">
-    ${avisoTurmas()}
+  const bloq = escolaBloqueada(e);
+  return topbar(esc(e.nome) + (bloq ? ' <span class="pill block" style="vertical-align:middle">bloqueada</span>' : ''), `${turmas.length} turma${turmas.length === 1 ? '' : 's'} · ${profs.length} professor${profs.length === 1 ? '' : 'es'} · ${nAlunos} aluno${nAlunos === 1 ? '' : 's'}`, `${admin || minhasEscolas().length > 1 ? `<button class="btn btn-ghost" data-a="view:escolas">← Escolas</button>` : ''}${admin ? (bloq ? `<button class="btn btn-outline" data-a="desbloquear-escola:${e.id}">Liberar escola</button>` : `<button class="btn btn-outline btn-danger" data-a="bloquear-escola:${e.id}">Bloquear escola</button>`) : ''}${bloq && !admin ? '' : `<button class="btn btn-primary" data-a="nova-turma">${I.plus}Nova turma</button>`}`) + `<div class="content">
+    ${avisoTurmas()}${avisoEscola(e)}
     <div class="abas" role="tablist">${abas.map(([id, l, n]) => `<button class="aba" role="tab" data-a="escola-aba:${id}" aria-current="${A === id}">${l}${n != null ? `<span class="cnt num">${n}</span>` : ''}</button>`).join('')}</div>
     ${corpo}
   </div>`;
@@ -2568,6 +2595,10 @@ async function act(a, el) {
       }, 'Excluir a conta'); }
 
     /* escolas e turmas */
+    case 'bloquear-escola': { const e = escolaPorId(x); V.modal = {titulo: 'Bloquear ' + (e ? e.nome : 'escola'), texto: 'A escola inteira fica travada: professores, coordenadores e admin dela não conseguem criar nem mudar turmas e atividades, os alunos deixam de ver as atividades e o código das turmas não aceita entrada. Nada é apagado; "Liberar escola" desfaz. O bloqueio e o motivo ficam na auditoria.', campos: [{k: 'motivo', label: 'Motivo (aparece para a escola)', placeholder: 'Ex.: pagamento em atraso'}], ok: 'Bloquear', fn: async v => {
+      const row = await db(sb.rpc('bloquear_escola', {p_escola: x, p_bloquear: true, p_motivo: v.motivo || null})); Object.assign(e, row); await carregarTurmas(); toast('Escola bloqueada.');
+    }}; return render(); }
+    case 'desbloquear-escola': { const e = escolaPorId(x); return confirmar('Liberar a escola?', 'Professores, coordenadores e alunos voltam a usar as turmas normalmente. A liberação fica na auditoria.', async () => { const row = await db(sb.rpc('bloquear_escola', {p_escola: x, p_bloquear: false})); if (e) Object.assign(e, row); await carregarTurmas(); toast('Escola liberada.'); }, 'Liberar'); }
     case 'nova-escola': V.modal = {titulo: 'Nova escola', texto: 'Depois de criar, use "+ Admin" no card da escola para definir o admin dela — é ele quem adiciona coordenadores e professores.', campos: [{k: 'nome', label: 'Nome da escola', obrigatorio: true}], ok: 'Criar', fn: async v => {
       const row = await db(sb.rpc('criar_escola', {p_nome: v.nome.trim()})); await carregarTurmas(); toast(`Escola ${row.nome} criada.`);
     }}; return render();
@@ -2904,6 +2935,18 @@ document.addEventListener('keydown', ev => {
 /* =====================================================================
    Início
    ===================================================================== */
+/* Robustez: erro não tratado vira aviso (não some no console), sem conexão aparece um selo,
+   fechar a aba com gravação pendente pede confirmação e 8 h sem mexer encerram a sessão. */
+window.addEventListener('unhandledrejection', ev => { const m = ev.reason && (ev.reason.message || ev.reason); if (m && !/AbortError/i.test(String(m))) toast('Erro: ' + traduzErro(String(m))); });
+window.addEventListener('error', ev => { if (ev.message) toast('Erro inesperado: ' + ev.message.slice(0, 120)); });
+function selosConexao() { let s = document.getElementById('offline'); if (navigator.onLine) { if (s) s.remove(); } else if (!s) { s = document.createElement('div'); s.id = 'offline'; s.className = 'offline'; s.setAttribute('role', 'status'); s.textContent = 'Sem conexão: as alterações não estão sendo salvas'; document.body.appendChild(s); } }
+window.addEventListener('online', () => { selosConexao(); toast('Conexão de volta.'); });
+window.addEventListener('offline', selosConexao);
+window.addEventListener('beforeunload', ev => { if (D && (V.salvando > 0 || V.publicando || alteracoesPendentes())) { ev.preventDefault(); ev.returnValue = ''; } });
+const INATIVIDADE_MS = 8 * 3600e3; let ultimoToque = Date.now();
+['click', 'keydown', 'pointermove', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { ultimoToque = Date.now(); }, {passive: true}));
+setInterval(() => { if (sessao && Date.now() - ultimoToque > INATIVIDADE_MS) { toast('Sessão encerrada por inatividade.'); sb.auth.signOut(); } }, 60e3);
+
 telaAuth('<div class="msg">Carregando…</div>');
 sb.auth.onAuthStateChange((ev, s) => {
   if (ev === 'PASSWORD_RECOVERY') { mostrando = 'recuperar'; telaNovaSenha(); return; }
