@@ -1034,7 +1034,8 @@ function startLesson(mode, opts = {}) {
   }
   if (!queue.length) return toast('Ainda não há questões publicadas aqui.');
   L = {mode, lic, uni, materiaId, queue, i: 0, total: queue.length, solved: 0, kicker, title, combo: 0, best: 0, firstTry: 0, wrongKeys: new Set(), erradas: new Set(), acertadas: new Set(), errors: 0,
-    start: Date.now(), result: null, ans: blankAns(), miss: false, deadline: mode === 'flash' ? Date.now() + (+E().segundosRelampago || 120) * 1000 : 0, lostHeart: false};
+    start: Date.now(), result: null, ans: blankAns(), miss: false, deadline: mode === 'flash' ? Date.now() + (+E().segundosRelampago || 120) * 1000 : 0, lostHeart: false,
+    tent: [], nVez: {}, qT: Date.now()};
   V.sheet = null; go('licao');
 }
 const blankAns = () => ({pick: null, slots: [null, null], order: [], sel: null, matched: [], pairs: []});
@@ -1151,6 +1152,14 @@ async function perderCoracao() {
   const {data, error} = await sb.rpc('perder_coracao');
   if (!error && data && data.coracoes != null) { S.economia.coracoes = data.coracoes; const n = document.getElementById('hearts-n'); if (n) n.textContent = heartsTxt(); }
 }
+// Registra a tentativa desta questão (vira linha em `tentativas` no servidor, via concluir_licao)
+function marcaTentativa(e, ok, pulou) {
+  if (!L || !L.tent) return;
+  const n = (L.nVez[e.id] = (L.nVez[e.id] || 0) + 1);
+  let r = null;
+  if (!pulou) { try { const v = respostaDe(e, L.ans); r = v == null ? null : (typeof v === 'string' ? v : JSON.stringify(v)).slice(0, 200); } catch (err) {} }
+  L.tent.push({q: e.id, ok: !!ok, t: Math.min(600, Math.max(0, Math.round((Date.now() - (L.qT || L.start)) / 1000))), n, r});
+}
 function grade(good) {
   const e = L.queue[L.i]; const key = e.id + '#' + L.i;
   if (ehAtividade()) {
@@ -1159,6 +1168,7 @@ function grade(good) {
     SND.tap(); vib(20); anuncia('Resposta registrada.');
     return next();
   }
+  marcaTentativa(e, good);
   L.result = good ? 'ok' : 'err';
   if (good) {
     L.combo++; L.best = Math.max(L.best, L.combo); L.solved++;
@@ -1179,7 +1189,7 @@ function next() {
   if (L.mode === 'legend' && L.result === 'err') return finish(false);
   if (L.mode === 'flash' && Date.now() >= L.deadline) return finish(true);
   if (L.i >= L.queue.length - 1) return finish(true);
-  L.i++; L.result = null; L.lostHeart = false; L.ans = blankAns(); L.miss = false; L.missQ = 0; render(true);
+  L.i++; L.result = null; L.lostHeart = false; L.ans = blankAns(); L.miss = false; L.missQ = 0; L.qT = Date.now(); render(true);
 }
 async function entregar() {
   const a = L.atividade, respostas = L.respostas.slice();
@@ -1201,9 +1211,15 @@ async function finish(success) {
   const mode = L.mode;
   const payload = {p_modo: MODO_SERVIDOR[mode], p_licao: L.lic ? L.lic.id : null, p_unidade: L.uni ? L.uni.id : null, p_materia: L.materiaId,
     p_acertos: mode === 'flash' ? L.solved : L.firstTry, p_erros: L.errors, p_melhor_combo: L.best, p_tempo_s: Math.round((Date.now() - L.start) / 1000),
-    p_erradas: [...L.erradas], p_acertadas: [...L.acertadas], p_sucesso: success};
+    p_erradas: [...L.erradas], p_acertadas: [...L.acertadas], p_sucesso: success,
+    p_tentativas: (L.tent || []).slice(0, 100)};
   V.salvando = true; render();
-  const {data, error} = await sb.rpc('concluir_licao', payload);
+  let {data, error} = await sb.rpc('concluir_licao', payload);
+  if (error && /schema cache|PGRST202/i.test(error.message || '')) {
+    // banco ainda sem a migration 0046: salva sem o detalhe por questão
+    delete payload.p_tentativas;
+    ({data, error} = await sb.rpc('concluir_licao', payload));
+  }
   V.salvando = false;
   if (error) { console.error(error); render(); return toast('Não consegui salvar: ' + traduz(error.message) + ' Toque de novo para tentar.'); }
   const antes = S; S = data.estado;
@@ -2028,7 +2044,7 @@ async function act(a) {
       L.miss = true; L.missCount = (L.missCount || 0) + 1; L.missQ = (L.missQ || 0) + 1; SND.bad(); return render();
     }
     case 'check': return grade(ehAtividade() ? true : isRight(L.queue[L.i], L.ans));
-    case 'skip': { const e = L.queue[L.i]; if (ehAtividade()) { L.respostas.push({id: e.id, resposta: null}); SND.tap(); return next(); } L.result = 'err'; L.combo = 0; L.errors++; L.lostHeart = false; L.erradas.add(e.id); L.acertadas.delete(e.id); if (requeues() && QI[e.id]) { const again = exercicio(QI[e.id]); L.wrongKeys.add(again.id + '#' + L.queue.length); L.queue.push(again); } render(); SND.bad(); return; }
+    case 'skip': { const e = L.queue[L.i]; if (ehAtividade()) { L.respostas.push({id: e.id, resposta: null}); SND.tap(); return next(); } marcaTentativa(e, false, true); L.result = 'err'; L.combo = 0; L.errors++; L.lostHeart = false; L.erradas.add(e.id); L.acertadas.delete(e.id); if (requeues() && QI[e.id]) { const again = exercicio(QI[e.id]); L.wrongKeys.add(again.id + '#' + L.queue.length); L.queue.push(again); } render(); SND.bad(); return; }
     case 'next': return next();
   }
 }

@@ -100,6 +100,10 @@ As questões recebem o campo **assuntos** (separados por vírgula no editor) par
 
 Para ativar: rodar `supabase/migrations/0011_turmas_atividades.sql` e depois `0012_segmentos.sql` no SQL Editor. O app e o painel já estão preparados e mostram um aviso enquanto as migrations não rodam.
 
+## Tentativa por questão (migration 0046)
+
+Primeira etapa do motor de aprendizagem personalizada (roteiro completo no [PLANO.md](PLANO.md)). Cada resposta do aluno nas lições da trilha — e na revisão, prática de erros, relâmpago e provas — vira uma linha na tabela `tentativas`: questão, acertou ou não, tempo gasto, nº da vez que viu a questão na sessão e a resposta dada (pular registra tentativa sem resposta). O `concluir_licao` ganhou o parâmetro `p_tentativas` (validado no servidor: teto de 100 itens por sessão, 600 s por questão, só questões existentes) e grava tudo ligado ao evento da sessão; o app tem fallback e continua salvando o agregado se a migration ainda não rodou. As atividades de turma não passam por aqui porque já guardam as respostas por questão desde a 0011. RLS: o aluno lê só as próprias tentativas; escrita só pela função. É a matéria-prima das próximas fases: habilidades (0047), domínio por habilidade, revisão espaçada e recomendações.
+
 ## Auditoria (migration 0014)
 
 Tudo que acontece no painel fica registrado na tabela `auditoria`, consultável pelo admin na aba **Auditoria**: alterações de dados (gatilhos nas tabelas de conteúdo, turmas, atividades, perfis e admins, com o antes e o depois de cada campo) e eventos do painel (login, saída, tela aberta, busca de alunos, turma aberta, resultados vistos, cópia de notas e do JSON). Os gatilhos valem mesmo para alterações feitas fora do painel. O que os alunos fazem no app (lições, moedas, ofensiva) não entra, só mudanças de perfil e entrada em turma.

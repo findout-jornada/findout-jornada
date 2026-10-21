@@ -69,6 +69,17 @@ Regras: uma entrega testável por semana (sexta); fora do escopo vai para `DEPOI
 - [ ] Checklist: Google login no domínio final, PWA instala em iPhone e Android, backup do Supabase, e-mail de recuperação, página pública com botão Abrir
 - [ ] Divulgar o link
 
+## Motor de aprendizagem personalizada (out–nov, derivado do "Prompt Mestre")
+
+Decisões: sem migração de stack (fica HTML+JS+Supabase); correção da trilha no servidor só será decidida junto com a estratégia offline, antes do lançamento aberto. Cada fase é uma entrega independente (migration + painel + app) e pode rodar em sessões paralelas.
+
+- [x] **Fase A — Tentativa por questão** (migration 0046): tabela `tentativas` (questão, acertou, tempo, nº da vez, resposta) alimentada pelo `concluir_licao`; app instrumentado com tempo por questão e fallback se a migration não rodou. Atividades de turma já tinham esse grão.
+- [ ] **Fase B — Habilidades** (migration 0047): tabelas `habilidades` (código BNCC/ENEM cadastrado, nunca inventado), `questao_habilidades` e `habilidade_prerequisitos`; painel ganha cadastro de habilidades e marcação nas questões (aproveitar o campo "assuntos" como ponto de partida).
+- [ ] **Fase C — Domínio por habilidade**: visão/função que agrega `tentativas` × `questao_habilidades` nos estados: sem evidência → evidência insuficiente → em desenvolvimento → dominada → precisa de revisão (limiares em `parametros`, explicáveis). Mostrar no perfil do aluno e no relatório do professor.
+- [ ] **Fase D — Revisão e recomendação**: revisão espaçada (fila por habilidade com data), recomendador por regras com justificativa visível ("sugerimos X porque você errou Y, pré-requisito de Z"); a Revisão Diária passa a priorizar essa fila.
+- [ ] **Fase E — Diagnóstico e Modo B**: diagnóstico opcional de entrada (por objetivo: ENEM, série, reforço) que semeia o domínio inicial; trilha personalizada sugerida a partir do diagnóstico (a tela "Por qual disciplina vamos começar?" é a porta).
+- [ ] **Engenharia (paralelo)**: testes SQL das funções críticas (correção, XP, ofensiva, ligas) rodáveis no SQL Editor; segundo projeto Supabase como homologação; começar a fatiar `app/index.html` e `painel/index.html` em módulos.
+
 ## Trilha de conteúdo (semanas 2–8, em paralelo)
 Meta: 3 matérias × 3 unidades × ~5 lições × 8 questões ≈ 360 questões.
 - [x] Sem 2: árvore inicial das matérias + 112 questões de partida (`0005_conteudo.sql`, 10 out): Matemática 44, Português 28, Biologia 24, História 16 (História foi criada pelo Artur no painel)

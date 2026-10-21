@@ -729,7 +729,7 @@ async function carregar() {
   if (!V.materia || !D.materias.some(x => x.id === V.materia)) V.materia = D.materias[0] ? D.materias[0].id : null;
 }
 /* Confere se as migrations estão em dia (tabela schema_versao, migration 0022) */
-const ESQUEMA_ESPERADO = 45;
+const ESQUEMA_ESPERADO = 46;
 const CURSOS = ['dev', 'log', 'dat']; // matérias-curso: fora do Mapa do ENEM, o app mostra no grupo "Cursos"
 async function verificarEsquema() {
   const r = await sb.from('schema_versao').select('versao').order('versao', {ascending: false}).limit(1).maybeSingle();
