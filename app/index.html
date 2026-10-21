@@ -338,6 +338,113 @@ button.card:active{transform:scale(.985)}
 .pill-dom{font-size:7px;padding:6px 9px;border-radius:999px;white-space:nowrap;flex-shrink:0;align-self:center}
 .stats3 .stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;height:auto;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:22px}
 .stats3 .stat small{font-size:11px;color:var(--muted);font-family:var(--f-body);font-weight:500}
+
+/* =====================================================================
+   Vida: cor, luz, movimento e resposta ao toque (22 out)
+   Tudo aqui só reforça o que já existe: fundo branco com brilhos azul e laranja,
+   botões com brilho e varredura de luz, menu ativo em pílula, barras com reflexo,
+   hovers no desktop, entrada escalonada dos cartões e ajustes por tamanho de tela.
+   ===================================================================== */
+:root{--grad-primary:linear-gradient(180deg,#5B7CFF 0%,#2D4FD6 55%,#213DB0 100%);--grad-orange:linear-gradient(135deg,#FFB347,#F7941E 60%,#E8780A);--sombra-azul:0 10px 24px rgba(45,79,214,.22)}
+::selection{background:var(--lilac-l);color:var(--navy)}
+.scroll{scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+#app{background-image:radial-gradient(640px 320px at 50% -110px,rgba(45,79,214,.16),transparent 70%),radial-gradient(520px 380px at 108% 104%,rgba(247,148,30,.13),transparent 65%)}
+.auth{background-image:radial-gradient(460px 280px at 50% -60px,rgba(45,79,214,.30),transparent 70%),radial-gradient(380px 300px at 100% 100%,rgba(247,148,30,.16),transparent 65%)}
+/* transições gerais: tudo que se toca responde */
+.btn,.chipbtn,.card,.row,.tile,.stat,.unit,.node,.nav button,.iconbtn,.opt,.chip,.subjbtn,.mapacard,.fab,.avopt,.avcats button,.lrow,.startlbl,.crown,.avbtn{transition:transform .16s cubic-bezier(.2,.8,.2,1),box-shadow .2s,background-color .18s,border-color .18s,color .18s,filter .18s,opacity .18s}
+.opt,.chip,.slot,.node{transition-duration:.16s}
+/* botões: gradiente mais vivo, brilho em cima e varredura de luz no hover */
+.btn-primary{background:var(--grad-primary);position:relative;overflow:hidden;isolation:isolate}
+.btn-primary:not(.pxbtn){box-shadow:var(--sombra-azul),inset 0 1px 0 rgba(255,255,255,.35)}
+.btn-primary.pxbtn{box-shadow:4px 4px 0 var(--sh,var(--navy)),inset 0 1px 0 rgba(255,255,255,.35)}
+.btn-primary::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.28) 50%,transparent 65%);transform:translateX(-130%);pointer-events:none;z-index:-1}
+.btn-gold{box-shadow:inset 0 1px 0 rgba(255,255,255,.6)}
+.btn-dark{box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+.btn-outline{box-shadow:0 2px 10px rgba(45,79,214,.08)}
+.btn:disabled{filter:saturate(.6)}
+.chipbtn:active,.iconbtn:active,.stat:active,.avopt:active{transform:scale(.94)}
+.chipbtn:not(:disabled){box-shadow:0 2px 8px rgba(45,79,214,.10)}
+/* menu: aba ativa em pílula azul com ícone branco; o ícone dá um pulo ao entrar */
+.nav button[aria-current="page"]{color:#fff;background:var(--grad-primary);box-shadow:0 6px 16px rgba(45,79,214,.35),inset 0 1px 0 rgba(255,255,255,.3)}
+.nav button[aria-current="page"] svg{filter:none;animation:navpop .4s cubic-bezier(.3,1.4,.5,1)}
+@keyframes navpop{0%{transform:scale(.7)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
+.navbadge{animation:badgepulse 2s ease-in-out infinite}
+@keyframes badgepulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+/* cartões e linhas: sombra azulada; os clicáveis sobem no hover */
+.card{box-shadow:0 4px 16px rgba(45,79,214,.07),0 1px 2px rgba(1,15,46,.04)}
+.card.stmt{box-shadow:0 10px 28px rgba(45,79,214,.14)}
+.stat{background:linear-gradient(180deg,#fff,#F5F7FF);box-shadow:0 2px 8px rgba(45,79,214,.08)}
+.stat svg{transition:transform .2s cubic-bezier(.3,1.4,.5,1)}
+.tag{background:var(--lav);color:var(--primary-d);box-shadow:inset 0 0 0 1px rgba(45,79,214,.12)}
+.combo{background:var(--grad-orange);color:#fff;box-shadow:0 3px 10px rgba(247,148,30,.35);text-shadow:0 1px 0 rgba(0,0,0,.15)}
+.topbar{box-shadow:0 1px 0 rgba(45,79,214,.05),0 6px 18px rgba(45,79,214,.05)}
+.footer,.checkbar{box-shadow:0 -6px 18px rgba(45,79,214,.05)}
+.mapacard{box-shadow:0 8px 22px rgba(27,79,143,.38),inset 0 1px 0 rgba(255,255,255,.18)}
+.fab{box-shadow:4px 4px 0 var(--primary),0 12px 26px rgba(45,79,214,.28)}
+.startlbl{box-shadow:0 4px 12px rgba(45,79,214,.18)}
+.sheet{box-shadow:0 -4px 0 var(--teal),0 -20px 50px rgba(1,15,46,.25)}
+/* barras de progresso: andam com suavidade e têm um reflexo que passa de vez em quando */
+.bar>i,.lprog>i{position:relative;overflow:hidden;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.bar>i::after,.lprog>i::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 0,rgba(255,255,255,.45) 50%,transparent 100%);transform:translateX(-100%);animation:shimmer 2.8s ease-in-out 1s infinite}
+@keyframes shimmer{0%{transform:translateX(-100%)}60%,100%{transform:translateX(100%)}}
+/* unidades da trilha: brilho que varre o cartão da unidade atual */
+.unit:not(.locked){box-shadow:0 12px 28px rgba(var(--urgb,45,79,214),.30),inset 0 1px 0 rgba(255,255,255,.22)}
+.unit:not(.locked)::before{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 40%,rgba(255,255,255,.14) 50%,transparent 60%);transform:translateX(-130%);animation:shimmer 6s ease-in-out 2s infinite;pointer-events:none}
+.pop-card{animation:in-tab .26s cubic-bezier(.2,.7,.2,1) both}
+/* entrada de tela: os blocos do conteúdo chegam um a um, de cima para baixo */
+.enter-push .pad>:not(.reveal),.enter-pop .pad>:not(.reveal),.enter-tab .pad>:not(.reveal){animation:in-tab .4s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0)*45ms)}
+.pad>:nth-child(2){--i:1}.pad>:nth-child(3){--i:2}.pad>:nth-child(4){--i:3}.pad>:nth-child(5){--i:4}.pad>:nth-child(6){--i:5}.pad>:nth-child(7){--i:6}.pad>:nth-child(8){--i:7}.pad>:nth-child(n+9){--i:8}
+/* hover só onde existe mouse: subir, iluminar, escurecer de leve */
+@media (hover:hover) and (pointer:fine){
+  .btn:not(:disabled):hover{filter:brightness(1.06);transform:translateY(-1px)}
+  .btn-primary:hover::after{transition:transform .55s ease-out;transform:translateX(130%)}
+  .btn-outline:hover,.chipbtn:not(:disabled):hover{background:var(--lav)}
+  .btn-ghost:hover{color:var(--primary)}
+  button.card:hover,.card.row:where(button):hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(45,79,214,.14),0 2px 4px rgba(1,15,46,.05)}
+  button.row:hover,.lrow:where(button):hover{background:var(--lav)}
+  button:hover>.tile,.row:hover>.tile{transform:scale(1.08) rotate(-4deg)}
+  .nav button:not([aria-current="page"]):hover{color:var(--primary);background:var(--lav)}
+  .iconbtn:hover{background:var(--lav);color:var(--primary)}
+  .stat:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(45,79,214,.16)}
+  .stat:hover svg{transform:scale(1.2) rotate(-8deg)}
+  .subjbtn:hover{box-shadow:0 6px 16px rgba(45,79,214,.22);transform:translateY(-1px)}
+  .unit:not(.locked):hover{transform:translateY(-3px);box-shadow:0 18px 36px rgba(var(--urgb,45,79,214),.40),inset 0 1px 0 rgba(255,255,255,.22)}
+  .unit .guide:hover{background:rgba(255,255,255,.18)}
+  .node:not(:disabled):hover{transform:translateY(-3px) scale(1.06)}
+  .opt:not(.sel):not(.ok):not(.bad):hover,.chip:not(.sel):not(.ok):not(.bad):not(.used):not(.gone):hover{border-color:var(--lilac);background:#F6F8FF;transform:translateY(-1px)}
+  .mapacard:hover{filter:brightness(1.08);transform:translateY(-2px)}
+  .fab:hover{transform:translateY(-2px)}
+  .avopt:hover,.avcats button:hover{border-color:var(--lilac);background:#F6F8FF}
+  .avbtn:hover{transform:scale(1.04)}
+  button[data-a^="subject:"]:hover{filter:brightness(.965)}
+  a:hover{color:var(--primary)}
+  .mapa .ilha:hover{filter:brightness(1.1)}
+}
+/* telas pequenas, baixas e grandes */
+@media (max-width:360px){
+  .pad{padding:12px 14px 20px;gap:12px}
+  .q{font-size:19px}.opt .txt{font-size:16px}.stmt{font-size:21px;padding:18px 14px}
+  .nav{margin-left:8px;margin-right:8px;padding:4px}.nav button{font-size:9px;height:52px;border-radius:14px}
+  .unit{margin:4px 14px 6px;padding:14px}
+  .stats3{gap:6px}.stats3 .stat{font-size:19px;padding:10px 6px}
+  .btn{height:50px;font-size:15px}
+}
+@media (max-height:600px){
+  .hero-mascot{width:96px;height:96px}.hero-mascot .mascot{width:82px!important}.auth{gap:10px}
+  .nav button{height:48px}.nav{margin-top:4px}
+}
+@media (min-width:600px) and (pointer:coarse){
+  body{font-size:16px}
+  #app{box-shadow:0 0 0 1px var(--line),0 30px 60px rgba(45,79,214,.12)}
+}
+@media (min-width:1100px) and (hover:hover) and (pointer:fine){
+  #app{max-width:470px;height:min(100%,940px)}
+}
+@media (prefers-reduced-motion:reduce){
+  .nav button[aria-current="page"] svg,.navbadge,.bar>i::after,.lprog>i::after,.unit:not(.locked)::before,.pop-card,.enter-push .pad>*,.enter-pop .pad>*,.enter-tab .pad>*{animation:none}
+  .btn-primary::after{display:none}
+  .btn,.chipbtn,.card,.row,.tile,.stat,.unit,.node,.nav button,.iconbtn,.opt,.chip,.subjbtn,.mapacard,.fab,.avopt,.avcats button,.lrow,.startlbl,.crown,.avbtn,.bar>i,.lprog>i{transition:none}
+}
 </style>
 </head>
 <body>
