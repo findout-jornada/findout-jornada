@@ -24,7 +24,7 @@
   --green:#8FB569;--green-d:#5E8A3B;--green-dd:#2F5A14;--green-l:#EAF3DF;--green-b:#DCEBC9;
   --gold:#FFD36A;--gold-d:#8A6207;--gold-dd:#5A3F03;--gold-s:#C9A23E;--gold-l:#FFF8E1;
   --red:#E0475B;--red-d:#B8313F;--red-dd:#8A1F2B;--red-l:#FBE4E6;--red-b:#F8D7DA;
-  --orange:#F08A24;--orange-d:#C8571D;--muted:#6F7172;--ink2:#444D69;--backdrop:#E4EBF9;
+  --orange:#F08A24;--orange-d:#C8571D;--muted:#5A6170;--ink2:#444D69;--backdrop:#E4EBF9;
   --f-pixel:'Press Start 2P',ui-monospace,monospace;--f-display:'Jost',system-ui,sans-serif;--f-body:'Jost',system-ui,sans-serif;
   color-scheme:light;
 }
@@ -340,7 +340,7 @@ button.card:active{transform:scale(.985)}
 .auth h1{font-family:var(--f-display);font-size:clamp(24px,6.5vw,28px);margin:0;line-height:1.2}
 /* Login: só a Rapozinha, sem disco atrás (uma sombra suave no chão para ela não ficar solta) */
 .hero-mascot{display:flex;align-items:flex-end;justify-content:center;filter:drop-shadow(0 14px 18px rgba(45,79,214,.22))}
-.hero-mascot .mascot{width:132px!important}
+.hero-mascot .mascot-pensa{width:132px!important}
 /* Mascote solta nas telas de fundo azul: sem disco atrás; um brilho branco suave em volta separa a Rapozinha (azul) do fundo */
 .mascot-livre{display:flex;justify-content:center;filter:drop-shadow(0 0 16px rgba(255,255,255,.6)) drop-shadow(0 10px 14px rgba(0,0,0,.25))}
 /* Rapozinha em sprite (pensando, feliz3): quadros lado a lado; duração e número de quadros vêm do inline style gerado por mascot() */
@@ -463,6 +463,9 @@ button[data-a^="tier:"][aria-pressed="true"]{filter:drop-shadow(0 8px 12px rgba(
 @keyframes chama-corpo{0%{transform:scaleY(1) scaleX(1) rotate(-2deg)}35%{transform:scaleY(1.06) scaleX(.96) rotate(1.5deg)}70%{transform:scaleY(.97) scaleX(1.03) rotate(-1deg)}100%{transform:scaleY(1.04) scaleX(.98) rotate(2deg)}}
 @keyframes chama-miolo{from{transform:scale(.85) translateY(1px);opacity:.75}to{transform:scale(1.1) translateY(-1px);opacity:1}}
 @media (prefers-reduced-motion:reduce){.chama-viva svg,.chama-viva svg path:last-child{animation:none}}
+/* Revisão (23 out): folhas e banner não passam da tela em celular baixo; rolam por dentro */
+.sheet{max-height:92%;overflow-y:auto;overscroll-behavior:contain}
+.banner{max-height:72%;overflow-y:auto}
 /* Prova da unidade liberada e ainda não feita: troféu balança, anel laranja (via .ring com --urgb) e selo "!" pulsando */
 .node.prova-pendente>svg{animation:trofeu 2s ease-in-out infinite;transform-origin:50% 90%}
 @keyframes trofeu{0%,100%{transform:rotate(0) scale(1)}15%{transform:rotate(-10deg) scale(1.08)}30%{transform:rotate(8deg) scale(1.08)}45%{transform:rotate(-5deg) scale(1.04)}60%{transform:rotate(0) scale(1)}}
@@ -481,7 +484,7 @@ button[data-a^="tier:"][aria-pressed="true"]{filter:drop-shadow(0 8px 12px rgba(
   .btn{height:50px;font-size:15px}
 }
 @media (max-height:600px){
-  .hero-mascot{width:96px;height:96px}.hero-mascot .mascot{width:82px!important}.auth{gap:10px}
+  .hero-mascot{width:96px;height:96px}.hero-mascot .mascot-pensa{width:82px!important}.auth{gap:10px}
   .nav button{height:48px}.nav{margin-top:4px}
 }
 @media (min-width:600px) and (pointer:coarse){
@@ -651,7 +654,7 @@ const SPRITES = {
   feliz3: {src: 'rapozinha-feliz3.webp', fw: 240, fh: 267, n: 30, dur: 2.4},
   triste: {src: 'rapozinha-triste.webp', fw: 240, fh: 427, n: 29, dur: 2.42}
 };
-const spriteHtml = (sp, w, cls, alt) => `<span class="mascot-pensa ${cls}" role="img" aria-label="${esc(alt)}" style="width:${w}px;height:${Math.round(w * sp.fh / sp.fw)}px"><img src="${sp.src}" alt="" style="animation-duration:${sp.dur}s;animation-timing-function:steps(${sp.n})"></span>`;
+const spriteHtml = (sp, w, cls, alt) => `<span class="mascot-pensa ${cls}" ${alt ? `role="img" aria-label="${esc(alt)}"` : 'aria-hidden="true"'} style="width:${w}px;height:${Math.round(w * sp.fh / sp.fw)}px"><img src="${sp.src}" alt="" style="animation-duration:${sp.dur}s;animation-timing-function:steps(${sp.n})"></span>`;
 // Regra: a Rapozinha nunca aparece parada, e nunca aparece alegre num humor triste.
 const mascot = (w, cls = '', alt = '', humor = 'feliz') => spriteHtml(SPRITES[humor] || SPRITES.feliz, w, cls, alt);
 const HOUR = 3600e3;
@@ -939,7 +942,9 @@ async function carregarEstado() {
   if (PK && PK.materias.length && S.perfil.materia && !PK.materias.some(m => m.id === S.perfil.materia)) { S.perfil.materia = PK.materias[0].id; sb.from('perfis').update({materia_atual: S.perfil.materia}).eq('user_id', sessao.user.id).then(() => {}); }
 }
 async function recarregarEstado(silencioso = true) {
-  try { const {data, error} = await sb.rpc('estado_aluno'); if (error) throw error; S = data; if (S.versaoConteudo && (!PK || !PK._versao || PK._versao !== S.versaoConteudo)) { await carregarPacote(S.versaoConteudo); PK._versao = S.versaoConteudo; } if (!L) render(); }
+  // Se outra ação trocou S enquanto esta leitura estava no ar (concluir lição, comprar...), a resposta velha é descartada
+  if (L) return; const antes = S;
+  try { const {data, error} = await sb.rpc('estado_aluno'); if (error) throw error; if (S !== antes || L) return; S = data; if (S.versaoConteudo && (!PK || !PK._versao || PK._versao !== S.versaoConteudo)) { await carregarPacote(S.versaoConteudo); PK._versao = S.versaoConteudo; } if (!L) render(); }
   catch (e) { if (!silencioso) toast(traduz(e.message)); }
 }
 
@@ -1032,7 +1037,8 @@ async function rota(s) {
   sessao = s; telaCarregando();
   try { await carregarEstado(); if (PK) PK._versao = S.versaoConteudo; await esperaAnimacao(); }
   catch (e) { console.error(e); return telaErro(traduz(e.message)); }
-  V = {...V, screen: 'jornada', open: null, sheet: null, scrollTo: true, falhaSalvar: null};
+  V = {...V, screen: 'jornada', open: null, sheet: null, scrollTo: true, falhaSalvar: null, rank: null, duelos: null, dinAtiva: null, rec: null, dom: null, colegas: null, tourPasso: 0};   // troca de conta: nada da conta anterior fica na tela
+  lastResult = null; DIN = null; DUE = null;
   PILHA.length = 0; armado = false; armar();
   cacheLicao = undefined;                        // trocou de conta no mesmo carregamento: relê a lição guardada
   const t = PK && trilha(materiaAtual());
@@ -1562,7 +1568,7 @@ function screenLicao() {
     <button class="iconbtn" data-a="quit" aria-label="Sair da lição">${I.close}</button>
     <div class="grow" style="gap:5px"><div class="lprog" aria-label="Progresso ${pct}%"><i style="width:${Math.min(100, pct)}%"></i></div><span class="px" style="font-size:9px;line-height:1.6;padding-top:2px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(L.kicker)}</span></div>${right}</header>
   <main class="scroll"><div class="pad" style="gap:14px">
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="tag px">${TIPO_LABEL[e.t] || e.t}</span>${L.mode === 'review' || L.mode === 'flash' ? `<span class="tag px" style="border-color:var(--teal-d);color:var(--teal-d)">${esc(materiaNome(e.materia).toUpperCase())}</span>` : ''}${ehAtividade() && e.valor !== 1 ? `<span class="tag px" style="background:var(--gold-l);color:var(--gold-d)">VALE ${String(e.valor).replace('.', ',')}</span>` : ''}${L.combo >= 2 && !ehAtividade() ? `<span class="combo px">${I.bolt(12)}COMBO ×${L.combo}</span>` : ''}</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="tag px">${esc(TIPO_LABEL[e.t] || e.t)}</span>${L.mode === 'review' || L.mode === 'flash' ? `<span class="tag px" style="border-color:var(--teal-d);color:var(--teal-d)">${esc(materiaNome(e.materia).toUpperCase())}</span>` : ''}${ehAtividade() && e.valor !== 1 ? `<span class="tag px" style="background:var(--gold-l);color:var(--gold-d)">VALE ${String(e.valor).replace('.', ',')}</span>` : ''}${L.combo >= 2 && !ehAtividade() ? `<span class="combo px">${I.bolt(12)}COMBO ×${L.combo}</span>` : ''}</div>
     ${ehAtividade() && L.i === 0 && L.result === null && L.atividade.descricao ? `<div class="msg" style="font-size:13px">${esc(L.atividade.descricao)}</div>` : ''}
     <h1 class="q">${esc(e.q)}</h1>
     ${e.img ? `<img class="qimg" src="${esc(e.img)}" alt="Imagem da questão">` : ''}
@@ -1607,7 +1613,7 @@ function sheetPlus() {
   const contato = FJ_CONFIG.contatoPlus || 'aamorais.dev@gmail.com';
   const ate = S.perfil.plusAte ? new Date(S.perfil.plusAte).toLocaleDateString('pt-BR') : '';
   return `<div class="sheet-bg" data-key="bg:plus" data-a="sheet:"></div><section class="sheet" data-key="sh:plus" role="dialog" aria-modal="true" aria-labelledby="p-t" style="background:var(--navy);color:#fff;box-shadow:0 -4px 0 var(--teal)"><span class="grab" aria-hidden="true"></span>
-    <div style="display:flex;align-items:center;gap:12px">${mascot(64)}<div class="grow"><span class="px" style="font-size:9px;color:var(--teal)">FINDOUT+</span><h1 id="p-t" style="margin:0;font-family:var(--f-display);font-size:20px;font-weight:700">${plus() ? 'Você tem Findout+' : 'Corações ilimitados'}</h1><span style="font-size:13px;color:var(--line2)">${plus() ? 'Ativo até ' + ate : (item && item.rotulo) || 'Fale com a gente para ativar'}</span></div></div>
+    <div style="display:flex;align-items:center;gap:12px">${mascot(64)}<div class="grow"><span class="px" style="font-size:9px;color:var(--teal)">FINDOUT+</span><h1 id="p-t" style="margin:0;font-family:var(--f-display);font-size:20px;font-weight:700">${plus() ? 'Você tem Findout+' : 'Corações ilimitados'}</h1><span style="font-size:13px;color:var(--line2)">${plus() ? 'Ativo até ' + ate : esc((item && item.rotulo) || 'Fale com a gente para ativar')}</span></div></div>
     <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--line2)">${['Corações ilimitados: erre sem parar de estudar', 'Prática de erros e revisão sem limite', 'Apoio direto da equipe Findout'].map(t => `<li style="display:flex;gap:8px;align-items:center"><span style="color:var(--teal)">${I.check(14, 3)}</span>${t}</li>`).join('')}</ul>
     ${plus() ? '' : `<p style="margin:0;font-size:13px;color:var(--line2);line-height:1.45">A ativação é feita pela equipe (pagamento por Pix). Mande uma mensagem com o e-mail da sua conta e a gente libera.</p>
     <a class="btn pxbtn" style="height:48px;font-size:15px;background:var(--teal);color:var(--navy);--sh:var(--teal-d)" href="mailto:${esc(contato)}?subject=Findout%2B&body=Quero%20ativar%20o%20Findout%2B%20na%20conta%20${encodeURIComponent(sessao.user.email || '')}">Falar com a equipe</a>`}
@@ -1638,7 +1644,7 @@ function grade(good) {
   const e = L.queue[L.i]; const key = e.id + '#' + L.i;
   if (ehAtividade()) {
     // modo prova: registra a resposta e segue sem dizer certo/errado; o servidor corrige na entrega
-    L.respostas.push({id: e.id, resposta: respostaDe(e, L.ans)});
+    L.respostas[L.i] = {id: e.id, resposta: respostaDe(e, L.ans)};   // por índice: tentar entregar de novo não duplica a resposta
     SND.tap(); vib(20); anuncia('Resposta registrada.');
     return next();
   }
@@ -1751,7 +1757,7 @@ const svgParaImagem = svg => new Promise((ok, erro) => { const im = new Image();
 const carregarImagem = src => new Promise((ok, erro) => { const im = new Image(); im.onload = () => ok(im); im.onerror = erro; im.src = src; });
 let cardCache = {chave: null, blob: null, fazendo: null};
 function prepararCardOfensiva() {
-  const chave = streak() + ':' + dkey(hojeServidor());
+  const chave = (sessao ? sessao.user.id : '') + ':' + streak() + ':' + dkey(hojeServidor());   // com o usuário: outra conta não reaproveita a imagem
   if (cardCache.chave === chave && (cardCache.blob || cardCache.fazendo)) return cardCache.fazendo || Promise.resolve(cardCache.blob);
   cardCache = {chave, blob: null, fazendo: null};
   cardCache.fazendo = cardOfensiva().then(b => { cardCache.blob = b; cardCache.fazendo = null; return b; }).catch(e => { console.error(e); cardCache.fazendo = null; return null; });
@@ -1806,7 +1812,7 @@ function screenOfensiva() {
   const first = new Date(today.getFullYear(), today.getMonth(), 1), dim = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
   let cal = ''; for (let i = 0; i < first.getDay(); i++) cal += '<span></span>';
   for (let d = 1; d <= dim; d++) { const k = dkey(new Date(today.getFullYear(), today.getMonth(), d)), p = H[k] === 'praticou', f = H[k] === 'congelado', t = d === today.getDate(), fut = d > today.getDate();
-    cal += `<span style="background:${p ? 'var(--orange)' : f ? 'var(--blue)' : 'transparent'};color:${p || f ? '#fff' : fut ? 'var(--line2)' : 'var(--navy)'};${t ? 'border:2px solid var(--navy);font-weight:700' : ''}">${d}</span>`; }
+    cal += `<span style="background:${p ? 'var(--orange)' : f ? 'var(--blue)' : 'transparent'};color:${p ? 'var(--navy)' : f ? '#fff' : fut ? 'var(--line2)' : 'var(--navy)'};${t ? 'border:2px solid var(--navy);font-weight:700' : ''}">${d}</span>`; }
   const goal = n < 7 ? 7 : n < 14 ? 14 : n < 30 ? 30 : 100;
   return `<div class="scroll">
   <div style="background:var(--orange);color:var(--navy);padding:calc(12px + env(safe-area-inset-top,0px)) 20px 22px;display:flex;flex-direction:column;gap:14px">
@@ -2019,7 +2025,8 @@ async function atualizarDin() {
   const {data, error} = await sb.rpc('estado_dinamica', {p_dinamica: DIN.id});
   if (!DIN) return;
   DIN.buscando = false;
-  if (error) { toast(traduz(error.message)); DIN = null; return go('turma'); }
+  if (error) { if (!/não encontrad|não é seu|permiss|42501|bloquead|login/i.test(error.message || '')) return;   // soluço de rede: a próxima leitura (2 s) tenta de novo, sem tirar o aluno da dinâmica
+    toast(traduz(error.message)); DIN = null; return go('turma'); }
   DIN.data = data;
   DIN.offset = new Date(data.agora).getTime() - Date.now();
   if ((data.status === 'pergunta' || data.status === 'revelada') && data.questaoPub && DIN.builtFor !== data.questao) {
@@ -2121,7 +2128,7 @@ function dinPerguntaAluno(d) {
   else if (semGrupo) status = `<div class="msg err">Você está sem grupo nesta dinâmica. Avise o professor.</div>`;
   const ready = prontoPara(e, a);
   const botao = rev || locked ? '' : `<button class="btn btn-primary pxbtn" data-a="din-responder" ${ready && !DIN.enviando ? '' : 'disabled'}>${DIN.enviando ? 'Enviando…' : d.modo === 'grupos' ? 'Responder pelo grupo' : 'Responder'}</button>`;
-  return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="tag px">QUESTÃO ${d.questao + 1} DE ${d.total}</span><span class="tag px">${TIPO_LABEL[e.t] || e.t}</span>${d.modo === 'grupos' && d.grupo ? `<span class="tag px" style="border-color:var(--primary);color:var(--primary)">${esc(d.grupo.nome.toUpperCase())}</span>` : ''}</div>
+  return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="tag px">QUESTÃO ${d.questao + 1} DE ${d.total}</span><span class="tag px">${esc(TIPO_LABEL[e.t] || e.t)}</span>${d.modo === 'grupos' && d.grupo ? `<span class="tag px" style="border-color:var(--primary);color:var(--primary)">${esc(d.grupo.nome.toUpperCase())}</span>` : ''}</div>
     <h1 class="q">${esc(e.q)}</h1>
     ${e.img ? `<img class="qimg" src="${esc(e.img)}" alt="Imagem da questão">` : ''}
     ${dinBodyAluno(e, a, locked, d)}
@@ -2218,7 +2225,8 @@ async function atualizarDuelo() {
   const {data, error} = await sb.rpc('estado_duelo', {p_duelo: DUE.id});
   if (!DUE) return;
   DUE.buscando = false;
-  if (error) { toast(traduz(error.message)); DUE = null; carregarDuelos(); return go('turma'); }
+  if (error) { if (!/não encontrad|não é seu|permiss|42501|bloquead|login/i.test(error.message || '')) { if (DUE) DUE.buscando = false; return; }
+    toast(traduz(error.message)); DUE = null; carregarDuelos(); return go('turma'); }
   aplicarDuelo(data);
 }
 function aplicarDuelo(data) {
@@ -2362,7 +2370,7 @@ function dueQuestao(d) {
   return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span class="tag px" style="border-color:${corArea(d.area)};color:${corArea(d.area, 'cor2')}">${esc((d.areaNome || '').toUpperCase())}</span>
       <span class="tag px">${esc(d.materiaNome || '')}</span>
-      <span class="tag px">${TIPO_LABEL[e.t] || e.t}</span></div>
+      <span class="tag px">${esc(TIPO_LABEL[e.t] || e.t)}</span></div>
     <h1 class="q">${esc(e.q)}</h1>
     ${img}
     ${dinBodyAluno(e, a, travado, {status: 'pergunta', certa: null, minhaResposta: null})}
@@ -3153,7 +3161,7 @@ async function act(a) {
       SND.bad(); vib([45, 60, 45]); return render();
     }
     case 'check': return grade(ehAtividade() ? true : isRight(L.queue[L.i], L.ans));
-    case 'skip': { const e = L.queue[L.i]; if (ehAtividade()) { L.respostas.push({id: e.id, resposta: null}); SND.tap(); return next(); } marcaTentativa(e, false, true); L.result = 'err'; L.combo = 0; L.errors++; L.lostHeart = false; L.erradas.add(e.id); L.acertadas.delete(e.id); if (requeues() && QI[e.id]) { const again = exercicio(QI[e.id]); L.wrongKeys.add(again.id + '#' + L.queue.length); L.queue.push(again); } render(); SND.bad(); return; }
+    case 'skip': { const e = L.queue[L.i]; if (ehAtividade()) { L.respostas[L.i] = {id: e.id, resposta: null}; SND.tap(); return next(); } marcaTentativa(e, false, true); L.result = 'err'; L.combo = 0; L.errors++; L.lostHeart = false; L.erradas.add(e.id); L.acertadas.delete(e.id); if (requeues() && QI[e.id]) { const again = exercicio(QI[e.id]); L.wrongKeys.add(again.id + '#' + L.queue.length); L.queue.push(again); } render(); SND.bad(); return; }
     case 'next': return next();
   }
 }
@@ -3183,7 +3191,7 @@ setInterval(() => {
   if (!S) return;
   if (L && L.mode === 'flash') {
     const t = document.getElementById('flash-t');
-    if (Date.now() >= L.deadline && L.result === null && !V.salvando) { finish(true); return; }
+    if (Date.now() >= L.deadline && L.result === null && !V.salvando && (!L.tentouFim || Date.now() - L.tentouFim > 10000)) { L.tentouFim = Date.now(); finish(true); return; }   // falhou ao salvar: tenta de novo a cada 10 s, não a cada segundo
     if (t) t.lastChild.textContent = mmss(L.deadline - Date.now());
   }
   if (V.screen === 'dinamica' && DIN && DIN.data && DIN.data.status === 'pergunta') {
