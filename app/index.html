@@ -775,7 +775,7 @@ const I = {
   // Menu: trilha pontilhada do pino até a bandeira
   path: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 19.5c0-4 3.5-5.5 7.5-5.5s7-1 7-5" stroke-dasharray="3 2.6"/><circle cx="4.5" cy="19.5" r="2.6" fill="currentColor" stroke="none"/><path d="M19 9V3"/><path d="M19 3h-5.5l1.3 2.3-1.3 2.3H19z" fill="currentColor" stroke-width="1.5"/></svg>',
   // Menu: haltere (o mesmo do botão Praticar)
-  train: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="9" width="3" height="6" rx="1" fill="currentColor" stroke="none"/><rect x="5" y="6.5" width="3.5" height="11" rx="1.2" fill="currentColor" stroke="none"/><rect x="15.5" y="6.5" width="3.5" height="11" rx="1.2" fill="currentColor" stroke="none"/><rect x="19.5" y="9" width="3" height="6" rx="1" fill="currentColor" stroke="none"/><path d="M8.5 12h7" stroke-width="2.6"/></svg>',
+  train: (s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="9" width="3" height="6" rx="1" fill="currentColor" stroke="none"/><rect x="5" y="6.5" width="3.5" height="11" rx="1.2" fill="currentColor" stroke="none"/><rect x="15.5" y="6.5" width="3.5" height="11" rx="1.2" fill="currentColor" stroke="none"/><rect x="19.5" y="9" width="3" height="6" rx="1" fill="currentColor" stroke="none"/><path d="M8.5 12h7" stroke-width="2.6"/></svg>`,
   // Menu: perfil com a cabeça preenchida
   user: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7.5" r="4" fill="currentColor" stroke="none"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0z"/></svg>',
   // Menu: turma em duotone (uma pessoa cheia, outra em contorno)
@@ -1176,6 +1176,17 @@ function trailRows(T, m) {
     });
     rows.push({k: 'trophy', id: 'T' + u.uni.id, u, avail: u.allDone, won: u.trofeu, title: 'Prova da unidade', sub: 'LENDÁRIO',
       desc: u.trofeu ? 'Troféu lendário conquistado. Você pode refazer quando quiser.' : u.allDone ? `Sem dicas e sem erros: um erro encerra a prova. Ganhe o troféu, ${E().xpLendaria} XP e ${E().moedasLendaria} moedas.` : 'Conclua todas as lições da unidade para liberar.'});
+    // fecha a seção: uma lição de revisão com as questões de todas as unidades dela
+    if (!T.units[k + 1] || T.units[k + 1].si !== u.si) {
+      const daSec = T.units.filter(x => x.si === u.si);
+      const totalLic = daSec.reduce((a, x) => a + x.lessons.length, 0);
+      const feitas = daSec.reduce((a, x) => a + x.lessons.filter(r => r.done).length, 0);
+      const falta = totalLic - feitas;
+      rows.push({k: 'secreview', id: 'R' + u.sec.id, u, avail: falta <= 0, title: 'Revisão da seção', sub: 'TREINO',
+        desc: falta <= 0
+          ? `Mistura questões ${daSec.length === 1 ? 'da unidade' : 'das ' + daSec.length + ' unidades'} de ${u.sec.titulo}. Pode repetir quando quiser.`
+          : `Conclua as lições da seção para liberar. ${falta === 1 ? 'Falta 1 lição' : 'Faltam ' + falta + ' lições'}.`});
+    }
   });
   return rows;
 }
@@ -1187,6 +1198,7 @@ function nodeStyle(r) {
   if (r.k === 'lesson' && r.st === 'current') return {bg: '#fff', bd: c.b, fg: c.b, sh: c.b};
   if (r.k === 'chest') return r.opened ? {bg: 'var(--lav)', bd: 'var(--line2)', fg: '', sh: 'var(--line2)'} : {bg: '#fff', bd: r.avail ? 'var(--gold-d)' : 'var(--gold)', fg: '', sh: 'var(--gold-s)'};
   if (r.k === 'trophy') return r.won ? {bg: 'var(--gold)', bd: 'var(--gold-d)', fg: 'var(--gold-dd)', sh: 'var(--gold-s)'} : r.avail ? {bg: '#fff', bd: 'var(--primary)', fg: 'var(--primary)', sh: 'var(--primary)'} : {bg: '#fff', bd: 'var(--line2)', fg: 'var(--muted)', sh: 'var(--line2)'};
+  if (r.k === 'secreview') return r.avail ? {bg: '#fff', bd: 'var(--teal)', fg: 'var(--teal-d)', sh: 'var(--teal)'} : {bg: '#fff', bd: 'var(--line2)', fg: 'var(--muted)', sh: 'var(--line2)'};
   if (r.k === 'jump') return {bg: '#fff', bd: 'var(--primary)', fg: 'var(--primary)', sh: 'var(--line2)'};
   return {bg: 'var(--line)', bd: 'var(--line)', fg: 'var(--muted)', sh: 'var(--line2)'};
 }
@@ -1197,6 +1209,7 @@ function popover(r, off) {
   else if (r.k === 'lesson' && r.st === 'current') { bd = c.b; cta = `Começar · +${E().xpLicao} XP`; act = `lesson:${r.r.lic.id}`; ctaCls = ''; ctaStyle = `background:${c.b};color:#fff;--sh:${c.dd}`; }
   else if (r.k === 'chest') { bd = 'var(--gold)'; if (r.avail && !r.opened) { cta = 'Abrir baú'; act = `chest:${r.u.uni.id}`; ctaCls = 'btn-gold'; sh = 'var(--gold-s)'; } }
   else if (r.k === 'trophy') { bd = r.avail ? 'var(--primary)' : 'var(--line2)'; if (r.avail) { cta = r.won ? 'Refazer a prova' : `Fazer a prova · +${E().xpLendaria} XP`; act = `legend:${r.u.uni.id}`; } }
+  else if (r.k === 'secreview') { bd = r.avail ? 'var(--teal)' : 'var(--line2)'; if (r.avail) { cta = `Revisar a seção · +${E().xpErros} XP`; act = `secreview:${r.u.sec.id}`; ctaCls = ''; ctaStyle = 'background:var(--teal);color:var(--navy);--sh:var(--teal-d)'; } }
   else if (r.k === 'jump') { bd = 'var(--primary)'; cta = 'Fazer o teste'; act = `jump:${r.u.uni.id}`; ctaCls = 'btn-outline'; sh = 'var(--primary)'; }
   else { fg = 'var(--muted)'; }
   const ctaHtml = cta
@@ -1234,6 +1247,7 @@ function screenJornada() {
     if (r.k === 'chest') icon = r.opened ? `<span style="opacity:.45">${I.chest()}</span>` : I.chest();
     if (r.k === 'trophy') icon = I.trophy;
     if (r.k === 'jump') icon = I.up();
+    if (r.k === 'secreview') icon = I.train(30);
     const cur = r.k === 'lesson' && r.st === 'current';
     const provaPendente = r.k === 'trophy' && r.avail && !r.won;  // prova liberada e ainda não feita: troféu animado e selo "!"
     const open = V.open === r.id;
@@ -1256,7 +1270,7 @@ function screenJornada() {
   ${nav('jornada')}`;
 }
 function nav(cur) {
-  const items = [['jornada', 'Jornada', I.path], ['praticar', 'Treinar', I.train], ['turma', 'Turma', I.users], ['missoes', 'Missões', I.target()], ['ligas', 'Ligas', I.shield()], ['perfil', 'Perfil', I.user]];
+  const items = [['jornada', 'Jornada', I.path], ['praticar', 'Treinar', I.train()], ['turma', 'Turma', I.users], ['missoes', 'Missões', I.target()], ['ligas', 'Ligas', I.shield()], ['perfil', 'Perfil', I.user]];
   const np = pendentes().length;
   return `<nav class="nav" data-key="nav" aria-label="Navegação principal">${items.map(([id, lbl, ic]) => `<button data-a="tab:${id}" ${cur === id ? 'aria-current="page"' : ''} style="position:relative">${ic}${lbl}${id === 'turma' && np ? `<span class="navbadge num" aria-label="${np} atividades pendentes">${np}</span>` : ''}</button>`).join('')}</nav>`;
 }
@@ -1326,7 +1340,7 @@ function screenSecoes() {
 /* =====================================================================
    Lição
    ===================================================================== */
-const MODO_SERVIDOR = {lesson: 'licao', legend: 'lendaria', jump: 'pular', review: 'revisao', errors: 'erros', unitreview: 'unidade', flash: 'relampago'};
+const MODO_SERVIDOR = {lesson: 'licao', legend: 'lendaria', jump: 'pular', review: 'revisao', errors: 'erros', unitreview: 'unidade', secreview: 'unidade', flash: 'relampago'};
 function startLesson(mode, opts = {}) {
   const m = materiaAtual(); const T = trilha(m);
   let queue = [], kicker = '', title = '', lic = null, uni = null, materiaId = m ? m.id : null;
@@ -1343,6 +1357,13 @@ function startLesson(mode, opts = {}) {
     queue = variados(pool, n);
     kicker = mode === 'legend' ? `PROVA LENDÁRIA · UNIDADE ${u.n}` : mode === 'jump' ? `TESTE · PULAR A UNIDADE ${u.n}` : `REVISAR · ${u.uni.titulo.toUpperCase()}`;
     title = mode === 'legend' ? 'Prova da unidade ' + u.n : mode === 'jump' ? 'Teste para pular' : 'Revisão da unidade';
+  } else if (mode === 'secreview') {
+    const daSec = T.units.filter(x => x.sec.id === opts.sec);
+    if (!daSec.length) return;
+    const sec = daSec[0].sec;
+    queue = variados(daSec.flatMap(x => questoesDaUnidade(x.uni.id)), 10);
+    kicker = `REVISAR · ${sec.titulo.toUpperCase()}`;
+    title = 'Revisão de ' + sec.titulo;
   } else if (mode === 'review') {
     const n = +(PM().revisao || {}).tamanho || +E().tamanhoRevisao || 8;
     // Fila da revisão espaçada primeiro (rpc revisao_do_dia, migration 0049); o resto segue como antes: erros + mistura
@@ -1368,8 +1389,8 @@ function startLesson(mode, opts = {}) {
   V.sheet = null; go('licao');
 }
 const blankAns = () => ({pick: null, slots: [null, null], order: [], sel: null, matched: [], pairs: []});
-const costsHearts = () => !plus() && ['lesson', 'review', 'unitreview', 'flash', 'legend'].includes(L.mode);
-const requeues = () => ['lesson', 'review', 'unitreview', 'errors'].includes(L.mode);
+const costsHearts = () => !plus() && ['lesson', 'review', 'unitreview', 'secreview', 'flash', 'legend'].includes(L.mode);
+const requeues = () => ['lesson', 'review', 'unitreview', 'secreview', 'errors'].includes(L.mode);
 const ehAtividade = () => !!L && L.mode === 'atividade';
 function screenLicao() {
   const e = L.queue[L.i], locked = L.result !== null, a = L.ans;
@@ -2394,6 +2415,7 @@ async function act(a) {
     case 'lesson': return startLesson('lesson', {lic: x});
     case 'legend': return startLesson('legend', {uni: x});
     case 'jump': return startLesson('jump', {uni: x});
+    case 'secreview': return startLesson('secreview', {sec: x});
     case 'review': { // busca a fila de revisão espaçada antes de montar o baralho; sem a migration 0049, segue sem ela
       const {data, error} = await sb.rpc('revisao_do_dia');
       V.revPlano = error ? null : data;
