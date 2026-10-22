@@ -122,7 +122,7 @@ Cada rodada: quem está na vez **gira a roleta**, que tem uma fatia por área do
 
 **Ninguém fica preso.** Cada vez tem prazo: 45 s para girar (passou, o servidor gira) e 30 s para responder a partir da entrega — ou 90 s desde o início da vez, se o jogador nunca abriu a tela. Os prazos são resolvidos de forma preguiçosa, na leitura de estado seguinte: quem está na sala faz o duelo andar, sem cron. Convite esquecido expira em 24 h, sala vazia em 10 min, e "Desistir" entrega a vitória ao adversário.
 
-**Economia.** Duelo não gasta coração e **não dá XP** — XP alimenta as ligas, e dois amigos poderiam trocar vitórias para subir. A vitória dá moedas (15 por padrão), com teto de 3 duelos premiados por dia e **um por adversário por dia** (dia de Brasília). Tudo em `parametros['duelo']`.
+**Economia.** Duelo não gasta coração e **não dá XP** — XP alimenta as ligas, e dois amigos poderiam trocar vitórias para subir. A vitória dá moedas (15 por padrão), com teto de 3 duelos premiados por dia e **um por adversário por dia** (dia de Brasília). Tudo em `parametros['duelo']`, editável no painel em **Conteúdo → Duelos** (super usuário).
 
 **Segurança.** As rodadas guardam o gabarito em `duelos.rodadas`: ninguém lê a tabela, nem os dois jogadores — só `is_admin()`. Tudo passa por `estado_duelo`/`girar_duelo`/`responder_duelo`, a correção usa o mesmo `fj_corrige_respostas` das atividades e o gatilho da 0052 barra duelos em escola bloqueada. No app, as questões do duelo reaproveitam os botões `dq-*` da dinâmica (`QZ()` diz qual jogo está na tela) e o renderizador `dinBodyAluno`.
 

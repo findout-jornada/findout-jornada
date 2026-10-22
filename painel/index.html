@@ -527,6 +527,7 @@ const segPills = q => (q.segmentos || []).length ? q.segmentos.map(s => `<span c
 const PADRAO = {
   economia: {coracoes: 5, horasCoracao: 5, custoRecarga: 350, custoCongelador: 200, maxCongeladores: 2, xpLicao: 15, xpPratica: 5, xpExercicio: 10, comboAPartirDe: 3, bonusCombo: 5, bonusPerfeita: 5, moedasLicao: 10, moedasBau: 25, xpLendaria: 40, moedasLendaria: 100, xpPular: 20, moedasPular: 20, acertosPular: 4, questoesPular: 5, tamanhoLicao: 5, segundosRelampago: 120, multiplicadorRelampago: 2, xpRevisao: 20, moedasRevisao: 10, tamanhoRevisao: 8, xpErros: 10, moedasIniciais: 100, xpAtividade: 20},
   ligas: {tamanho: 15, sobem: 7, caem: 5, moedasTop3: 200, niveis: ['Bronze', 'Prata', 'Ouro', 'Safira', 'Rubi', 'Esmeralda', 'Diamante']},
+  duelo: {rodadas: 5, segundos: 30, segundosGirar: 45, moedasVitoria: 15, premiadosPorDia: 3, salaMinutos: 10, conviteHoras: 24},
   missoes: {porDia: 3, moedasBauDiario: 50, mensal: {titulo: 'Desafio do mês', metaXp: 1500, moedas: 150, distintivo: 'Mensal', ativo: true}, dupla: {ativo: false, licoes: 20, dias: 5, moedas: 100}, revisao: {ativo: true, tamanho: 8, xp: 20}}
 };
 
@@ -807,7 +808,7 @@ async function carregar() {
   const [m, s, u, l, q, lq, mi, lo, pa, pu, ult] = r.map(x => x.data);
   const param = {};
   pa.forEach(p => { param[p.chave] = p.valor; });
-  ['economia', 'ligas', 'missoes'].forEach(k => { param[k] = Object.assign(JSON.parse(JSON.stringify(PADRAO[k])), param[k] || {}); });
+  ['economia', 'ligas', 'missoes', 'duelo'].forEach(k => { param[k] = Object.assign(JSON.parse(JSON.stringify(PADRAO[k])), param[k] || {}); });
   D = {materias: m, secoes: s, unidades: u, licoes: l, questoes: q, licaoQuestoes: lq, missoes: mi, loja: lo, param, publicacoes: pu, ultimoPacote: ult ? ult.pacote : null, segmentos: SEG_PADRAO, segmentosErro: null};
   // Segmentos chegam na migration 0012; sem ela, usa a lista padrão só para exibir
   const seg = await sb.from('segmentos').select('*').order('ordem').order('nome');
@@ -1046,7 +1047,7 @@ async function rota(s) {
    professor e coordenador veem só a escola (as turmas que o RLS deixa) e o banco de questões. */
 const NAV_ADMIN = [
   ['', [['inicio', 'Visão geral', I.home], ['dashboard', 'Dashboard', I.grafico]]],
-  ['Conteúdo', [['trilhas', 'Matérias e trilhas', I.path], ['questoes', 'Questões', I.q], ['habilidades', 'Habilidades', I.check], ['missoes', 'Missões', I.target], ['economia', 'Economia e loja', I.coin], ['ligas', 'Ligas', I.shield]]],
+  ['Conteúdo', [['trilhas', 'Matérias e trilhas', I.path], ['questoes', 'Questões', I.q], ['habilidades', 'Habilidades', I.check], ['missoes', 'Missões', I.target], ['economia', 'Economia e loja', I.coin], ['ligas', 'Ligas', I.shield], ['duelos', 'Duelos', I.bolt]]],
   ['Escolas · suporte', [['escolas', 'Escolas', I.predio], ['turmas', 'Turmas', I.users], ['atividades', 'Atividades', I.target], ['alunos', 'Contas', I.users]]],
   ['Sistema', [['publicar', 'Publicar', I.up], ['relatorios', 'Relatórios', I.grafico], ['auditoria', 'Auditoria', I.clock]]]
 ];
@@ -1543,6 +1544,26 @@ function viewEconomia() {
 /* =====================================================================
    Ligas
    ===================================================================== */
+/* Duelos entre colegas (migration 0054): regras em parametros['duelo']; o app e o servidor leem daqui */
+function viewDuelos() {
+  const P = D.param.duelo;
+  const dur = P.rodadas * (P.segundosGirar + P.segundos * 2);
+  return topbar('Duelos', 'Dois alunos da mesma turma se enfrentam em turnos com a mesma questão. As mudanças valem na hora, inclusive para duelos em andamento (o servidor lê estas regras a cada jogada).') + `<div class="content"><div class="grid2">
+    <div class="card"><div class="card-h"><h2>Partida</h2></div><div class="card-b frow">
+      ${numField('Rodadas', 'param.duelo.rodadas', P.rodadas, 'Cada jogador gira a roleta em metade delas. Use número ímpar para evitar empate em giros.')}
+      ${numField('Segundos para responder', 'param.duelo.segundos', P.segundos, 'Conta a partir de quando a questão chega ao aluno.')}
+      ${numField('Segundos para girar a roleta', 'param.duelo.segundosGirar', P.segundosGirar, 'Passou do prazo, o servidor gira sozinho.')}
+    </div><div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">Duração máxima de um duelo com essas regras: cerca de ${Math.ceil(dur / 60)} min. Ganha quem acertar mais; empate vai para o menor tempo somado.</div></div>
+    <div class="card"><div class="card-h"><h2>Recompensa</h2></div><div class="card-b frow">
+      ${numField('Moedas por vitória', 'param.duelo.moedasVitoria', P.moedasVitoria, 'Duelo não dá XP nem gasta coração, para não virar atalho na liga.')}
+      ${numField('Duelos premiados por dia', 'param.duelo.premiadosPorDia', P.premiadosPorDia, 'Depois disso o aluno joga, mas não ganha moedas. Contra o mesmo adversário, só um premiado por dia.')}
+    </div></div>
+    <div class="card"><div class="card-h"><h2>Convites e sala</h2></div><div class="card-b frow">
+      ${numField('Convite expira em (horas)', 'param.duelo.conviteHoras', P.conviteHoras)}
+      ${numField('Sala vazia expira em (minutos)', 'param.duelo.salaMinutos', P.salaMinutos, 'Se os dois não entrarem na sala nesse tempo, o duelo é cancelado.')}
+    </div></div>
+  </div></div>`;
+}
 function viewLigas() {
   const L = D.param.ligas;
   return topbar('Ligas semanais', 'Grupos de alunos que competem por XP durante a semana. A liga fecha no domingo à noite.') + `<div class="content"><div class="grid2">
@@ -2471,7 +2492,7 @@ function confirmHtml() {
 /* =====================================================================
    Render
    ===================================================================== */
-const VIEWS = {inicio: () => admin ? viewInicio() : viewInicioEducador(), dashboard: viewDashboard, trilhas: viewTrilhas, questoes: viewQuestoes, habilidades: viewHabilidades, missoes: viewMissoes, economia: viewEconomia, ligas: viewLigas, alunos: viewAlunos, publicar: viewPublicar, turmas: viewTurmas, turma: viewTurma, escolas: viewEscolas, escola: viewEscola, atividades: viewAtividades, resultados: viewResultados, dinamica: viewDinamica, auditoria: viewAuditoria, relatorios: viewRelatorios};
+const VIEWS = {inicio: () => admin ? viewInicio() : viewInicioEducador(), dashboard: viewDashboard, trilhas: viewTrilhas, questoes: viewQuestoes, habilidades: viewHabilidades, missoes: viewMissoes, economia: viewEconomia, ligas: viewLigas, duelos: viewDuelos, alunos: viewAlunos, publicar: viewPublicar, turmas: viewTurmas, turma: viewTurma, escolas: viewEscolas, escola: viewEscola, atividades: viewAtividades, resultados: viewResultados, dinamica: viewDinamica, auditoria: viewAuditoria, relatorios: viewRelatorios};
 let ultimaViewRender = null;
 function render() {
   if (!D) return;
