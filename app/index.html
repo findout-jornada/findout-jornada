@@ -2318,6 +2318,14 @@ function dueConvite(d) {
   ${duePlacarTopo(d)}
   ${acao}`;
 }
+// Acertos iguais e vitória decidida no relógio (migration 0055): explica quem respondeu mais rápido e por quanto
+const segDuelo = ms => { const s = Math.round((ms || 0) / 100) / 10; return (s % 1 ? s.toFixed(1).replace('.', ',') : String(s)) + ' s'; };
+function desempateDuelo(d) {
+  if (!d.porTempo || d.tempoEu == null || d.tempoRival == null) return '';
+  const eu = d.euGanhei, rival = esc(primeiroNome(d.rival.nome));
+  const dif = segDuelo(Math.abs(d.tempoRival - d.tempoEu));
+  return `<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:14px;background:${eu ? 'var(--green-l)' : 'var(--lav)'};color:${eu ? 'var(--green-dd)' : 'var(--ink2)'};font-size:13px;line-height:1.4;text-align:left;max-width:320px">${I.clock(18)}<span><b>Empate em acertos.</b> ${eu ? 'Você venceu no tempo' : rival + ' venceu no tempo'}: respondeu ${dif} mais rápido no total (${segDuelo(eu ? d.tempoEu : d.tempoRival)} contra ${segDuelo(eu ? d.tempoRival : d.tempoEu)}).</span></div>`;
+}
 function dueFim(d) {
   const ganhou = d.euGanhei, empate = d.empate;
   const faixa = ganhou ? '★ VITÓRIA ★' : empate ? 'EMPATE' : 'FIM DO DUELO';
@@ -2328,6 +2336,7 @@ function dueFim(d) {
     <span class="px" style="font-size:10px;color:var(--gold-d)">${faixa}</span>
     <h1 style="margin:0;font-family:var(--f-display);font-size:24px;font-weight:700">${titulo}</h1>
     <p class="sub" style="margin:0">${d.acertosEu} × ${d.acertosRival} em acertos</p>
+    ${desempateDuelo(d)}
     ${premio}</div>
   ${duePlacarTopo(d)}
   ${duePinos(d)}
