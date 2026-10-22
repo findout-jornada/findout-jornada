@@ -280,4 +280,41 @@ begin
   return new;
 end $$;
 
+-- (9) Pessoas da escola para o admin/coordenador da escola: a mesma lista da aba Contas do super,
+--     só com quem é membro da escola ou aluno das turmas dela (o coordenador limitado a segmentos
+--     recebe só os alunos das turmas dos segmentos dele). Nunca marca super usuário.
+create or replace function public.pessoas_da_escola(p_escola uuid)
+returns table (
+  user_id uuid, nome text, email text, avatar text,
+  xp int, moedas int, coracoes int, congeladores int,
+  findout_plus_ate timestamptz, criado_em timestamptz, visto_em timestamptz,
+  licoes int, ofensiva int, admin boolean, banido boolean, papel text
+)
+language plpgsql stable security definer set search_path = public as $$
+#variable_conflict use_column
+begin
+  perform exigir_login();
+  if not (is_admin() or coord_da_escola(p_escola)) then raise exception 'Só o admin ou o coordenador da escola.' using errcode = '42501'; end if;
+  return query
+    select p.user_id, p.nome, u.email::text, p.avatar,
+      coalesce(e.xp, 0), coalesce(e.moedas, 0), coalesce(e.coracoes, 0), coalesce(e.congeladores, 0),
+      p.findout_plus_ate, p.criado_em, p.visto_em,
+      (select count(*) from public.progresso pr where pr.user_id = p.user_id)::int,
+      public.ofensiva(p.user_id),
+      false,
+      coalesce(u.banned_until > now(), false),
+      p.papel
+    from public.perfis p
+    join auth.users u on u.id = p.user_id
+    left join public.economia_aluno e on e.user_id = p.user_id
+    where p.user_id in (
+        select em.user_id from public.escola_membros em where em.escola_id = p_escola
+        union
+        select ta.user_id from public.turma_alunos ta join public.turmas t on t.id = ta.turma_id
+          where t.escola_id = p_escola and ta.aceito and (is_admin() or coord_da_turma(t.id)))
+      and not exists (select 1 from public.admins a where a.user_id = p.user_id)
+    order by case p.papel when 'admin' then 0 when 'coordenador' then 1 when 'professor' then 2 else 3 end, p.nome;
+end $$;
+grant execute on function public.pessoas_da_escola(uuid) to authenticated;
+
 insert into public.schema_versao (versao) values (52) on conflict do nothing;

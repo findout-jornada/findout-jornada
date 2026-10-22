@@ -614,7 +614,7 @@ let V = {view: 'inicio', qf: {materia: '', unidade: '', tipo: '', status: '', bu
   turma: null, turmaAlunos: null, ativ: null, ativBusca: {texto: '', materia: '', unidade: '', assunto: '', segmento: '', nivel: ''}, ativFiltroTurma: '', resultados: null, modalPrev: null,
   escola: null, escolaAba: 'segmentos', escolaAlunos: null, escolaAberto: {},
   din: null, dinamicas: null, dash: {data: null, erro: null, carregando: false},
-  turmaFiltro: {escola: '', segmento: '', busca: ''}, ativFiltroEscola: '', alunosFiltro: {escola: '', turma: ''},
+  turmaFiltro: {escola: '', segmento: '', busca: ''}, ativFiltroEscola: '', alunosFiltro: {escola: '', turma: '', papel: ''},
   rel: {aba: 'visao', data: null, erro: null, carregando: false, turmas: null, terro: null, tcarregando: false, f: {escola: '', seg: '', turma: ''}, alunosPor: {}, det: null},
   aud: {lista: null, usuarios: [], carregando: false, erro: null, fim: false, aberto: {}, f: {user: '', origem: '', tabela: '', acao: '', periodo: '7', busca: ''}}};
 const PAPEIS = {aluno: 'Aluno', professor: 'Professor', coordenador: 'Coordenador', admin: 'Admin da escola'};
@@ -799,12 +799,27 @@ const souAdminEsc = eid => admin || (T && T.membros.some(m => m.escola_id === ei
 const turmasDaEscolaF = eid => !eid ? (T ? T.turmas : []) : (T ? T.turmas.filter(t => eid === 'sem' ? !t.escola_id : t.escola_id === eid) : []);
 /* Lista de alunos da aba Alunos com o filtro de escola/turma do super aplicado */
 function alunosFiltrados() {
-  const L = V.alunos.lista || []; if (!admin || !T) return L;
-  const F = V.alunosFiltro; if (!F.escola && !F.turma) return L;
+  let L = V.alunos.lista || []; if (!T) return L;
+  const F = V.alunosFiltro;
+  if (F.papel) L = L.filter(a => F.papel === 'super' ? a.admin : F.papel === 'bloqueado' ? a.banido : (a.papel || 'aluno') === F.papel && !a.admin);
+  if (!F.escola && !F.turma) return L;
   const ids = F.turma ? [F.turma] : turmasDaEscolaF(F.escola).map(t => t.id);
   const set = new Set(T.alunos.filter(x => ids.includes(x.turma_id)).map(x => x.user_id));
+  // educadores entram pelo vínculo com a escola (escola_membros), não pelas turmas
+  if (!F.turma && F.escola && F.escola !== 'sem') T.membros.filter(m => m.escola_id === F.escola).forEach(m => set.add(m.user_id));
   return L.filter(a => set.has(a.user_id));
 }
+/* Escolas de uma pessoa, para a aba Contas: como educador (escola_membros, com o papel lá) e como aluno (turmas) */
+function escolasDe(uid) {
+  if (!T) return [];
+  const out = [];
+  T.membros.filter(m => m.user_id === uid).forEach(m => { const e = escolaPorId(m.escola_id); if (e) out.push({escola: e, papel: m.papel, turmas: []}); });
+  T.alunos.filter(a => a.user_id === uid).forEach(a => { const t = turmaPorId(a.turma_id); if (!t) return; const e = t.escola_id ? escolaPorId(t.escola_id) : null; const k = e ? e.id : 'sem';
+    let x = out.find(o => (o.escola ? o.escola.id : 'sem') === k && o.papel === 'aluno'); if (!x) { x = {escola: e, papel: 'aluno', turmas: []}; out.push(x); } x.turmas.push(t.nome); });
+  return out;
+}
+const escolasHtml = uid => { const L = escolasDe(uid); if (!L.length) return '<span class="pill off">sem escola</span>';
+  return L.map(o => `<span class="pill ${o.papel === 'aluno' ? 'off' : 'type'}" title="${o.papel === 'aluno' ? 'Aluno nas turmas: ' + esc(o.turmas.join(', ')) : PAPEIS[o.papel] || o.papel}">${o.escola ? esc(o.escola.nome) : 'Sem escola'}${o.papel === 'aluno' ? (o.turmas.length ? ' · ' + esc(o.turmas.slice(0, 3).join(', ')) + (o.turmas.length > 3 ? ' +' + (o.turmas.length - 3) : '') : '') : ' · ' + esc((PAPEIS[o.papel] || o.papel).toLowerCase())}${o.escola && escolaBloqueada(o.escola) ? ' · bloqueada' : ''}</span>`).join(' '); };
 const STATUS_ATIV = {rascunho: ['Rascunho', 'draft'], aberta: ['Aberta', 'pub'], encerrada: ['Encerrada', 'off']};
 const statusReal = a => a.status === 'aberta' && a.prazo && new Date(a.prazo) < new Date() ? 'encerrada' : a.status;
 const isoLocal = iso => { if (!iso) return ''; const d = new Date(iso), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
@@ -939,7 +954,7 @@ async function rota(s) {
 const NAV_ADMIN = [
   ['', [['inicio', 'Visão geral', I.home], ['dashboard', 'Dashboard', I.grafico]]],
   ['Conteúdo', [['trilhas', 'Matérias e trilhas', I.path], ['questoes', 'Questões', I.q], ['habilidades', 'Habilidades', I.check], ['missoes', 'Missões', I.target], ['economia', 'Economia e loja', I.coin], ['ligas', 'Ligas', I.shield]]],
-  ['Escolas · suporte', [['escolas', 'Escolas', I.predio], ['turmas', 'Turmas', I.users], ['atividades', 'Atividades', I.target], ['alunos', 'Alunos', I.users]]],
+  ['Escolas · suporte', [['escolas', 'Escolas', I.predio], ['turmas', 'Turmas', I.users], ['atividades', 'Atividades', I.target], ['alunos', 'Contas', I.users]]],
   ['Sistema', [['publicar', 'Publicar', I.up], ['relatorios', 'Relatórios', I.grafico], ['auditoria', 'Auditoria', I.clock]]]
 ];
 /* Auditoria: eventos do painel (login, tela, busca…) vão para o banco sem travar a tela */
@@ -953,7 +968,7 @@ const NAV_PROF = [
 ];
 const NAV_GESTOR = [
   ['', [['inicio', 'Visão geral', I.home]]],
-  ['Escola', [['escolas', 'Minha escola', I.predio], ['turmas', 'Turmas', I.users], ['atividades', 'Atividades', I.target], ['relatorios', 'Relatórios', I.grafico]]],
+  ['Escola', [['escolas', 'Minha escola', I.predio], ['turmas', 'Turmas', I.users], ['atividades', 'Atividades', I.target], ['alunos', 'Pessoas', I.users], ['relatorios', 'Relatórios', I.grafico]]],
   ['Conteúdo', [['questoes', 'Banco de questões', I.q]]]
 ];
 const navItens = () => admin ? NAV_ADMIN : gestor() ? NAV_GESTOR : NAV_PROF;
@@ -1445,18 +1460,21 @@ function viewAlunos() {
   const nSel = L.filter(a => A.sel[a.user_id]).length;
   const todosSel = !!(L.length && nSel === L.length);
   const turmasF = turmasDaEscolaF(F.escola);
-  return topbar('Alunos', 'Consulta geral para suporte: todas as contas de todas as escolas', `<button class="btn btn-outline" data-a="ajuda-alunos" title="O que cada botão desta tela faz">? Como funciona</button><button class="btn btn-primary" data-a="novo-aluno">${I.plus}Novo aluno</button>`) + `<div class="content">
-    <form class="toolbar" id="f-alunos"><input class="inp sm" placeholder="Nome ou e-mail" value="${esc(A.busca)}" data-f="alunos.busca" aria-label="Buscar aluno" style="min-width:220px"><button type="button" class="btn btn-primary btn-sm" data-a="buscar-alunos">Buscar</button>
-      <select class="inp sm" data-f="alunosFiltro.escola" aria-label="Escola"><option value="">Todas as escolas</option>${(T ? T.escolas : []).map(e => `<option value="${e.id}" ${F.escola === e.id ? 'selected' : ''}>${esc(e.nome)}</option>`).join('')}${T && T.turmas.some(t => !t.escola_id) ? `<option value="sem" ${F.escola === 'sem' ? 'selected' : ''}>Sem escola</option>` : ''}</select>
+  const escolasSel = admin ? (T ? T.escolas : []) : minhasEscolas();
+  const PAPEL_F = [['', 'Todos os papéis'], ['aluno', 'Alunos'], ['professor', 'Professores'], ['coordenador', 'Coordenadores'], ['admin', 'Admins de escola'], ...(admin ? [['super', 'Super usuários']] : []), ['bloqueado', 'Bloqueados']];
+  return topbar(admin ? 'Contas' : 'Pessoas da escola', admin ? 'Todas as pessoas da plataforma (alunos, professores, coordenadores, admins e super usuários) e de qual escola cada uma é. Bloquear tira o acesso sem apagar nada; Excluir apaga a conta.' : 'Alunos, professores, coordenadores e admins ligados à sua escola. Só o suporte da Findout edita, bloqueia ou exclui contas.', admin ? `<button class="btn btn-outline" data-a="ajuda-alunos" title="O que cada botão desta tela faz">? Como funciona</button><button class="btn btn-primary" data-a="novo-aluno">${I.plus}Novo aluno</button>` : '') + `<div class="content">
+    <form class="toolbar" id="f-alunos"><input class="inp sm" placeholder="Nome ou e-mail" value="${esc(A.busca)}" data-f="alunos.busca" aria-label="Buscar pessoa" style="min-width:220px"><button type="button" class="btn btn-primary btn-sm" data-a="buscar-alunos">Buscar</button>
+      <select class="inp sm" data-f="alunosFiltro.papel" aria-label="Papel">${PAPEL_F.map(([v, l]) => `<option value="${v}" ${F.papel === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      ${admin || escolasSel.length > 1 ? `<select class="inp sm" data-f="alunosFiltro.escola" aria-label="Escola"><option value="">Todas as escolas</option>${escolasSel.map(e => `<option value="${e.id}" ${F.escola === e.id ? 'selected' : ''}>${esc(e.nome)}</option>`).join('')}${admin && T && T.turmas.some(t => !t.escola_id) ? `<option value="sem" ${F.escola === 'sem' ? 'selected' : ''}>Sem escola</option>` : ''}</select>` : ''}
       <select class="inp sm" data-f="alunosFiltro.turma" aria-label="Turma"><option value="">Todas as turmas</option>${turmasF.map(t => `<option value="${t.id}" ${F.turma === t.id ? 'selected' : ''}>${esc(t.nome)}</option>`).join('')}</select>
-      <button type="button" class="btn btn-outline btn-sm" data-a="dar-lote" ${nSel ? '' : 'disabled'}>${I.coin}Adicionar moedas/corações${nSel ? ` (${nSel})` : ''}</button><button type="button" class="btn btn-outline btn-sm" data-a="csv-alunos" ${L.length ? '' : 'disabled'}>${I.baixar}Baixar CSV</button><span style="color:var(--muted);font-size:13px">${A.lista ? L.length + (L.length !== A.lista.length ? ' de ' + A.lista.length : '') + ' aluno' + (L.length === 1 ? '' : 's') : ''}</span></form>
+      ${admin ? `<button type="button" class="btn btn-outline btn-sm" data-a="dar-lote" ${nSel ? '' : 'disabled'}>${I.coin}Adicionar moedas/corações${nSel ? ` (${nSel})` : ''}</button>` : ''}<button type="button" class="btn btn-outline btn-sm" data-a="csv-alunos" ${L.length ? '' : 'disabled'}>${I.baixar}Baixar CSV</button><span style="color:var(--muted);font-size:13px">${A.lista ? L.length + (L.length !== A.lista.length ? ' de ' + A.lista.length : '') + (L.length === 1 ? ' pessoa' : ' pessoas') : ''}</span></form>
     ${A.erro ? `<div class="warnbox">${I.warn}<span>${esc(A.erro)}</span></div>` : ''}
     ${F.escola || F.turma ? `<span style="font-size:12px;color:var(--muted)">Mostrando só quem está ${F.turma ? 'na turma ' + esc((turmaPorId(F.turma) || {}).nome || '') : 'nas turmas de ' + esc(F.escola === 'sem' ? 'nenhuma escola' : (escolaPorId(F.escola) || {}).nome || '')}. A busca lá em cima continua valendo para a plataforma toda.</span>` : ''}
     <div class="alunos">
-      <label style="display:flex;align-items:center;gap:8px;padding:2px 2px 10px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;align-self:flex-start;cursor:pointer"><input type="checkbox" data-a="sel-todos" ${todosSel ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--primary)">Marcar todos</label>
+      <label ${admin ? '' : 'hidden'} style="display:flex;align-items:center;gap:8px;padding:2px 2px 10px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;align-self:flex-start;cursor:pointer"><input type="checkbox" data-a="sel-todos" ${todosSel ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--primary)">Marcar todos</label>
       ${A.carregando ? '<div class="empty">Carregando…</div>' : L.map(a => `<div class="aluno">
-        <input type="checkbox" data-a="sel-aluno:${a.user_id}" ${A.sel[a.user_id] ? 'checked' : ''} aria-label="Selecionar ${esc(a.nome)}">
-        <div class="who">${avatarCfg(a.avatar) ? `<span class="av" aria-hidden="true" style="background:none">${avatarSvg(avatarCfg(a.avatar), 40, '')}</span>` : `<span class="av" aria-hidden="true">${esc((a.nome || '?').trim().charAt(0).toUpperCase())}</span>`}<span style="min-width:0"><b>${esc(a.nome)}</b>${a.banido ? ' <span class="pill" style="background:var(--red-l);color:var(--red-d)">bloqueado</span>' : ''}${a.admin ? ' <span class="pill type">super usuário</span>' : ''}${a.papel && a.papel !== 'aluno' ? ` <span class="pill on">${PAPEIS[a.papel] || a.papel}</span>` : ''}${plus(a) ? ` <span class="pill on">Findout+ até ${fmtDia(a.findout_plus_ate)}</span>` : ''}<span class="meta">${esc(a.email)} · visto ${fmtData(a.visto_em)} · desde ${fmtDia(a.criado_em)}</span></span></div>
+        <input type="checkbox" ${admin ? '' : 'hidden'} data-a="sel-aluno:${a.user_id}" ${A.sel[a.user_id] ? 'checked' : ''} aria-label="Selecionar ${esc(a.nome)}">
+        <div class="who">${avatarCfg(a.avatar) ? `<span class="av" aria-hidden="true" style="background:none">${avatarSvg(avatarCfg(a.avatar), 40, '')}</span>` : `<span class="av" aria-hidden="true">${esc((a.nome || '?').trim().charAt(0).toUpperCase())}</span>`}<span style="min-width:0"><b>${esc(a.nome)}</b>${a.banido ? ' <span class="pill" style="background:var(--red-l);color:var(--red-d)">bloqueado</span>' : ''}${a.admin ? ' <span class="pill type">super usuário</span>' : ''}${a.papel && a.papel !== 'aluno' ? ` <span class="pill on">${PAPEIS[a.papel] || a.papel}</span>` : ''}${plus(a) ? ` <span class="pill on">Findout+ até ${fmtDia(a.findout_plus_ate)}</span>` : ''}<span class="meta">${esc(a.email)} · visto ${fmtData(a.visto_em)} · desde ${fmtDia(a.criado_em)}</span><span class="meta" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">${escolasHtml(a.user_id)}</span></span></div>
         <div class="stats">
           <span class="stat s-xp" title="XP acumulado">${I.bolt}<span class="num">${a.xp}</span>&nbsp;XP</span>
           <span class="stat s-mo" title="Moedas">${I.coin}<span class="num">${a.moedas}</span></span>
@@ -1465,7 +1483,7 @@ function viewAlunos() {
           <span class="stat s-li" title="Lições concluídas">${I.book}<span class="num">${a.licoes}</span>&nbsp;lições</span>
           <span class="stat s-of" title="Ofensiva (dias seguidos)">${I.flame}<span class="num">${a.ofensiva}</span>&nbsp;dias</span>
         </div>
-        <div class="acts">
+        <div class="acts" ${admin ? '' : 'hidden'}>
           <button class="btn btn-outline btn-sm" data-a="editar-conta:${a.user_id}" title="Nome, e-mail e senha">${I.edit}Editar</button>
           <button class="btn btn-outline btn-sm" data-a="dar:${a.user_id}">${I.plus}Adicionar</button>
           ${plus(a) ? `<button class="btn btn-ghost btn-sm" data-a="plus:${a.user_id}:30">+30 dias</button><button class="btn btn-ghost btn-sm btn-danger" style="border:0" data-a="plus:${a.user_id}:0">Remover Findout+</button>` : `<button class="btn btn-ghost btn-sm" data-a="plus:${a.user_id}:30">Ativar Findout+</button>`}
@@ -1483,7 +1501,18 @@ function viewAlunos() {
 async function buscarAlunos() {
   V.alunos.carregando = true; V.alunos.erro = null; V.alunos.sel = {}; render();
   if (V.alunos.busca.trim()) auditar('busca', 'alunos', null, 'Buscou alunos: ' + V.alunos.busca.trim());
-  const {data, error} = await sb.rpc('alunos_admin', {p_busca: V.alunos.busca.trim(), p_limite: 100});
+  // super: toda a plataforma (alunos_admin). Admin/coordenador da escola: só a escola dele (pessoas_da_escola, migration 0052), com a busca aplicada aqui.
+  let data, error;
+  if (admin) ({data, error} = await sb.rpc('alunos_admin', {p_busca: V.alunos.busca.trim(), p_limite: 200}));
+  else {
+    const minhas = minhasEscolas(); const eid = minhas.some(e => e.id === V.alunosFiltro.escola) ? V.alunosFiltro.escola : (minhas[0] || {}).id;
+    if (!eid) { data = []; error = null; }
+    else {
+      const partes = await Promise.all((V.alunosFiltro.escola ? [eid] : minhas.map(e => e.id)).map(id => sb.rpc('pessoas_da_escola', {p_escola: id})));
+      error = (partes.find(p => p.error) || {}).error; const vis = {}; partes.forEach(p => (p.data || []).forEach(x => { vis[x.user_id] = x; })); data = Object.values(vis);
+      const q = V.alunos.busca.trim().toLowerCase(); if (q) data = data.filter(x => (x.nome || '').toLowerCase().includes(q) || (x.email || '').toLowerCase().includes(q));
+    }
+  }
   V.alunos.carregando = false;
   if (error) { V.alunos.erro = traduzErro(error.message); V.alunos.lista = []; } else V.alunos.lista = data || [];
   // disciplina dos professores (coluna da migration 0016; se não existir, segue sem)
@@ -2324,7 +2353,7 @@ const VIEWS = {inicio: () => admin ? viewInicio() : viewInicioEducador(), dashbo
 let ultimaViewRender = null;
 function render() {
   if (!D) return;
-  if (!VIEWS[V.view] || (!admin && !['inicio', 'turmas', 'turma', 'atividades', 'resultados', 'dinamica', 'questoes', 'relatorios', ...(gestor() ? ['escolas', 'escola'] : [])].includes(V.view))) V.view = 'inicio';
+  if (!VIEWS[V.view] || (!admin && !['inicio', 'turmas', 'turma', 'atividades', 'resultados', 'dinamica', 'questoes', 'relatorios', ...(gestor() ? ['escolas', 'escola', 'alunos'] : [])].includes(V.view))) V.view = 'inicio';
   const focado = document.activeElement, fkey = focado && focado.dataset ? focado.dataset.f : null, sel = focado && focado.selectionStart;
   const scroll = window.scrollY;
   const trocouView = V.view !== ultimaViewRender; ultimaViewRender = V.view;
@@ -2520,7 +2549,7 @@ async function act(a, el) {
     case 'dash-recarregar': return carregarDashboard();
     case 'csv-notas': { const d = V.resultados && V.resultados.data; if (!d) return; const at = T.atividades.find(z => z.id === V.resultados.id); auditar('copia', 'resultados', V.resultados.id, 'Baixou o CSV de notas da atividade', {alunos: d.alunos.length}); return baixarCsv(`notas-${slug((at && at.titulo) || 'atividade')}.csv`, ['Aluno', 'E-mail', 'Nota', 'Acertos', 'Total', 'Entregue em'], d.alunos.map(z => [z.nome, z.email || '', z.entregueEm ? String(z.nota).replace('.', ',') : '', z.entregueEm ? z.acertos : '', z.entregueEm ? z.total : '', z.entregueEm ? fmtData(z.entregueEm) : 'não entregou'])); }
     case 'csv-turma': { const L2 = (V.turmaAlunos && V.turmaAlunos.lista) || []; if (!L2.length) return toast('Nenhum aluno na turma.'); const t2 = turmaPorId(V.turma); auditar('copia', 'turmas', V.turma, 'Baixou o CSV de alunos da turma'); return baixarCsv(`alunos-${slug((t2 && t2.nome) || 'turma')}.csv`, ['Aluno', 'E-mail', 'XP', 'Ofensiva (dias)', 'Entregas', 'Convite aceito', 'Entrou em'], L2.map(z => [z.nome, z.email || '', z.xp, z.ofensiva, z.entregas, z.aceito === false ? 'não' : 'sim', fmtDia(z.entrou_em)])); }
-    case 'csv-alunos': { const L2 = alunosFiltrados(); if (!L2.length) return; auditar('copia', 'alunos', null, 'Baixou o CSV de alunos', {alunos: L2.length}); return baixarCsv('alunos.csv', ['Aluno', 'E-mail', 'XP', 'Moedas', 'Corações', 'Lições', 'Ofensiva (dias)', 'Findout+ até', 'Criado em', 'Visto em', 'Bloqueado'], L2.map(z => [z.nome, z.email, z.xp, z.moedas, z.coracoes, z.licoes, z.ofensiva, z.findout_plus_ate ? fmtDia(z.findout_plus_ate) : '', fmtDia(z.criado_em), fmtData(z.visto_em), z.banido ? 'sim' : ''])); }
+    case 'csv-alunos': { const L2 = alunosFiltrados(); if (!L2.length) return; auditar('copia', 'alunos', null, 'Baixou o CSV de alunos', {alunos: L2.length}); return baixarCsv('alunos.csv', ['Aluno', 'E-mail', 'XP', 'Moedas', 'Corações', 'Lições', 'Ofensiva (dias)', 'Findout+ até', 'Criado em', 'Visto em', 'Bloqueado', 'Papel', 'Escolas'], L2.map(z => [z.nome, z.email, z.xp, z.moedas, z.coracoes, z.licoes, z.ofensiva, z.findout_plus_ate ? fmtDia(z.findout_plus_ate) : '', fmtDia(z.criado_em), fmtData(z.visto_em), z.banido ? 'sim' : '', z.admin ? 'Super usuário' : (PAPEIS[z.papel] || z.papel || 'Aluno'), escolasDe(z.user_id).map(o => (o.escola ? o.escola.nome : 'Sem escola') + ' (' + (o.papel === 'aluno' ? 'aluno: ' + o.turmas.join(', ') : (PAPEIS[o.papel] || o.papel).toLowerCase()) + ')').join('; ')])); }
     case 'csv-aud': { const L2 = V.aud.lista || []; if (!L2.length) return; auditar('copia', 'painel', null, 'Baixou o CSV da auditoria', {eventos: L2.length}); return baixarCsv('auditoria.csv', ['Quando', 'Quem', 'E-mail', 'Papel', 'Origem', 'Ação', 'Tabela', 'Registro', 'Resumo'], L2.map(z => [fmtData(z.criado_em), z.nome, z.email || '', z.papel || '', z.origem, z.acao, z.tabela || '', z.registro || '', z.resumo || ''])); }
     case 'csv-erradas': { const d = V.rel.data; if (!d || !(d.erradas || []).length) return; auditar('copia', 'questoes', null, 'Baixou o CSV de questões mais erradas'); return baixarCsv('questoes-mais-erradas.csv', ['Questão', 'Matéria', 'Tipo', 'Alunos errando'], d.erradas.map(q => [q.enunciado, (materiaPorId(q.materia) || {}).nome || q.materia || '', TIPOS[q.tipo] || q.tipo, q.alunos])); }
     case 'aud-recarregar': return carregarAuditoria(false);
