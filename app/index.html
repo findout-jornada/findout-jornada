@@ -2387,18 +2387,21 @@ function duelosTopoHtml() {
     + (D.convites || []).map(dueCardConvite).join('')
     + (!D.emJogo && D.enviado ? dueCardEnviado(D.enviado) : '');
 }
+// Placar de duelos em bolinhas: verde = vitórias, vermelha = derrotas, cinza = empates (sempre do ponto de vista do aluno)
+const bolaPlacar = (cor, n, rot) => `<span style="display:inline-flex;align-items:center;gap:4px" title="${n} ${rot}" aria-label="${n} ${rot}"><i style="width:9px;height:9px;border-radius:50%;background:${cor};display:inline-block;box-shadow:0 0 0 2px ${cor}33"></i><b class="num" style="color:var(--navy);font-size:12px">${n}</b></span>`;
+const placarDuelo = (v, d, e) => `<span style="display:inline-flex;align-items:center;gap:10px">${bolaPlacar('#3FA34D', v, v === 1 ? 'vitória' : 'vitórias')}${bolaPlacar('#E0475B', d, d === 1 ? 'derrota' : 'derrotas')}${e ? bolaPlacar('#A9B1C7', e, e === 1 ? 'empate' : 'empates') : ''}</span>`;
 function duelosSecaoHtml(ts) {
   // Sem resposta do servidor nao ha secao: assim o app nao oferece um duelo que a
   // migration 0054 ainda nao instalou no banco.
   if (!ts.length || !V.duelos) return '';
   const D = V.duelos, v = D.vitorias || 0, de = D.derrotas || 0, e = D.empates || 0;
-  const retro = v + de + e ? v + 'V · ' + de + 'D' + (e ? ' · ' + e + 'E' : '') : 'Nenhum duelo ainda';
+  const retro = v + de + e ? placarDuelo(v, de, e) : 'Nenhum duelo ainda';
   return `<h2 class="h2">Duelo</h2>
     <div class="card" data-key="du-secao"><div class="row"><span class="tile" style="background:var(--lav);color:var(--primary)">${I.duelo(24)}</span><div class="grow"><span class="t15">Desafiar um colega</span><span class="sub">Rodadas alternadas, a mesma questão para os dois</span></div></div>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-top:1px solid var(--line)"><span class="num" style="font-size:12px;color:var(--muted)">${retro}</span><button class="chipbtn" data-a="du-sheet">Escolher adversário</button></div></div>`;
 }
 function dueColegaLinha(c, tid) {
-  const retro = c.vitorias || c.derrotas ? c.vitorias + ' × ' + c.derrotas + ' contra você' : 'Nunca duelaram';
+  const retro = c.vitorias || c.derrotas ? `<span style="display:inline-flex;align-items:center;gap:6px">Você ${placarDuelo(c.vitorias || 0, c.derrotas || 0, 0)}</span>` : 'Nunca duelaram';
   return `<div class="row" style="padding:9px 12px">${avDuelo(c.nome, c.avatar, 38)}
     <div class="grow" style="min-width:0"><span class="t15" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.nome)}</span><span class="sub">${retro}</span></div>
     <button class="chipbtn" data-a="du-desafiar:${tid}:${c.user}" ${c.aberto ? 'disabled' : ''}>${c.aberto ? 'Em duelo' : 'Desafiar'}</button></div>`;
