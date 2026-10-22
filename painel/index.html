@@ -153,6 +153,43 @@ main.view-anim .content{animation:fjView .3s ease both}
 #shell.telao .dingrp{padding:20px}
 .telao-sair{position:fixed;right:18px;bottom:18px;z-index:60;opacity:.55}
 .telao-sair:hover,.telao-sair:focus-visible{opacity:1}
+/* Telão com cara de sala de aula: papel de parede de educação, lousa no topo, placar com medalhas e pódio */
+.telao main{background:var(--bg) url(fundo.svg) repeat;background-size:320px 320px}
+.lousa{position:relative;overflow:hidden;background:#1F4D3A;color:#F4F7F2;border-radius:18px;padding:18px 24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;box-shadow:inset 0 0 0 6px #8B5A2B,inset 0 0 0 8px #C68642,0 14px 34px rgba(0,0,0,.25);font-family:var(--f-display)}
+.lousa::before{content:"";position:absolute;inset:8px;background:url(fundo.svg) repeat;background-size:320px 320px;filter:brightness(0) invert(1);opacity:.35;pointer-events:none}
+.lousa>*{position:relative}
+.lousa .tit{font-size:28px;font-weight:700;letter-spacing:.01em;display:flex;align-items:center;gap:12px}
+.lousa .sub{font-size:15px;opacity:.85;display:flex;align-items:center;gap:8px}
+.lousa .passos{margin-left:auto;display:flex;gap:6px;align-items:center}
+.lousa .passos i{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.7);display:inline-block}
+.lousa .passos i.ok{background:#FFD36A;border-color:#FFD36A}
+.lousa .passos i.cur{background:#fff;border-color:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.3)}
+.dinrank{display:grid;grid-template-columns:44px 40px 1fr auto;gap:12px;align-items:center;padding:8px 10px;border-radius:12px;transition:background-color .2s}
+.dinrank.top{background:linear-gradient(90deg,rgba(255,211,106,.22),transparent)}
+.dinrank.eu{outline:2px solid var(--primary-l)}
+.dinrank .pos{display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--muted)}
+.dinrank .av{width:40px;height:40px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;background:linear-gradient(135deg,#5B7CFF,#2D4FD6);box-shadow:0 4px 10px rgba(45,79,214,.25)}
+.dinrank.top .av{background:linear-gradient(135deg,#FFD36A,#E8A33D);color:#5A3F03}
+.dinrank .nm{display:flex;flex-direction:column;gap:4px;min-width:0}
+.dinrank .nm b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dinrank .pts{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-display);font-weight:700;font-size:16px;color:var(--fg)}
+.dinrank .pts svg{color:var(--green-d)}
+.podio{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:end;padding:10px 6px 0}
+.podio .col{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;min-width:0}
+.podio .col b{font-family:var(--f-display);font-size:15px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.podio .bloco{width:100%;border-radius:12px 12px 4px 4px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:10px;color:#fff;font-family:var(--f-display);font-weight:700;font-size:22px;box-shadow:inset 0 -6px 0 rgba(0,0,0,.15)}
+.podio .p1 .bloco{height:118px;background:linear-gradient(180deg,#FFD36A,#E8A33D);color:#5A3F03}
+.podio .p2 .bloco{height:88px;background:linear-gradient(180deg,#C9D1E3,#8E9AB8);color:#1F2740}
+.podio .p3 .bloco{height:66px;background:linear-gradient(180deg,#D9A46F,#B9773B);color:#3E2410}
+.podio .av{width:44px;height:44px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;color:#fff;background:linear-gradient(135deg,#5B7CFF,#2D4FD6)}
+@keyframes podio-sobe{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+.podio .col{animation:podio-sobe .5s cubic-bezier(.2,.8,.2,1) both}.podio .p2{animation-delay:.1s}.podio .p1{animation-delay:.25s}.podio .p3{animation-delay:.4s}
+.telao .dinrank{grid-template-columns:56px 52px 1fr auto;padding:10px 12px}
+.telao .dinrank .nm b{font-size:22px}.telao .dinrank .pts{font-size:24px}.telao .dinrank .av{width:52px;height:52px;font-size:18px}
+.telao .podio .col b{font-size:20px}.telao .podio .bloco{font-size:30px}.telao .podio .p1 .bloco{height:160px}.telao .podio .p2 .bloco{height:120px}.telao .podio .p3 .bloco{height:90px}
+.telao .lousa .tit{font-size:36px}.telao .lousa .sub{font-size:18px}
+.dinpill{display:inline-flex;align-items:center;gap:6px}
+@media (prefers-reduced-motion:reduce){.podio .col{animation:none}}
 main{min-width:0;display:flex;flex-direction:column}
 .topbar{display:flex;align-items:center;gap:14px;padding:16px clamp(24px,2.2vw,52px);border-bottom:1px solid var(--line);background:var(--topbar);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);position:sticky;top:0;z-index:5;flex-wrap:wrap}
 body{background-image:radial-gradient(700px 300px at 70% -80px,rgba(142,127,207,.16),transparent 70%),radial-gradient(640px 320px at -8% 108%,rgba(76,195,193,.10),transparent 70%);background-attachment:fixed}
@@ -1912,13 +1949,26 @@ document.addEventListener('keydown', ev => {
     else if (d.status === 'revelada') { ev.preventDefault(); act('din-cmd:proxima').catch(() => {}); }
   }
 });
+/* Ícones da dinâmica (sala de aula): troféu, medalha, chapéu de formatura, lâmpada, lápis, livro aberto */
+const ID = {
+  trofeu: (s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="#FFD36A" stroke="#8A6207" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10v6a5 5 0 0 1-10 0z"/><path d="M7 5H4.5a2 2 0 0 0 0 4H7M17 5h2.5a2 2 0 0 1 0 4H17" fill="none"/><path d="M10 14h4v3h-4zM7 21h10l-1-4H8z"/></svg>`,
+  medalha: (s = 22, cor = '#C9D1E3', esc_ = '#5E6885') => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="${cor}" stroke="${esc_}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l2 6h4l2-6" fill="none"/><path d="M6 2h4M14 2h4" fill="none"/><circle cx="12" cy="15" r="6"/><path d="M12 11.5l1 2.2 2.4.3-1.8 1.6.5 2.4-2.1-1.2-2.1 1.2.5-2.4-1.8-1.6 2.4-.3z" fill="#fff" fill-opacity=".7" stroke="none"/></svg>`,
+  chapeu: (s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11.5V16q6 4 12 0v-4.5M22 9v5"/></svg>`,
+  lampada: (s = 20) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-4 12.7V18h8v-3.3A7 7 0 0 0 12 2z"/><path d="M9.5 22h5M10 10l2 2.5 2-2.5"/></svg>`,
+  lapis: (s = 18) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l4-1L19 8l-3-3L5 16zM14 7l3 3"/></svg>`,
+  livro: (s = 18) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5q5-3 10 0v15q-5-3-10 0zM12 5q5-3 10 0v15q-5-3-10 0"/></svg>`
+};
+const MEDALHAS = [['#FFD36A', '#8A6207'], ['#C9D1E3', '#5E6885'], ['#D9A46F', '#7A4A1F']];
+const iniciais = n => (n || '?').trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 function dinRankingHtml(d, final) {
   const r = d.ranking || [], max = Math.max(1, ...r.map(x => x.acertos));
-  const pos = i => final && i < 3 ? ['🥇', '🥈', '🥉'][i] : (i + 1) + 'º';
-  return `<div class="card"><div class="card-h"><h2>${final ? 'Placar final' : 'Placar'}</h2><span class="pill type">${d.modo === 'grupos' ? 'grupos' : 'alunos'}</span>${final ? `<span class="right"><button class="btn btn-ghost btn-sm" data-a="csv-din">${I.baixar}Baixar CSV</button></span>` : ''}</div>
-    <div class="card-b" style="display:flex;flex-direction:column;gap:10px">
-    ${r.map((x, i) => `<div style="display:grid;grid-template-columns:44px 1fr 110px;gap:10px;align-items:center"><b style="font-size:${final && i < 3 ? '22px' : '13px'};color:${i ? 'var(--muted)' : 'var(--primary)'}">${pos(i)}</b><span style="display:flex;flex-direction:column;gap:3px;min-width:0"><b style="font-size:${i === 0 ? '16px' : '14px'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.nome)}</b><span class="bar"><i style="width:${Math.round(x.acertos / max * 100)}%;background:${i === 0 ? '#E8A33D' : 'var(--primary)'}"></i></span></span><b class="num" style="text-align:right">${x.acertos} acerto${x.acertos === 1 ? '' : 's'}</b></div>`).join('') || '<div class="empty">Ainda sem pontos.</div>'}
-    </div><div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">Empate é decidido pelo menor tempo somado das respostas.</div></div>`;
+  const pos = i => i === 0 ? ID.trofeu(final ? 30 : 24) : i < 3 ? ID.medalha(final ? 28 : 22, MEDALHAS[i][0], MEDALHAS[i][1]) : `<b>${i + 1}º</b>`;
+  const podio = final && r.length >= 2 ? `<div class="podio">${[1, 0, 2].filter(i => r[i]).map(i => `<div class="col p${i + 1}"><span class="av">${esc(iniciais(r[i].nome))}</span><b title="${esc(r[i].nome)}">${esc(r[i].nome)}</b><div class="bloco">${pos(i)}<span>${r[i].acertos}</span></div></div>`).join('')}</div>` : '';
+  return `<div class="card"><div class="card-h"><h2 style="display:flex;align-items:center;gap:8px">${ID.chapeu(22)}${final ? 'Placar final' : 'Placar'}</h2><span class="pill type">${d.modo === 'grupos' ? 'grupos' : 'alunos'}</span>${final ? `<span class="right"><button class="btn btn-ghost btn-sm" data-a="csv-din">${I.baixar}Baixar CSV</button></span>` : ''}</div>
+    ${podio}
+    <div class="card-b" style="display:flex;flex-direction:column;gap:6px">
+    ${r.map((x, i) => `<div class="dinrank ${i === 0 ? 'top' : ''} ${x.eu ? 'eu' : ''}"><span class="pos">${pos(i)}</span><span class="av">${esc(iniciais(x.nome))}</span><span class="nm"><b>${esc(x.nome)}</b><span class="bar"><i style="width:${Math.round(x.acertos / max * 100)}%;background:${i === 0 ? 'linear-gradient(90deg,#FFD36A,#E8A33D)' : 'linear-gradient(90deg,#5B7CFF,#2D4FD6)'}"></i></span></span><b class="pts">${I.check}${x.acertos}<span style="font-weight:500;font-size:12px;color:var(--muted)">acerto${x.acertos === 1 ? '' : 's'}</span></b></div>`).join('') || '<div class="empty">Ainda sem pontos.</div>'}
+    </div><div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px">${I.clock}Empate é decidido pelo menor tempo somado das respostas.</div></div>`;
 }
 function dinCorpoQ(d) {
   const gq = (d.questoes || [])[d.questao] || {}, pub = (d.publicas || [])[d.questao] || {};
@@ -1955,7 +2005,7 @@ function dinRespStatus(d) {
 function dinLobby(d) {
   const online = (d.alunos || []).filter(a => a.online);
   const presenca = `<div class="card"><div class="card-h"><h2>Quem já entrou no app</h2><span class="pill ${online.length ? 'pub' : 'off'}">${online.length} de ${(d.alunos || []).length}</span></div>
-    <div class="card-b" style="display:flex;gap:6px;flex-wrap:wrap">${(d.alunos || []).map(a => `<span class="pill ${a.online ? 'pub' : 'off'}" style="font-size:12px">${esc(a.nome)}</span>`).join('') || '<span style="font-size:13px;color:var(--muted)">Nenhum aluno na turma ainda.</span>'}</div>
+    <div class="card-b" style="display:flex;gap:6px;flex-wrap:wrap">${(d.alunos || []).map(a => `<span class="pill ${a.online ? 'pub' : 'off'} dinpill" style="font-size:12px">${a.online ? ID.chapeu(13) : ''}${esc(a.nome)}</span>`).join('') || '<span style="font-size:13px;color:var(--muted)">Nenhum aluno na turma ainda.</span>'}</div>
     <div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">O aluno abre o app na aba Turma e toca em "Dinâmica ao vivo". Quem entrar fica verde aqui.</div></div>`;
   let grupos = '';
   if (d.modo === 'grupos') {
@@ -1991,10 +2041,10 @@ function dinTelao(d) {
   return `<div class="dinwrap">
     <div class="card"><div class="card-b" style="display:flex;flex-direction:column;gap:14px">
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <span class="pill type">Questão ${d.questao + 1} de ${d.total}</span>
-        <span class="pill on">${TIPOS[pub.tipo] || pub.tipo || ''}</span>
-        <span class="pill ${nTot && nResp >= nTot ? 'pub' : 'off'}">${nResp} de ${nTot} ${d.modo === 'grupos' ? 'grupos' : 'alunos'} responderam</span>
-        ${!rev && d.tempo ? `<b id="din-timer" class="dintimer num"></b>` : rev ? `<span class="pill pub" style="margin-left:auto">Resposta revelada</span>` : ''}
+        <span class="pill type dinpill">${ID.lapis(14)}Questão ${d.questao + 1} de ${d.total}</span>
+        <span class="pill on dinpill">${ID.livro(14)}${TIPOS[pub.tipo] || pub.tipo || ''}</span>
+        <span class="pill ${nTot && nResp >= nTot ? 'pub' : 'off'} dinpill">${I.users}${nResp} de ${nTot} ${d.modo === 'grupos' ? 'grupos' : 'alunos'} responderam</span>
+        ${!rev && d.tempo ? `<span class="dintimer dinpill">${I.clock}<b id="din-timer" class="num"></b></span>` : rev ? `<span class="pill pub dinpill" style="margin-left:auto">${ID.lampada(14)}Resposta revelada</span>` : ''}
       </div>
       <h2 class="dinenun">${esc(pub.enunciado || '')}</h2>
       ${pub.imagem ? `<img class="qimg" src="${esc(pub.imagem)}" alt="" style="max-height:280px;align-self:flex-start;border-radius:10px">` : ''}
@@ -2002,7 +2052,7 @@ function dinTelao(d) {
       ${rev && gq.explicacao ? `<div style="border:1.5px solid var(--primary-l);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--fg2)"><b>Explicação:</b> ${esc(gq.explicacao)}</div>` : ''}
       ${dinRespStatus(d)}
       <div style="display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:12px">
-        ${rev ? `<button class="btn btn-primary" data-a="din-cmd:proxima">${d.questao + 1 >= d.total ? 'Ver o placar final' : 'Próxima questão →'}</button>` : `<button class="btn btn-primary" data-a="din-cmd:revelar">Revelar a resposta</button>`}
+        ${rev ? `<button class="btn btn-primary" data-a="din-cmd:proxima">${d.questao + 1 >= d.total ? ID.trofeu(18) + 'Ver o placar final' : 'Próxima questão →'}</button>` : `<button class="btn btn-primary" data-a="din-cmd:revelar">${ID.lampada(18)}Revelar a resposta</button>`}
       </div>
     </div></div>
     ${rev ? dinRankingHtml(d, false) : `<div class="card"><div class="card-h"><h2>Placar</h2></div><div class="card-b" style="font-size:13px;color:var(--muted)">O placar aparece quando você revelar a resposta, para ninguém se distrair antes.</div></div>`}
@@ -2032,7 +2082,7 @@ function viewDinamica() {
     : d.status === 'fim' ? dinRankingHtml(d, true) + `<div style="display:flex;gap:8px"><button class="btn btn-primary" data-a="din-voltar">Voltar à turma</button></div>`
     : d.origem === 'manual' ? dinManual(d) : dinTelao(d);
   return topbar(esc(d.titulo), sub, volta + `<button class="btn btn-primary" data-a="din-telao">${I.eye}Telão</button>` + (d.status !== 'fim' ? `<button class="btn btn-outline" data-a="din-cmd:encerrar">Encerrar</button>` : '')) + `<div class="content">
-    ${W.telao ? `<div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap"><b style="font-size:22px;font-family:var(--f-display)">${esc(d.titulo)}</b><span style="font-size:14px;color:var(--muted)">${t ? esc(t.nome) : ''}${d.modo === 'grupos' ? ' · em grupos' : ' · cada um por si'}</span></div>` : ''}
+    ${W.telao ? `<div class="lousa"><span class="tit">${ID.chapeu(34)}${esc(d.titulo)}</span><span class="sub">${I.users}${t ? esc(t.nome) : ''}${d.modo === 'grupos' ? ' · em grupos' : ' · cada um por si'}</span>${d.status !== 'lobby' && d.status !== 'fim' && d.total ? `<span class="passos" aria-label="Questão ${d.questao + 1} de ${d.total}">${Array.from({length: Math.min(d.total, 30)}, (_, k) => `<i class="${k < d.questao ? 'ok' : k === d.questao ? 'cur' : ''}"></i>`).join('')}</span>` : d.status === 'fim' ? `<span class="passos">${ID.trofeu(30)}</span>` : ''}</div>` : ''}
     ${W.erro ? `<div class="warnbox">${I.warn}<span>${esc(W.erro)}</span></div>` : ''}
     ${corpo}
     ${W.telao ? `<button class="btn btn-outline telao-sair" data-a="din-telao-sair">Sair do telão (Esc)</button>` : ''}
