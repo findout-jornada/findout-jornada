@@ -11,7 +11,7 @@
 <title>Findout Jornada</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icone-192.png">
-<link rel="apple-touch-icon" href="icone-192.png">
+<link rel="apple-touch-icon" href="icone-512.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Jost:wght@400;500;600;700&display=swap">
@@ -380,7 +380,7 @@ button.card:active{transform:scale(.985)}
 .stat{background:linear-gradient(180deg,#fff,#F5F7FF);box-shadow:0 2px 8px rgba(45,79,214,.08)}
 .stat svg{transition:transform .2s cubic-bezier(.3,1.4,.5,1)}
 .tag{background:var(--lav);color:var(--primary-d);box-shadow:inset 0 0 0 1px rgba(45,79,214,.12)}
-.combo{background:var(--grad-orange);color:#fff;box-shadow:0 3px 10px rgba(247,148,30,.35);text-shadow:0 1px 0 rgba(0,0,0,.15)}
+.combo{background:var(--grad-orange);color:var(--navy);box-shadow:0 3px 10px rgba(247,148,30,.35)}
 .topbar{box-shadow:0 1px 0 rgba(45,79,214,.05),0 6px 18px rgba(45,79,214,.05)}
 .footer,.checkbar{box-shadow:0 -6px 18px rgba(45,79,214,.05)}
 .mapacard{box-shadow:0 8px 22px rgba(27,79,143,.38),inset 0 1px 0 rgba(255,255,255,.18)}
@@ -613,10 +613,12 @@ function aplicarFundo(id) { const css = fundoCss(id); if (css === fundoAtual) re
 const SPRITES ={pensando: {src: 'rapozinha-pensando.png', fw: 216, fh: 240, n: 20, dur: 2}, feliz3: {src: 'rapozinha-feliz3.png', fw: 240, fh: 267, n: 30, dur: 2.4}};
 const spriteHtml = (sp, w, cls, alt) => `<span class="mascot-pensa ${cls}" role="img" aria-label="${esc(alt)}" style="width:${w}px;height:${Math.round(w * sp.fh / sp.fw)}px"><img src="${sp.src}" alt="" style="animation-duration:${sp.dur}s;animation-timing-function:steps(${sp.n})"></span>`;
 // Regra: a Rapozinha nunca aparece parada. Nos humores em vídeo, a reserva (enquanto o vídeo carrega,
-// se ele falhar ou com "reduzir movimento") é o sprite animado feliz3, não uma imagem estática.
+// se ele falhar ou com "reduzir movimento") é um sprite animado, não uma imagem estática — e nunca
+// um sprite alegre num humor triste, senão o app sorri na hora errada.
+const RESERVA = {triste: 'pensando'};
 const mascot = (w, cls = '', alt = '', humor = 'feliz') => { const sp = SPRITES[humor]; return sp
   ? spriteHtml(sp, w, cls, alt)
-  : `<span class="mascot ${cls}" data-humor="${VIDEO[humor] ? humor : 'feliz'}" style="width:${w}px"><canvas style="display:none" aria-hidden="true"></canvas><span class="fb">${spriteHtml(SPRITES.feliz3, w, '', alt)}</span></span>`; };
+  : `<span class="mascot ${cls}" data-humor="${VIDEO[humor] ? humor : 'feliz'}" style="width:${w}px"><canvas style="display:none" aria-hidden="true"></canvas><span class="fb">${spriteHtml(SPRITES[RESERVA[humor]] || SPRITES.feliz3, w, '', alt)}</span></span>`; };
 // Identidade azul/branco/laranja: os vídeos da mascote ainda são da era roxa, então
 // cada quadro novo passa pelo MESMO remapeamento usado para recolorir os sprites e os ícones:
 // azuis/roxos médios (matiz 200–300) viram azul royal (matiz 227, mais saturado; os escuros viram a sombra),
@@ -1403,8 +1405,8 @@ function screenLicao() {
        ${e.t === 'match' && !e.cega ? `<button class="btn btn-off" disabled>Combine os pares</button>` : ready ? `<button class="btn btn-primary pxbtn" data-a="check">${rotuloCheck}</button>` : `<button class="btn btn-off" disabled>${rotuloCheck}</button>`}</div>`
     : `<div class="banner ${ok ? 'ok' : 'bad'}" data-key="banner">
         <div style="display:flex;align-items:flex-start;gap:12px"><span class="ic">${ok ? I.check(22, 3.2) : I.close}</span>
-          <div class="grow"><span style="font-family:var(--f-display);font-weight:700;font-size:18px">${ok ? (L.combo >= (+E().comboAPartirDe || 3) ? 'Combo! Mandou bem!' : 'Mandou bem!') : dead ? 'Você ficou sem corações' : L.mode === 'legend' ? 'A prova lendária acabou' : 'Quase lá!'}</span>
-          <span style="font-size:14px;line-height:1.4">${ok ? (L.combo >= (+E().comboAPartirDe || 3) ? `${L.combo} acertos seguidos.` : 'Continue assim para manter o combo.') : esc(e.why)}</span></div></div>
+          <div class="grow"><span style="font-family:var(--f-display);font-weight:700;font-size:18px">${ok ? (L.missQ ? 'Fechou os pares' : L.combo >= (+E().comboAPartirDe || 3) ? 'Combo! Mandou bem!' : 'Mandou bem!') : dead ? 'Você ficou sem corações' : L.mode === 'legend' ? 'A prova lendária acabou' : 'Quase lá!'}</span>
+          <span style="font-size:14px;line-height:1.4">${ok ? (L.missQ ? `${L.missQ} ${L.missQ === 1 ? 'par errado' : 'pares errados'} pelo caminho.` : L.combo >= (+E().comboAPartirDe || 3) ? `${L.combo} acertos seguidos.` : 'Continue assim para manter o combo.') : esc(e.why)}</span></div></div>
         <button class="btn pxbtn" data-a="next" style="background:${ok ? 'var(--green-d)' : 'var(--red-d)'};color:#fff;--sh:${ok ? 'var(--green-dd)' : 'var(--red-dd)'}" ${V.salvando ? 'disabled' : ''}>${V.salvando ? 'Salvando…' : isLast && !(L.result === 'err' && requeues()) ? (ehAtividade() ? 'Entregar atividade' : 'Ver resultado') : 'Continuar'}</button>
       </div>`;
   const right = L.mode === 'flash'
@@ -1516,7 +1518,7 @@ function next() {
   if (L.mode === 'legend' && L.result === 'err') return finish(false);
   if (L.mode === 'flash' && Date.now() >= L.deadline) return finish(true);
   if (L.i >= L.queue.length - 1) return finish(true);
-  L.i++; L.result = null; L.lostHeart = false; L.ans = blankAns(); L.miss = false; L.missQ = 0; L.qT = Date.now(); render(true);
+  L.i++; L.result = null; L.lostHeart = false; L.heartQ = false; L.ans = blankAns(); L.miss = false; L.missQ = 0; L.qT = Date.now(); render(true);
 }
 async function entregar() {
   const a = L.atividade, respostas = L.respostas.slice();
@@ -1657,13 +1659,13 @@ function screenOfensiva() {
     cal += `<span style="background:${p ? 'var(--orange)' : f ? 'var(--blue)' : 'transparent'};color:${p || f ? '#fff' : fut ? 'var(--line2)' : 'var(--navy)'};${t ? 'border:2px solid var(--navy);font-weight:700' : ''}">${d}</span>`; }
   const goal = n < 7 ? 7 : n < 14 ? 14 : n < 30 ? 30 : 100;
   return `<div class="scroll">
-  <div style="background:var(--orange);color:#fff;padding:calc(12px + env(safe-area-inset-top,0px)) 20px 22px;display:flex;flex-direction:column;gap:14px">
-    <div style="display:flex;align-items:center;justify-content:space-between"><button class="iconbtn" style="margin-left:-12px;color:#fff" data-a="${celebrate ? 'after-streak' : 'go:jornada'}" aria-label="Fechar">${I.close}</button><span class="px" style="font-size:9px">OFENSIVA</span><button class="iconbtn" style="margin-right:-12px;color:#fff" data-a="go:loja" aria-label="Loja">${I.bag}</button></div>
+  <div style="background:var(--orange);color:var(--navy);padding:calc(12px + env(safe-area-inset-top,0px)) 20px 22px;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between"><button class="iconbtn" style="margin-left:-12px;color:var(--navy)" data-a="${celebrate ? 'after-streak' : 'go:jornada'}" aria-label="Fechar">${I.close}</button><span class="px" style="font-size:9px">OFENSIVA</span><button class="iconbtn" style="margin-right:-12px;color:var(--navy)" data-a="go:loja" aria-label="Loja">${I.bag}</button></div>
     ${celebrate ? `<div style="display:flex;justify-content:center;margin:-6px 0 -10px">${mascot(132, 'bounce', 'Rapozinha comemorando', 'feliz3')}</div>` : ''}
     <div style="display:flex;align-items:center;justify-content:center;gap:14px"><span class="chama-viva ${celebrate ? 'pop' : ''}">${I.flame(88, '#FFD36A', '#FFFFFF')}</span><div style="display:flex;flex-direction:column"><span class="num ${celebrate ? 'pop' : ''}" style="font-weight:700;font-size:64px;line-height:1">${n}</span><span style="font-family:var(--f-display);font-weight:600;font-size:18px">${n === 1 ? 'dia' : 'dias'} de ofensiva</span></div></div>
     <p style="margin:0;text-align:center;font-size:14px;line-height:1.45">${practicedToday() ? `${celebrate ? 'Chama acesa! ' : ''}Você praticou hoje. Volte amanhã para chegar a <strong>${n + 1} dias</strong>.` : `Você ainda não praticou hoje. Faça uma lição para chegar a <strong>${n + 1} dias</strong>.`}</p>
     <div style="background:#fff;color:var(--navy);border-radius:14px;padding:14px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center">
-      ${week.map(d => `<div style="display:flex;flex-direction:column;align-items:center;gap:7px"><span class="num" style="font-size:12px;font-weight:600;color:${d.today ? 'var(--navy)' : 'var(--muted)'}">${d.label}</span><span style="width:30px;height:30px;border-radius:50%;background:${d.done ? 'var(--orange)' : d.frozen ? 'var(--blue)' : '#fff'};border:2px solid ${d.done ? 'var(--orange)' : d.frozen ? 'var(--blue)' : 'var(--line2)'};display:flex;align-items:center;justify-content:center;color:#fff">${d.done ? I.check(14) : d.frozen ? I.snow(14) : ''}</span></div>`).join('')}</div></div>
+      ${week.map(d => `<div style="display:flex;flex-direction:column;align-items:center;gap:7px"><span class="num" style="font-size:12px;font-weight:600;color:${d.today ? 'var(--navy)' : 'var(--muted)'}">${d.label}</span><span style="width:30px;height:30px;border-radius:50%;background:${d.done ? 'var(--orange)' : d.frozen ? 'var(--blue)' : '#fff'};border:2px solid ${d.done ? 'var(--orange)' : d.frozen ? 'var(--blue)' : 'var(--line2)'};display:flex;align-items:center;justify-content:center;color:${d.done ? 'var(--navy)' : '#fff'}">${d.done ? I.check(14) : d.frozen ? I.snow(14) : ''}</span></div>`).join('')}</div></div>
   <div class="pad">
     <div class="card row"><span class="tile" style="background:var(--blue-l);color:var(--blue-d)">${I.snow()}</span><div class="grow"><span class="t15">Congelador de ofensiva</span><span class="sub">Um dia sem praticar não zera a chama</span></div><span class="px" style="font-size:9px;color:var(--blue-d)">${S.economia.congeladores} / ${E().maxCongeladores}</span></div>
     <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div style="display:flex;justify-content:space-between;align-items:baseline"><span class="t15">Meta de ofensiva</span><span class="num" style="font-size:12px;color:var(--muted)">${n} / ${goal} dias</span></div><div class="bar"><i style="width:${Math.round(n / goal * 100)}%;background:var(--orange)"></i></div><span style="font-size:13px;color:var(--ink2)">Chegue a ${goal} dias seguidos.</span></div>
@@ -1694,7 +1696,7 @@ function screenMissoes() {
     <div class="card row"><span class="tile" style="width:56px;height:56px;border-radius:14px;background:var(--lav);color:var(--primary)">${I.shield(30)}</span><div class="grow" style="gap:6px"><span style="font-size:14px;font-weight:600">Ganhe ${(+mensal.metaXp || 0).toLocaleString('pt-BR')} XP em ${MONTHS[hoje0.getMonth()]}</span><div class="bar"><i style="width:${Math.min(100, Math.round(S.economia.xpMes / (+mensal.metaXp || 1) * 100))}%"></i></div><span class="num" style="font-size:12px;color:var(--muted)">${S.economia.xpMes.toLocaleString('pt-BR')} / ${(+mensal.metaXp || 0).toLocaleString('pt-BR')} XP · faltam ${daysLeft} dias · ${mensal.moedas} moedas</span></div></div>` : ''}
     ${(PM().revisao || {}).ativo !== false ? `<h2 class="h2">Revisão diária</h2><button class="card row" style="width:100%;text-align:left" data-a="review"><span class="tile" style="background:var(--teal-l);color:var(--teal-d)">${I.redo}</span><div class="grow"><span class="t15">Mistura de todas as matérias</span><span class="sub">${d.missoes.some(m => m.tipo === 'revisao' && m.concluida) ? 'Feita hoje. Pode repetir.' : 'Prioriza o que está na hora de revisar'}</span></div>${I.chevR}</button>` : ''}
   </div></div>
-  <div class="footer"><button class="btn btn-primary pxbtn" data-a="go:jornada">Voltar à jornada</button></div>`;
+  ${nav('missoes')}`;
 }
 function screenLigas() {
   const lg = S.liga, niveis = PL().niveis || ['Bronze'], me = lg ? lg.nivel : 0, t = V.tier == null ? me : V.tier;
@@ -2476,7 +2478,10 @@ async function act(a) {
       const Lt = side === 'L' ? t : an.sel.t, Rt = side === 'R' ? t : an.sel.t;
       an.sel = null;
       if (e.map[Lt] === Rt) { an.matched.push('L' + Lt, 'R' + Rt); L.miss = false; if (an.matched.length === e.left.length * 2) return grade(ehAtividade() ? !L.missQ : true); SND.match(); return render(); }
-      L.miss = true; L.missCount = (L.missCount || 0) + 1; L.missQ = (L.missQ || 0) + 1; SND.bad(); return render();
+      L.miss = true; L.missCount = (L.missCount || 0) + 1; L.missQ = (L.missQ || 0) + 1; L.combo = 0;
+      L.wrongKeys.add(e.id + '#' + L.i);                 // tira o credito de acerto de primeira em grade()
+      if (!L.heartQ && costsHearts()) { L.heartQ = true; perderCoracao(); setTimeout(() => SND.heart(), 260); }   // um coracao por questao, como nos outros tipos
+      SND.bad(); vib([45, 60, 45]); return render();
     }
     case 'check': return grade(ehAtividade() ? true : isRight(L.queue[L.i], L.ans));
     case 'skip': { const e = L.queue[L.i]; if (ehAtividade()) { L.respostas.push({id: e.id, resposta: null}); SND.tap(); return next(); } marcaTentativa(e, false, true); L.result = 'err'; L.combo = 0; L.errors++; L.lostHeart = false; L.erradas.add(e.id); L.acertadas.delete(e.id); if (requeues() && QI[e.id]) { const again = exercicio(QI[e.id]); L.wrongKeys.add(again.id + '#' + L.queue.length); L.queue.push(again); } render(); SND.bad(); return; }
@@ -2484,6 +2489,7 @@ async function act(a) {
   }
 }
 app.addEventListener('change', ev => { const el = ev.target; if (el.tagName === 'SELECT' && el.dataset.a === 'rank-turma') act('rank-turma:' + el.value).catch(e => console.error(e)); });
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && V.sheet) { ev.preventDefault(); fecharSheet(); } });
 app.addEventListener('click', ev => {
   const el = ev.target.closest('[data-a]');
   if (!el || el.disabled || !S) {
