@@ -1584,7 +1584,64 @@ function screenFim() {
 /* =====================================================================
    Ofensiva, missões, ligas, loja, praticar, perfil
    ===================================================================== */
+/* ---------- Card da ofensiva para o Instagram (story 1080×1920) ----------
+   Desenhado no aparelho, em canvas: fundo azul royal, ícones de educação em marca-d'água, chama, dias,
+   a semana, a Rapozinha e a marca. É gerado assim que a tela da ofensiva abre (fica em cache) para o botão
+   Compartilhar usar na hora, dentro do gesto do toque (o iPhone exige). Sem compartilhamento de arquivo, baixa o PNG. */
+const svgParaImagem = svg => new Promise((ok, erro) => { const im = new Image(); im.onload = () => ok(im); im.onerror = erro; im.src = 'data:image/svg+xml,' + encodeURIComponent(svg); });
+const carregarImagem = src => new Promise((ok, erro) => { const im = new Image(); im.onload = () => ok(im); im.onerror = erro; im.src = src; });
+let cardCache = {chave: null, blob: null, fazendo: null};
+function prepararCardOfensiva() {
+  const chave = streak() + ':' + dkey(hojeServidor());
+  if (cardCache.chave === chave && (cardCache.blob || cardCache.fazendo)) return cardCache.fazendo || Promise.resolve(cardCache.blob);
+  cardCache = {chave, blob: null, fazendo: null};
+  cardCache.fazendo = cardOfensiva().then(b => { cardCache.blob = b; cardCache.fazendo = null; return b; }).catch(e => { console.error(e); cardCache.fazendo = null; return null; });
+  return cardCache.fazendo;
+}
+async function cardOfensiva() {
+  const W = 1080, H = 1920, n = streak(), nome = (S.perfil.nome || '').trim().split(' ')[0] || 'Você';
+  const today = hojeServidor(), Hs = S.ofensiva.historico || {};
+  try { await Promise.all([document.fonts.load('700 240px Jost'), document.fonts.load('600 56px Jost'), document.fonts.load('32px "Press Start 2P"')]); } catch (e) {}
+  const nomes = FUNDO_MATERIAS.geral;
+  const tile = `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="360" viewBox="0 0 360 360"><g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${FUNDO_POS.map(([x, y, r], k) => `<g transform="translate(${x} ${y}) rotate(${r}) scale(.6)">${(FUNDO_ICONES[nomes[k % nomes.length]] || '').replace(/#2D4FD6/g, '#fff')}</g>`).join('')}</g></svg>`;
+  const [imTile, imChama, imFox] = await Promise.all([svgParaImagem(tile), svgParaImagem(I.flame(240, '#FFD36A', '#FFFFFF')), carregarImagem(SPRITES.feliz3.src).catch(() => null)]);
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0, 0, 0, H); grad.addColorStop(0, '#5B7CFF'); grad.addColorStop(.45, '#2D4FD6'); grad.addColorStop(1, '#172C85'); g.fillStyle = grad; g.fillRect(0, 0, W, H);
+  const glow = g.createRadialGradient(W / 2, 400, 40, W / 2, 400, 640); glow.addColorStop(0, 'rgba(247,148,30,.55)'); glow.addColorStop(1, 'rgba(247,148,30,0)'); g.fillStyle = glow; g.fillRect(0, 0, W, H);
+  g.globalAlpha = .14; for (let y = 0; y < H; y += 360) for (let x = 0; x < W; x += 360) g.drawImage(imTile, x, y, 360, 360); g.globalAlpha = 1;
+  g.textAlign = 'center'; g.fillStyle = '#FFD36A'; g.font = '32px "Press Start 2P", monospace'; g.fillText('★ FINDOUT JORNADA ★', W / 2, 200);
+  g.drawImage(imChama, W / 2 - 150, 300, 300, 300);
+  g.fillStyle = '#fff'; g.font = '700 240px Jost, sans-serif'; g.fillText(String(n), W / 2, 820);
+  g.font = '600 56px Jost, sans-serif'; g.fillText(n === 1 ? 'dia de ofensiva' : 'dias de ofensiva', W / 2, 900);
+  g.fillStyle = '#FFEBD2'; g.font = '500 42px Jost, sans-serif'; g.fillText(`${nome} está em chamas estudando para o ENEM`, W / 2, 980);
+  const cx0 = W / 2 - 3 * 130, y = 1130;
+  for (let i = 6; i >= 0; i--) { const d = addDays(today, -i), k = dkey(d), x = cx0 + (6 - i) * 130; const p = Hs[k] === 'praticou', f = Hs[k] === 'congelado';
+    g.beginPath(); g.arc(x, y, 46, 0, Math.PI * 2); g.fillStyle = p ? '#F7941E' : f ? '#4CC3C1' : 'rgba(255,255,255,.18)'; g.fill();
+    if (i === 0) { g.lineWidth = 6; g.strokeStyle = '#fff'; g.stroke(); }
+    if (p || f) { g.strokeStyle = '#fff'; g.lineWidth = 8; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(x - 20, y + 2); g.lineTo(x - 6, y + 16); g.lineTo(x + 22, y - 14); g.stroke(); }
+    g.fillStyle = 'rgba(255,255,255,.85)'; g.font = '600 30px Jost, sans-serif'; g.fillText(WD[d.getDay()], x, y + 100); }
+  if (imFox) { const sp = SPRITES.feliz3, fw = 440, fh = Math.round(fw * sp.fh / sp.fw); g.drawImage(imFox, 0, 0, sp.fw, sp.fh, W / 2 - fw / 2, 1250, fw, fh); }
+  g.fillStyle = '#fff'; g.font = '600 40px Jost, sans-serif'; g.fillText('Estude para o ENEM brincando', W / 2, 1810);
+  g.fillStyle = 'rgba(255,255,255,.75)'; g.font = '500 32px Jost, sans-serif'; g.fillText(location.host, W / 2, 1862);
+  return new Promise((ok, erro) => c.toBlob(b => b ? ok(b) : erro(new Error('canvas')), 'image/png'));
+}
+async function compartilharOfensiva() {
+  const texto = `Estou com ${streak()} dia${streak() === 1 ? '' : 's'} de ofensiva na Findout Jornada!`;
+  const url = location.origin + location.pathname;
+  let blob = cardCache.blob;
+  if (!blob) { toast('Montando a imagem…'); blob = await prepararCardOfensiva(); }
+  try {
+    if (blob) {
+      const file = new File([blob], 'ofensiva-findout.png', {type: 'image/png'});
+      if (navigator.canShare && navigator.canShare({files: [file]})) { await navigator.share({files: [file], title: 'Findout Jornada', text: texto}); return; }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      toast('Imagem salva na galeria ou em Downloads. É só postar no Instagram!');
+    }
+    if (navigator.share) await navigator.share({title: 'Findout Jornada', text: texto, url});
+  } catch (e) { if (!e || e.name !== 'AbortError') toast('Não deu para compartilhar agora.'); }
+}
 function screenOfensiva() {
+  prepararCardOfensiva();
   const n = streak(), today = hojeServidor(), celebrate = V.celebrate, H = S.ofensiva.historico || {};
   const week = []; for (let i = 6; i >= 0; i--) { const d = addDays(today, -i), k = dkey(d); week.push({label: WD[d.getDay()], done: H[k] === 'praticou', frozen: H[k] === 'congelado', today: i === 0}); }
   const first = new Date(today.getFullYear(), today.getMonth(), 1), dim = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
@@ -1608,7 +1665,7 @@ function screenOfensiva() {
       <span style="display:flex;gap:10px;font-size:12px;color:var(--muted)"><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:var(--orange)"></span>praticou</span><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:var(--teal)"></span>congelado</span></span></div>
       <div class="cal num" style="font-size:12px;color:var(--muted)"><span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span></div><div class="cal">${cal}</div></div>
   </div></div>
-  <div class="footer"><button class="btn btn-primary pxbtn" data-a="${celebrate ? 'after-streak' : practicedToday() ? 'go:missoes' : 'go:jornada'}">${practicedToday() ? 'Continuar' : 'Ir para a lição'}</button>${navigator.share ? `<button class="btn btn-outline" style="height:44px" data-a="share">${I.share}Compartilhar</button>` : ''}</div>`;
+  <div class="footer"><button class="btn btn-primary pxbtn" data-a="${celebrate ? 'after-streak' : practicedToday() ? 'go:missoes' : 'go:jornada'}">${practicedToday() ? 'Continuar' : 'Ir para a lição'}</button><button class="btn btn-outline" style="height:44px" data-a="share" title="Gera uma imagem no formato de story para postar">${I.share}Compartilhar story</button></div>`;
 }
 function screenMissoes() {
   const d = S.dia, ms = d.missoes || [], porDia = +PM().porDia || ms.length, bau = +PM().moedasBauDiario || 50;
@@ -2345,7 +2402,7 @@ async function act(a) {
     case 'idioma': { try { localStorage.setItem('fj-idioma', x); } catch (e) {} const m = materias().find(z => z.id === x); vib(8); toast(`Idioma da viagem: ${m ? m.nome : x}.`); return render(); }
     case 'subject': { S.perfil.materia = x; V.open = null; sb.from('perfis').update({materia_atual: x}).eq('user_id', sessao.user.id).then(() => {}); const T = trilha(materiaAtual()); if (T.cur >= 0) V.open = 'L' + T.flat[T.cur].lic.id; return go('jornada', {scrollTo: true}); }
     case 'tier': V.tier = +x; return render();
-    case 'share': if (navigator.share) navigator.share({title: 'Findout Jornada', text: `Estou com ${streak()} dias de ofensiva na Findout Jornada!`, url: location.origin + location.pathname}).catch(() => {}); return;
+    case 'share': return compartilharOfensiva();  // imagem de story (1080×1920) gerada no aparelho; cai para texto+link se o aparelho não compartilhar arquivo
     case 'edit-nome': V.editNome = true; return render();
     case 'ilha': V.ilha = x; V.sheet = 'ilha'; vib(8); return render();
     case 'avatar': { const atual = avatarCfg(S.perfil.avatar); V.avatarEdit = {cfg: atual || avatarAleatorio(), inicialTxt: atual ? avatarTxt(atual) : '', cat: 'sk', salvando: false, hist: [], n: 0}; V.sheet = 'avatar'; V.editNome = false; return render(); }
