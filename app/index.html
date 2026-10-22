@@ -350,7 +350,8 @@ button.card:active{transform:scale(.985)}
 :root{--grad-primary:linear-gradient(180deg,#5B7CFF 0%,#2D4FD6 55%,#213DB0 100%);--grad-orange:linear-gradient(135deg,#FFB347,#F7941E 60%,#E8780A);--sombra-azul:0 10px 24px rgba(45,79,214,.22)}
 ::selection{background:var(--lilac-l);color:var(--navy)}
 .scroll{scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
-#app{background-image:radial-gradient(640px 320px at 50% -110px,rgba(45,79,214,.16),transparent 70%),radial-gradient(520px 380px at 108% 104%,rgba(247,148,30,.13),transparent 65%)}
+/* Papel de parede estilo WhatsApp: ícones de educação em marca-d'água (fundo.svg, mosaico de 320 px) atrás de todas as telas, inclusive o login */
+#app{background-image:radial-gradient(640px 320px at 50% -110px,rgba(45,79,214,.16),transparent 70%),radial-gradient(520px 380px at 108% 104%,rgba(247,148,30,.13),transparent 65%),url(fundo.svg);background-repeat:no-repeat,no-repeat,repeat;background-size:auto,auto,320px 320px}
 .auth{background-image:radial-gradient(460px 280px at 50% -60px,rgba(45,79,214,.30),transparent 70%),radial-gradient(380px 300px at 100% 100%,rgba(247,148,30,.16),transparent 65%)}
 /* transições gerais: tudo que se toca responde */
 .btn,.chipbtn,.card,.row,.tile,.stat,.unit,.node,.nav button,.iconbtn,.opt,.chip,.subjbtn,.mapacard,.fab,.avopt,.avcats button,.lrow,.startlbl,.crown,.avbtn{transition:transform .16s cubic-bezier(.2,.8,.2,1),box-shadow .2s,background-color .18s,border-color .18s,color .18s,filter .18s,opacity .18s}
