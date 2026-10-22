@@ -252,6 +252,20 @@ button.card:active{transform:scale(.985)}
 .avopt[aria-pressed="true"]{border-color:var(--primary);background:var(--lav);color:var(--primary)}
 .avopt.swatch{aspect-ratio:1;border-radius:50%;border:3px solid var(--white);box-shadow:0 0 0 2px var(--line);padding:0}
 .avopt.swatch[aria-pressed="true"]{box-shadow:0 0 0 3px var(--primary)}
+/* Duelo: a roleta das áreas. transform-box faz o transform-origin cair no centro do viewBox;
+   sem ele o navegador gira em volta da caixa do grupo, que muda conforme as fatias. */
+.roleta{display:block;width:100%;max-width:236px;margin:0 auto}
+.roleta .giro{transform-box:view-box;transform-origin:110px 110px;transition:transform 2.6s cubic-bezier(.17,.72,.14,1)}
+@media (prefers-reduced-motion:reduce){.roleta .giro{transition:none}}
+.duelista{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;border-radius:13px;border:2px solid transparent}
+.duelista.vez{border-color:var(--primary);background:var(--lav)}
+.duelista .nm{font-size:12px;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pinos{display:flex;align-items:center;gap:5px}
+.pino{width:13px;height:13px;border-radius:50%;background:var(--line2)}
+.pino.ok{background:var(--green)}
+.pino.err{background:var(--red)}
+.pino.vazio{background:transparent;border:2px dashed var(--line2)}
+
 /* Mapa do ENEM */
 .mapa{display:block;width:100%;height:auto;background:#2E6BB0}
 .mapa .ilha{cursor:pointer;animation:pop .5s ease-out var(--d) both,flutua 4.5s ease-in-out calc(var(--d) + .5s) infinite}
@@ -691,6 +705,7 @@ const I = {
   // Menu: perfil com a cabeça preenchida
   user: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7.5" r="4" fill="currentColor" stroke="none"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0z"/></svg>',
   // Menu: turma em duotone (uma pessoa cheia, outra em contorno)
+  duelo: (s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3l10.5 12.5M20 3L9.5 15.5"/><path d="M14.5 15.5l2.2 2.2a2 2 0 1 1-2.8 2.8l-2.2-2.2M9.5 15.5l-2.2 2.2a2 2 0 1 0 2.8 2.8l2.2-2.2"/></svg>`,
   users: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7.5" r="3.6" fill="currentColor" stroke="none"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0z" fill="currentColor" stroke="none"/><circle cx="17.2" cy="9" r="2.6"/><path d="M16 15.3a5.2 5.2 0 0 1 5.8 4.7"/></svg>',
   share: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>',
   google: '<svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.4z"/><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"/><path fill="#FBBC05" d="M6.4 14a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9z"/><path fill="#EA4335" d="M12 6c1.5 0 2.8.5 3.8 1.5l2.8-2.8A10 10 0 0 0 3.1 7.5L6.4 10c.8-2.3 3-4 5.6-4z"/></svg>'
@@ -852,7 +867,7 @@ function patch(o, n) {
 /* =====================================================================
    Estado: sessão, estado do aluno (servidor) e pacote de conteúdo
    ===================================================================== */
-let sessao = null, S = null, PK = null, QI = {}, L = null, DIN = null, lastResult = null, mostrando = '';
+let sessao = null, S = null, PK = null, QI = {}, L = null, DIN = null, DUE = null, lastResult = null, mostrando = '';
 let V = {screen: 'jornada', open: null, tier: null, toast: null, sheet: null, scrollTo: true, celebrate: false, salvando: false, editNome: false, justDone: null, bau: null, dinAtiva: null, falhaSalvar: null, ilhaBarco: null};
 let toastTimer, zarpando;
 function toast(msg) {
@@ -1841,6 +1856,7 @@ function screenTurma() {
   return `<header class="topbar"><h1>Turma</h1><button class="chipbtn" data-a="turmas" style="margin-right:10px">${ts.length ? 'Minhas turmas' : 'Entrar na turma'}</button></header>
   <div class="scroll"><div class="pad">
     ${V.dinAtiva ? `<button class="card row" style="width:100%;text-align:left;border-color:var(--primary);background:var(--lav)" data-a="din-entrar:${V.dinAtiva.id}" data-key="din-ativa"><span class="tile" style="background:var(--primary);color:#fff">${I.bolt(22)}</span><div class="grow"><span class="t15">Dinâmica ao vivo: ${esc(V.dinAtiva.titulo)}</span><span class="sub" style="color:var(--primary);font-weight:600">${esc(V.dinAtiva.turma)} · ${V.dinAtiva.status === 'lobby' ? 'esperando começar' : 'em andamento'} · toque para entrar</span></div>${I.chevR}</button>` : ''}
+    ${duelosTopoHtml()}
     ${(S.convites || []).map(c => `<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;border-color:var(--primary);background:var(--lav)" data-key="conv:${c.id}"><div style="display:flex;gap:12px;align-items:center"><span class="tile" style="background:var(--primary);color:#fff">${I.users}</span><div class="grow"><span class="t15">Convite para a turma ${esc(c.nome)}</span><span class="sub">${c.escola ? esc(c.escola) + ' · ' : ''}${c.professor ? 'convite de ' + esc(c.professor) + ' · ' : ''}${c.alunos} aluno${c.alunos === 1 ? '' : 's'}</span></div></div><div style="display:flex;gap:8px"><button class="btn btn-primary pxbtn" style="flex:2" data-a="convite:${c.id}:1">Aceitar</button><button class="btn btn-outline" style="flex:1" data-a="convite:${c.id}:0">Recusar</button></div></div>`).join('')}
     ${!ts.length ? `<div class="pad" style="padding:20px 0 6px;align-items:center;text-align:center">${mascot(110)}<h2 class="h2" style="font-size:18px">Você ainda não está numa turma</h2><p class="sub" style="max-width:280px;margin:0">Peça o código de 6 letras ao seu professor e entre pelo botão acima. As atividades que ele passar aparecem aqui.</p><button class="btn btn-primary pxbtn" data-a="turmas" style="margin-top:6px">Entrar com o código</button></div>` : `
     <div class="card row" data-key="turma-info"><span class="tile" style="background:var(--lav);color:var(--primary)">${I.users}</span><div class="grow"><span class="t15">${ts.map(t => esc(t.nome)).join(' · ')}</span><span class="sub">${ts.length === 1 ? (ts[0].escola ? esc(ts[0].escola) : 'Turma do professor') : ts.length + ' turmas'}</span></div></div>
@@ -1849,8 +1865,9 @@ function screenTurma() {
     ${!pend.length ? `<div class="card row"><span class="tile" style="background:var(--green-l);color:var(--green-dd)">${I.check(22, 3)}</span><div class="grow"><span class="t15">Tudo entregue</span><span class="sub">Quando o professor passar uma atividade nova, ela aparece aqui.</span></div></div>` : ''}
     ${feitas.length ? `<h2 class="h2">Entregues e encerradas</h2>${feitas.map(cardAtividade).join('')}` : ''}
     ${rankingTurmaHtml(ts)}
+    ${duelosSecaoHtml(ts)}
     <p class="sub" style="margin:4px 0 0;font-size:12px">Atividades não gastam corações. A nota sai na hora e o professor vê o que você respondeu.</p>`}
-  </div></div>${V.sheet === 'ativ' ? sheetAtiv() : ''}${V.sheet === 'turma' ? sheetTurma() : ''}${nav('turma')}`;
+  </div></div>${V.sheet === 'ativ' ? sheetAtiv() : ''}${V.sheet === 'turma' ? sheetTurma() : ''}${V.sheet === 'duelo' ? sheetDuelo() : ''}${nav('turma')}`;
 }
 function sheetAtiv() {
   const a = atividades().find(x => x.id === V.ativ); if (!a) return '';
@@ -1871,6 +1888,25 @@ function sheetTurma() {
     <button class="btn-ghost" data-a="sheet:">Fechar</button></section>`;
 }
 /* ---------- dinâmica ao vivo (quiz de sala): o professor comanda pelo painel ---------- */
+// Questão sem gabarito (dinâmica e duelo) virando exercício da tela. O "cega" diz ao resto
+// do app que a correção é do servidor: aqui não há resposta certa para comparar.
+function exercicioPublico(q) {
+  const dd = q.dados || {};
+  const e = {id: q.id, t: q.tipo, q: q.enunciado, img: q.imagem || null, cega: true};
+  if (q.tipo === 'mc') e.opts = dd.opts || [];
+  if (q.tipo === 'tf') e.stmt = dd.stmt || '';
+  if (q.tipo === 'bank') { e.parts = [dd.parts?.[0] || '', dd.parts?.[1] || '', dd.parts?.[2] || '']; e.words = (dd.words || []).filter(Boolean); }
+  if (q.tipo === 'order') e.items = dd.items || [];
+  if (q.tipo === 'match') { e.left = dd.left || []; e.right = dd.right || []; }
+  return e;
+}
+// A resposta já dá para enviar?
+const prontoPara = (e, a) => e.t === 'mc' || e.t === 'tf' ? a.pick !== null
+  : e.t === 'bank' ? a.slots[0] !== null && a.slots[1] !== null
+  : e.t === 'order' ? a.order.length === e.items.length
+  : e.t === 'match' ? a.pairs.length === e.left.length : false;
+// Qual jogo está na tela: a dinâmica e o duelo dividem os botões dq-* da questão
+const QZ = () => V.screen === 'duelo' ? DUE : DIN;
 async function carregarDinamicaAtiva() {
   if (!(S.turmas || []).length) { V.dinAtiva = null; return; }
   const {data, error} = await sb.rpc('dinamica_ativa');
@@ -1892,23 +1928,30 @@ async function atualizarDin() {
   DIN.data = data;
   DIN.offset = new Date(data.agora).getTime() - Date.now();
   if ((data.status === 'pergunta' || data.status === 'revelada') && data.questaoPub && DIN.builtFor !== data.questao) {
-    const q = data.questaoPub, dd = q.dados || {};
-    const e = {id: q.id, t: q.tipo, q: q.enunciado, img: q.imagem || null, cega: true};
-    if (q.tipo === 'mc') e.opts = dd.opts || [];
-    if (q.tipo === 'tf') e.stmt = dd.stmt || '';
-    if (q.tipo === 'bank') { e.parts = [dd.parts?.[0] || '', dd.parts?.[1] || '', dd.parts?.[2] || '']; e.words = (dd.words || []).filter(Boolean); }
-    if (q.tipo === 'order') e.items = dd.items || [];
-    if (q.tipo === 'match') { e.left = dd.left || []; e.right = dd.right || []; }
-    DIN.e = e; DIN.ans = blankAns(); DIN.builtFor = data.questao; DIN.enviado = false; DIN.travou = false;
+    DIN.e = exercicioPublico(data.questaoPub); DIN.ans = blankAns(); DIN.builtFor = data.questao; DIN.enviado = false; DIN.travou = false;
     if (data.status === 'pergunta') { SND.tap(); vib(20); }
   }
   if (data.respondi) DIN.enviado = true;
   if (V.screen === 'dinamica') render(false);
 }
 setInterval(() => { if (V.screen === 'dinamica' && DIN && DIN.data && DIN.data.status !== 'fim' && document.visibilityState !== 'hidden') atualizarDin(); }, 2000);
+// O duelo também corre a cada 2 s: é a leitura de estado que resolve os prazos no servidor.
+// Pausa enquanto a roleta gira, senão a questão chegaria antes de a fatia parar.
+let tiquesDuelo = 0;
+setInterval(() => {
+  if (document.visibilityState === 'hidden' || !S) return;
+  if (V.screen === 'duelo' && DUE && DUE.data && !DUE.girando && !DUE_PARADO.has(DUE.data.status)) atualizarDuelo();
+  else if (V.screen === 'turma' && (S.turmas || []).length && ++tiquesDuelo % 7 === 0) carregarDuelos();
+}, 2000);
+const DUE_PARADO = new Set(['fim', 'recusado', 'cancelado']);
 const dinResta = () => { const d = DIN && DIN.data; if (!d || !d.fimEm || d.status !== 'pergunta') return null; return new Date(d.fimEm).getTime() - (Date.now() + (DIN.offset || 0)); };
 const dinEsgotado = () => { const r = dinResta(); return r !== null && r <= 0; };
-const dinTravado = () => !DIN || !DIN.e || DIN.enviado || DIN.enviando || !DIN.data || DIN.data.status !== 'pergunta' || dinEsgotado();
+// Vale para a dinâmica e para o duelo; no duelo joga um por vez.
+function dinTravado() {
+  const Q = QZ(); if (!Q || !Q.e || Q.enviando || !Q.data) return true;
+  if (Q === DUE) return !Q.data.minhaVez || Q.data.respondi || Q.data.fase !== 'resp' || dueEsgotado();
+  return Q.enviado || Q.data.status !== 'pergunta' || dinEsgotado();
+}
 async function responderDin() {
   const d = DIN && DIN.data, e = DIN && DIN.e;
   if (!e || DIN.enviando || DIN.enviado || d.status !== 'pergunta') return;
@@ -1931,8 +1974,8 @@ function dinGrupoCard(d) {
   if (!d.grupo) return `<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:4px"><span class="t15">${d.temGrupos ? 'Você ainda está sem grupo' : 'O professor vai montar os grupos'}</span><span class="sub">${d.temGrupos ? 'Avise o professor para te colocar em um grupo.' : 'Quando ele sortear, seu grupo aparece aqui.'}</span></div>`;
   return `<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:4px;border-color:var(--primary);background:var(--lav)"><span class="px" style="font-size:9px;color:var(--primary)">SEU GRUPO</span><span style="font-family:var(--f-display);font-size:19px;font-weight:700">${esc(d.grupo.nome)}</span><span class="sub">${(d.grupo.colegas || []).length ? 'Com ' + d.grupo.colegas.map(esc).join(', ') : 'Só você por enquanto.'}</span></div>`;
 }
-function dinCertaTxt(d) {
-  const c = d.certa, e = DIN.e;
+function dinCertaTxt(d, e) {
+  const c = d.certa;
   if (c == null || !e) return '';
   if (e.t === 'mc') return 'Resposta certa: <b>' + esc(String(c)) + '</b>.';
   if (e.t === 'tf') return 'Resposta certa: <b>' + (c === true ? 'Verdadeiro' : 'Falso') + '</b>.';
@@ -1977,11 +2020,11 @@ function dinPerguntaAluno(d) {
     status = `<div class="banner ${ok ? 'ok' : 'bad'}" style="border-radius:16px;padding:16px;animation:none">
       <div style="display:flex;align-items:flex-start;gap:12px"><span class="ic">${ok ? I.check(22, 3.2) : I.close}</span><div class="grow">
       <span style="font-family:var(--f-display);font-weight:700;font-size:18px">${!d.respondi ? (d.modo === 'grupos' ? 'Seu grupo não respondeu' : 'Você não respondeu') : ok ? (d.modo === 'grupos' ? 'Seu grupo acertou!' : 'Você acertou!') : 'Não foi dessa vez'}</span>
-      <span style="font-size:14px;line-height:1.45">${dinCertaTxt(d)}${d.explicacao ? '<br>' + esc(d.explicacao) : ''}</span></div></div></div>`;
+      <span style="font-size:14px;line-height:1.45">${dinCertaTxt(d, e)}${d.explicacao ? '<br>' + esc(d.explicacao) : ''}</span></div></div></div>`;
   } else if (DIN.enviado) status = `<div class="msg ok"><b>Resposta enviada!</b> ${d.respondeuPor ? esc(d.respondeuPor) + ' respondeu pelo seu grupo. ' : ''}Agora é esperar o professor revelar.</div>`;
   else if (dinEsgotado()) status = `<div class="msg err"><b>Tempo esgotado.</b> Espere a resposta ser revelada no telão.</div>`;
   else if (semGrupo) status = `<div class="msg err">Você está sem grupo nesta dinâmica. Avise o professor.</div>`;
-  const ready = e.t === 'mc' || e.t === 'tf' ? a.pick !== null : e.t === 'bank' ? a.slots[0] !== null && a.slots[1] !== null : e.t === 'order' ? a.order.length === e.items.length : e.t === 'match' ? a.pairs.length === e.left.length : false;
+  const ready = prontoPara(e, a);
   const botao = rev || locked ? '' : `<button class="btn btn-primary pxbtn" data-a="din-responder" ${ready && !DIN.enviando ? '' : 'disabled'}>${DIN.enviando ? 'Enviando…' : d.modo === 'grupos' ? 'Responder pelo grupo' : 'Responder'}</button>`;
   return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="tag px">QUESTÃO ${d.questao + 1} DE ${d.total}</span><span class="tag px">${TIPO_LABEL[e.t] || e.t}</span>${d.modo === 'grupos' && d.grupo ? `<span class="tag px" style="border-color:var(--primary);color:var(--primary)">${esc(d.grupo.nome.toUpperCase())}</span>` : ''}</div>
     <h1 class="q">${esc(e.q)}</h1>
@@ -2016,6 +2059,366 @@ function screenDinamica() {
   else if (d.origem === 'manual') corpo = `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">${mascot(100)}<h2 class="h2" style="margin:0">Dinâmica em sala</h2><p class="sub" style="margin:0">O professor marca os acertos e o placar atualiza aqui.</p></div>${dinGrupoCard(d)}<h2 class="h2">Placar ao vivo</h2>${dinRankingAluno(d)}`;
   else corpo = dinPerguntaAluno(d);
   return head + `<main class="scroll"><div class="pad" style="gap:14px">${corpo}</div></main>`;
+}
+
+/* ---------- duelo entre colegas (migration 0054) ----------
+   Dois alunos da mesma turma, em turnos. Na sua vez o jogador gira a roleta; quem sorteia a
+   área e a questão é o SERVIDOR, e aqui a roleta só anima até a fatia que voltou. Ele responde
+   primeiro e só então o adversário recebe A MESMA questão.
+
+   A questão chega na leitura de estado SEGUINTE ao giro, porque é essa leitura que começa o
+   relógio no servidor: é por isso que atualizarDuelo() não roda enquanto a roleta gira — senão
+   o aluno gastaria o tempo dele olhando a roleta girar.
+
+   Nada do que o primeiro respondeu sai antes de o segundo responder. É o que faz o placar medir
+   quem sabe mais, e não quem calhou de pegar a pergunta mais fácil. */
+const primeiroNome = x => String(x || '').trim().split(/\s+/)[0] || 'Colega';
+const iniciais = x => String(x || '').trim().split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase() || '?';
+// A fatia usa a cor da ilha; para texto vai a variante escura (cor2), porque a clara
+// não tem contraste em fundo branco — o laranja de Linguagens fica em 2,4:1.
+const corArea = (id, k) => (ILHAS.find(i => i.id === id) || {})[k || 'cor'] || '#503C9D';
+const avDuelo = (nome, avatar, t, cor) => avatarCfg(avatar) ? avatarSvg(avatarCfg(avatar), t, nome)
+  : '<span class="av" style="width:' + t + 'px;height:' + t + 'px;font-size:' + Math.round(t / 3) + 'px;background:' + (cor || 'var(--orange)') + ';color:#fff">' + esc(iniciais(nome)) + '</span>';
+
+async function carregarDuelos() {
+  if (!(S.turmas || []).length) { V.duelos = null; return; }
+  const {data, error} = await sb.rpc('duelos_do_aluno');
+  V.duelos = error ? null : (data || null);
+  if (V.screen === 'turma') render(false);
+}
+async function carregarColegas() {
+  const ts = S.turmas || []; if (!ts.length) return;
+  const tid = V.colegas && ts.some(t => t.id === V.colegas.turma) ? V.colegas.turma : ts[0].id;
+  V.colegas = {turma: tid, lista: null};
+  const {data, error} = await sb.rpc('colegas_para_duelo', {p_turma: tid});
+  if (!V.colegas || V.colegas.turma !== tid) return;
+  V.colegas.lista = error ? [] : (data || []);
+  V.colegas.erro = error ? traduz(error.message) : null;
+  render(false);
+}
+async function desafiarColega(turma, user) {
+  const b = app.querySelector('[data-a="du-desafiar:' + turma + ':' + user + '"]');
+  if (b) { b.disabled = true; b.textContent = 'Enviando…'; }
+  const {data, error} = await sb.rpc('desafiar_duelo', {p_turma: turma, p_user: user});
+  if (error) { toast(traduz(error.message)); return render(false); }
+  V.sheet = null; SND.ok(); vib(20); carregarDuelos();
+  return entrarDuelo(data.id);
+}
+async function responderConviteDuelo(id, aceitar) {
+  const b = app.querySelector('[data-a="du-conv:' + id + ':' + (aceitar ? '1' : '0') + '"]');
+  if (b) { b.disabled = true; b.textContent = aceitar ? 'Entrando…' : 'Recusando…'; }
+  const {error} = await sb.rpc('responder_convite_duelo', {p_duelo: id, p_aceitar: aceitar});
+  if (error) { toast(traduz(error.message)); carregarDuelos(); return render(false); }
+  if (aceitar) { SND.ok(); vib(20); return entrarDuelo(id); }
+  toast('Desafio recusado.'); return carregarDuelos();
+}
+function entrarDuelo(id) {
+  DUE = {id, data: null, ans: blankAns(), e: null, builtFor: null, enviando: false, girando: false, buscando: false, offset: 0, roleta: null, travou: false};
+  go('duelo');
+  atualizarDuelo();
+}
+async function atualizarDuelo() {
+  if (!DUE || DUE.buscando || DUE.girando) return;
+  DUE.buscando = true;
+  const {data, error} = await sb.rpc('estado_duelo', {p_duelo: DUE.id});
+  if (!DUE) return;
+  DUE.buscando = false;
+  if (error) { toast(traduz(error.message)); DUE = null; carregarDuelos(); return go('turma'); }
+  aplicarDuelo(data);
+}
+function aplicarDuelo(data) {
+  if (!DUE) return;
+  const antes = DUE.data;
+  DUE.data = data;
+  DUE.offset = new Date(data.agora).getTime() - Date.now();
+  if (data.questao && DUE.builtFor !== data.rodada) {
+    DUE.e = exercicioPublico(data.questao); DUE.ans = blankAns(); DUE.builtFor = data.rodada; DUE.travou = false;
+    if (data.minhaVez && !data.respondi) { SND.tap(); vib(20); }
+  }
+  if (antes && !antes.comeca && data.comeca) { SND.ok(); vib(25); }     // saiu o sorteio de quem começa
+  if (antes && antes.status !== 'fim' && data.status === 'fim') {
+    if (data.euGanhei) { SND.streak(); vib([40, 50, 40, 50, 120]); confetti(70); } else { SND.bad(); vib(60); }
+    if (data.premio) recarregarEstado();            // as moedas da vitória entraram no servidor
+  }
+  if (V.screen === 'duelo') render(false);
+}
+const dueResta = () => {
+  const d = DUE && DUE.data;
+  if (!d || !d.limiteEm || d.status !== 'jogando' || d.fase !== 'resp' || !d.minhaVez || d.respondi) return null;
+  return new Date(d.limiteEm).getTime() - (Date.now() + (DUE.offset || 0));
+};
+const dueEsgotado = () => { const r = dueResta(); return r !== null && r <= 0; };
+async function girarRoleta() {
+  const d = DUE && DUE.data;
+  if (!d || DUE.girando || !d.minhaVez) return;
+  DUE.girando = true; render(false);
+  const {data, error} = await sb.rpc('girar_duelo', {p_duelo: DUE.id});
+  if (!DUE) return;
+  if (error) { DUE.girando = false; toast(traduz(error.message)); render(false); return atualizarDuelo(); }
+  const areas = d.areas || [], quantas = Math.max(1, areas.length);
+  const alvo = Math.max(0, areas.findIndex(a => a.id === data.area));
+  const antes = DUE.roleta ? DUE.roleta.deg : 0;
+  // sempre para frente, três voltas no mínimo, parando com a fatia sorteada no ponteiro
+  DUE.roleta = {deg: Math.ceil((antes + 1080) / 360) * 360 - alvo * (360 / quantas), area: data.area, nome: data.areaNome};
+  render(false); SND.tap(); vib(12);
+  setTimeout(() => {
+    if (!DUE || !DUE.girando) return;
+    DUE.girando = false; SND.ok(); vib([10, 25, 10]);
+    atualizarDuelo();                               // a leitura que entrega a questão e começa o relógio
+  }, SEM_MOV ? 80 : 2700);
+}
+async function responderDuelo() {
+  const d = DUE && DUE.data, e = DUE && DUE.e;
+  if (!d || !e || DUE.enviando || !d.minhaVez || d.respondi) return;
+  DUE.enviando = true; render(false);
+  const {data, error} = await sb.rpc('responder_duelo', {p_duelo: DUE.id, p_rodada: d.rodada, p_resposta: respostaDe(e, DUE.ans)});
+  if (!DUE) return;
+  DUE.enviando = false;
+  if (error) { toast(traduz(error.message)); render(false); return atualizarDuelo(); }
+  aplicarDuelo(data);
+  if (data.acertei === true) { SND.ok(); vib(25); } else if (data.acertei === false) { SND.bad(); vib(60); }
+}
+async function desistirDuelo() {
+  if (!DUE) return;
+  V.sheet = null;
+  const {error} = await sb.rpc('sair_duelo', {p_duelo: DUE.id});
+  if (error) toast(traduz(error.message));
+  carregarDuelos();
+  return atualizarDuelo();
+}
+
+// A roleta. O ponteiro fica no topo e a fatia 0 nasce centrada nele, então levar a fatia k até
+// o ponteiro é girar -k*passo. O texto gira +90° junto da fatia: quando ela para no ponteiro,
+// a soma dá zero e o nome da área sorteada aparece na horizontal.
+function roletaFatia(a, i, quantas) {
+  const passo = 360 / quantas, R = 96, cx = 110, cy = 110;
+  const pt = (ang, r) => [cx + r * Math.cos(ang * Math.PI / 180), cy + r * Math.sin(ang * Math.PI / 180)];
+  const c = i * passo - 90;
+  const p0 = pt(c - passo / 2, R), p1 = pt(c + passo / 2, R), tp = pt(c, R * .66);
+  const corpo = quantas === 1
+    ? '<circle cx="110" cy="110" r="96" fill="' + corArea(a.id) + '"/>'
+    : '<path d="M110 110 L' + p0[0].toFixed(1) + ' ' + p0[1].toFixed(1) + ' A96 96 0 ' + (passo > 180 ? 1 : 0) + ' 1 ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1) + 'Z" fill="' + corArea(a.id) + '" stroke="rgba(255,255,255,.8)" stroke-width="2"/>';
+  const x = tp[0].toFixed(1), y = tp[1].toFixed(1);
+  return corpo + '<text x="' + x + '" y="' + y + '" transform="rotate(' + (c + 90).toFixed(1) + ' ' + x + ' ' + y + ')" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="700" fill="#fff" style="font-family:var(--f-display);paint-order:stroke;stroke:rgba(1,15,46,.5);stroke-width:3">' + esc(a.nome) + '</text>';
+}
+function roleta(areas, deg, parada) {
+  const quantas = Math.max(1, areas.length);
+  const fatias = areas.map((a, i) => roletaFatia(a, i, quantas)).join('');
+  return `<svg class="roleta" viewBox="0 0 220 220" role="img" aria-label="${parada ? 'A roleta parou em ' + esc(parada) : 'Roleta das áreas do ENEM'}">
+    <circle cx="110" cy="110" r="103" fill="var(--navy)" opacity=".12"/>
+    <g class="giro" data-key="giro" style="transform:rotate(${deg.toFixed(2)}deg)">${fatias}</g>
+    <circle cx="110" cy="110" r="16" fill="#fff" stroke="var(--navy)" stroke-width="2.5"/>
+    <text x="110" y="110.5" text-anchor="middle" dominant-baseline="central" font-size="14" fill="#C9A23E">★</text>
+    <path d="M0 0 L-11 -15 L11 -15Z" transform="translate(110 22)" fill="var(--red)" stroke="#fff" stroke-width="2.5"/>
+  </svg>`;
+}
+function dueDuelista(d, p, acertos, eu) {
+  return `<div class="duelista ${d.vez === p.user ? 'vez' : ''}">${avDuelo(p.nome, p.avatar, 44, eu ? 'var(--primary)' : 'var(--orange)')}
+    <span class="nm">${eu ? 'Você' : esc(primeiroNome(p.nome))}</span>
+    <span class="num" style="font-size:22px;font-weight:700;color:var(--primary)">${acertos}</span></div>`;
+}
+function duePlacarTopo(d) {
+  const meio = d.rodada < 0 ? '<span class="px" style="font-size:11px;color:var(--muted)">VS</span>'
+    : '<span class="px" style="font-size:8px;color:var(--muted)">RODADA</span><span class="num" style="font-weight:700;font-size:14px">' + Math.min(d.total, d.rodada + 1) + '/' + d.total + '</span>';
+  return `<div class="card" style="padding:4px;display:flex;align-items:center;gap:2px" data-key="due-topo">
+    ${dueDuelista(d, d.eu, d.acertosEu, true)}
+    <div style="display:flex;flex-direction:column;align-items:center;gap:1px;padding:0 2px">${meio}</div>
+    ${dueDuelista(d, d.rival, d.acertosRival, false)}</div>`;
+}
+const duePino = v => '<span class="pino ' + (v === true ? 'ok' : v === false ? 'err' : 'vazio') + '"></span>';
+function duePinoLinha(r, k) {
+  return `<div class="row" style="padding:8px 12px;gap:10px"><span class="px" style="font-size:9px;width:14px;color:var(--muted)">${k + 1}</span>
+    <span style="flex:1;min-width:0;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.areaNome || '')}${r.materiaNome ? ' · ' + esc(r.materiaNome) : ''}</span>
+    <span class="pinos">${duePino(r.eu)}${duePino(r.rival)}</span></div>`;
+}
+function duePinos(d) {
+  const P = d.placar || []; if (!P.length) return '';
+  return `<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h2 class="h2">Rodadas</h2><span class="num" style="font-size:11px;color:var(--muted)">você · ${esc(primeiroNome(d.rival.nome))}</span></div>
+    <div class="card">${P.map(duePinoLinha).join('')}</div></div>`;
+}
+function dueRoletaCard(d) {
+  const acao = DUE.girando ? '<span class="t15" aria-live="polite">' + (DUE.roleta ? esc(DUE.roleta.nome) + '!' : 'Girando…') + '</span>'
+    : d.giroEhMeu ? '<button class="btn btn-primary pxbtn" style="width:100%" data-a="du-girar">Girar a roleta</button>'
+    : '<span class="sub" style="text-align:center">' + esc(primeiroNome(d.rival.nome)) + ' está girando a roleta…</span>';
+  return `<div class="card" style="padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px" data-key="due-roleta">
+    <span class="px" style="font-size:9px;color:var(--muted)">SORTEIO DA ÁREA</span>
+    ${roleta(d.areas || [], DUE.roleta ? DUE.roleta.deg : 0, DUE.roleta && DUE.roleta.nome)}
+    ${acao}</div>`;
+}
+// Sem a questão na mão: ou ela está chegando, ou é a vez do outro — e aí ela nem pode aparecer.
+function dueEspera(d) {
+  const pe = esc(primeiroNome(d.rival.nome));
+  const sub = d.minhaVez ? 'O relógio começa quando ela aparecer.'
+    : 'Você responde a <b>mesma</b> questão em seguida. Ela só aparece na sua vez para ninguém ver a resposta do outro antes.';
+  return `<div class="card" style="padding:22px 16px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center" data-key="due-espera">
+    ${mascot(100, '', '', 'pensando')}
+    <span class="t15">${d.minhaVez ? 'Recebendo a questão…' : pe + ' está respondendo'}</span>
+    <span class="sub" style="max-width:280px">${sub}</span></div>`;
+}
+function dueQuestao(d) {
+  if (!d.questao || !DUE.e) return dueEspera(d);
+  const e = DUE.e, a = DUE.ans, pe = esc(primeiroNome(d.rival.nome));
+  const esperando = !d.minhaVez || d.respondi;
+  const travado = esperando || dueEsgotado() || DUE.enviando;
+  const img = e.img ? '<img class="qimg" src="' + esc(e.img) + '" alt="Imagem da questão">' : '';
+  const rodape = esperando ? '<div class="msg ok"><b>Resposta enviada.</b> Agora ' + pe + ' responde a mesma questão, e aí os dois veem o resultado.</div>'
+    : dueEsgotado() ? '<div class="msg err"><b>Tempo esgotado.</b> Esta rodada foi embora.</div>'
+    : '<button class="btn btn-primary pxbtn" data-a="du-responder" ' + (prontoPara(e, a) && !DUE.enviando ? '' : 'disabled') + '>' + (DUE.enviando ? 'Enviando…' : 'Responder') + '</button>';
+  return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="tag px" style="border-color:${corArea(d.area)};color:${corArea(d.area, 'cor2')}">${esc((d.areaNome || '').toUpperCase())}</span>
+      <span class="tag px">${esc(d.materiaNome || '')}</span>
+      <span class="tag px">${TIPO_LABEL[e.t] || e.t}</span></div>
+    <h1 class="q">${esc(e.q)}</h1>
+    ${img}
+    ${dinBodyAluno(e, a, travado, {status: 'pergunta', certa: null, minhaResposta: null})}
+    ${rodape}`;
+}
+function dueResultado(d) {
+  const meu = d.acertei, pe = esc(primeiroNome(d.rival.nome));
+  const txt = v => v === true ? 'acertou' : v === false ? 'errou' : 'não respondeu';
+  const titulo = meu === true ? 'Você acertou!' : meu === false ? 'Não foi dessa vez' : 'Você não respondeu';
+  return `<div class="banner ${meu === true ? 'ok' : 'bad'}" style="border-radius:16px;padding:16px;animation:none" data-key="due-res">
+    <div style="display:flex;align-items:flex-start;gap:12px"><span class="ic">${meu === true ? I.check(22, 3.2) : I.close}</span><div class="grow">
+    <span style="font-family:var(--f-display);font-weight:700;font-size:18px">${titulo}</span>
+    <span style="font-size:14px;line-height:1.45">${pe} ${txt(d.rivalAcertou)}. ${dinCertaTxt(d, DUE.e)}${d.explicacao ? '<br>' + esc(d.explicacao) : ''}</span></div></div></div>`;
+}
+function dueJogo(d) {
+  const girando = d.fase === 'girar' || d.fase === 'revelada';
+  return duePlacarTopo(d)
+    + (girando ? dueRoletaCard(d) : dueQuestao(d))
+    + (d.fase === 'revelada' && !DUE.girando ? dueResultado(d) : '')   // girando, a atencao e a roleta
+    + duePinos(d)
+    + '<button class="btn-ghost" data-a="du-desistir" style="color:var(--red-d)">Desistir do duelo</button>';
+}
+function dueSala(d) {
+  const pe = esc(primeiroNome(d.rival.nome));
+  const titulo = d.rivalNaSala ? 'Sorteando quem começa…' : 'Esperando ' + pe;
+  const sub = d.rivalNaSala ? 'Os dois estão na sala. O duelo começa agora.'
+    : 'O duelo começa quando ' + pe + ' abrir a sala. Pode deixar esta tela aberta.';
+  return `<div style="display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding-top:8px">
+    ${mascot(110, 'bounce')}
+    <h1 style="margin:0;font-family:var(--f-display);font-size:21px;font-weight:700">${titulo}</h1>
+    <p class="sub" style="margin:0;max-width:300px">${sub}</p>
+    ${d.rivalNaSala ? '<span class="spinner spin"></span>' : ''}</div>
+  ${duePlacarTopo(d)}
+  <div class="msg" style="font-size:13px">São ${d.total} rodadas. Na sua vez você gira a roleta e responde primeiro; ${pe} responde a <b>mesma</b> questão depois, sem ver o que você marcou.</div>
+  <button class="btn-ghost" data-a="du-sair">Sair da sala</button>`;
+}
+function dueConvite(d) {
+  const pe = esc(primeiroNome(d.rival.nome));
+  const titulo = d.euDesafiei ? 'Desafio enviado' : pe + ' te desafiou';
+  const sub = d.euDesafiei ? pe + ' vê o convite na aba Turma. O duelo começa quando os dois estiverem na sala.'
+    : 'Aceite para entrar na sala e começar o duelo.';
+  const acao = d.euDesafiei ? '<button class="btn-ghost" data-a="du-desistir" style="color:var(--red-d)">Cancelar o desafio</button>'
+    : '<div style="display:flex;gap:8px"><button class="btn btn-primary pxbtn" style="flex:2" data-a="du-conv:' + d.id + ':1">Aceitar</button><button class="btn btn-outline" style="flex:1" data-a="du-conv:' + d.id + ':0">Recusar</button></div>';
+  return `<div style="display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding-top:8px">
+    ${mascot(110, '', '', 'pensando')}
+    <h1 style="margin:0;font-family:var(--f-display);font-size:21px;font-weight:700">${titulo}</h1>
+    <p class="sub" style="margin:0;max-width:300px">${sub}</p></div>
+  ${duePlacarTopo(d)}
+  ${acao}`;
+}
+function dueFim(d) {
+  const ganhou = d.euGanhei, empate = d.empate;
+  const faixa = ganhou ? '★ VITÓRIA ★' : empate ? 'EMPATE' : 'FIM DO DUELO';
+  const titulo = ganhou ? 'Você ganhou!' : empate ? 'Empatou' : esc(primeiroNome(d.rival.nome)) + ' ganhou';
+  const premio = d.premio ? '<span class="chipbtn" style="pointer-events:none;border-color:var(--gold-s);color:var(--gold-d);background:var(--gold-l)">' + I.coin(14) + '+' + d.premio + ' moedas</span>' : '';
+  return `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding-top:6px">
+    ${mascot(ganhou ? 130 : 110, ganhou ? 'bounce' : '', '', ganhou ? 'feliz2' : empate ? 'pensando' : 'triste')}
+    <span class="px" style="font-size:10px;color:var(--gold-d)">${faixa}</span>
+    <h1 style="margin:0;font-family:var(--f-display);font-size:24px;font-weight:700">${titulo}</h1>
+    <p class="sub" style="margin:0">${d.acertosEu} × ${d.acertosRival} em acertos</p>
+    ${premio}</div>
+  ${duePlacarTopo(d)}
+  ${duePinos(d)}
+  <button class="btn btn-primary pxbtn" data-a="du-denovo">Desafiar de novo</button>
+  <button class="btn-ghost" data-a="du-sair">Voltar à turma</button>`;
+}
+function dueEncerrado(d) {
+  const recusado = d.status === 'recusado';
+  const sub = recusado ? esc(primeiroNome(d.rival.nome)) + ' não aceitou esta vez.' : 'Ninguém entrou na sala a tempo.';
+  return `<div style="display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding-top:20px">
+    ${mascot(110, '', '', 'triste')}
+    <h1 style="margin:0;font-family:var(--f-display);font-size:21px;font-weight:700">${recusado ? 'Desafio recusado' : 'Duelo cancelado'}</h1>
+    <p class="sub" style="margin:0;max-width:300px">${sub}</p></div>
+  <button class="btn btn-primary pxbtn" data-a="du-sair">Voltar à turma</button>`;
+}
+function sheetDesistir() {
+  const d = DUE && DUE.data, conv = d && d.status === 'convite';
+  const pe = esc(primeiroNome((d && d.rival && d.rival.nome) || ''));
+  return `<div class="sheet-bg" data-key="bg:dud" data-a="sheet:"></div><section class="sheet" data-key="sh:dud" role="dialog" aria-modal="true" aria-labelledby="dud-t"><span class="grab" aria-hidden="true"></span>
+    <h1 id="dud-t" style="margin:0;font-family:var(--f-display);font-size:20px;font-weight:700">${conv ? 'Cancelar o desafio?' : 'Desistir do duelo?'}</h1>
+    <p class="sub" style="margin:0">${conv ? 'O convite sai da lista de ' + pe + '.' : 'A vitória vai para ' + pe + ', com o placar que estiver.'}</p>
+    <button class="btn btn-primary pxbtn" style="background:var(--red);--sh:var(--red-dd)" data-a="du-desistir-ok">${conv ? 'Cancelar o desafio' : 'Desistir'}</button>
+    <button class="btn-ghost" data-a="sheet:">Continuar</button></section>`;
+}
+function screenDuelo() {
+  const d = DUE && DUE.data, resta = dueResta();
+  const timer = resta !== null
+    ? '<span class="num" style="display:flex;align-items:center;gap:4px;font-weight:700;font-size:18px;color:' + (dueEsgotado() ? 'var(--red-d)' : 'var(--primary)') + '">' + I.clock(20) + '<span id="due-t">' + Math.max(0, Math.ceil(resta / 1000)) + '</span></span>'
+    : d && d.status === 'jogando' ? '<span class="num" style="font-weight:700;font-size:14px;color:var(--primary);white-space:nowrap">' + Math.min(d.total, d.rodada + 1) + ' / ' + d.total + '</span>' : '';
+  const nomes = d && d.rival ? 'Você × ' + esc(primeiroNome(d.rival.nome)) : 'Duelo';
+  const head = `<header class="topbar lhead"><button class="iconbtn" data-a="du-sair" aria-label="Sair do duelo">${I.close}</button><div class="grow" style="gap:2px;min-width:0"><span class="px" style="font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">DUELO · ${esc(((d && d.turma) || '').toUpperCase())}</span><span style="font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nomes}</span></div>${timer}</header>`;
+  let corpo;
+  if (!d) corpo = `<div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding-top:50px">${mascot(110, 'bounce')}<span class="spinner spin"></span><p class="sub" style="margin:0">Entrando no duelo…</p></div>`;
+  else if (d.status === 'convite') corpo = dueConvite(d);
+  else if (d.status === 'recusado' || d.status === 'cancelado') corpo = dueEncerrado(d);
+  else if (d.status === 'sala') corpo = dueSala(d);
+  else if (d.status === 'fim') corpo = dueFim(d);
+  else corpo = dueJogo(d);
+  return head + '<main class="scroll"><div class="pad" style="gap:14px">' + corpo + '</div></main>' + (V.sheet === 'dudesiste' ? sheetDesistir() : '');
+}
+// Na aba Turma: o duelo em andamento e os convites recebidos ficam no topo, junto da dinâmica
+function dueCardJogo(j) {
+  const pe = esc(primeiroNome(j.rival));
+  const linha = j.status === 'sala' ? 'esperando os dois na sala'
+    : (j.minhaVez ? 'é a sua vez' : 'vez de ' + pe) + ' · rodada ' + Math.min(j.total, Math.max(1, j.rodada)) + ' de ' + j.total;
+  return `<button class="card row" style="width:100%;text-align:left;border-color:var(--primary);background:var(--lav)" data-a="du-entrar:${j.id}" data-key="du-jogo"><span class="tile" style="background:var(--primary);color:#fff">${I.duelo(22)}</span><div class="grow"><span class="t15">Duelo com ${pe}</span><span class="sub" style="color:var(--primary);font-weight:600">${linha}</span></div>${I.chevR}</button>`;
+}
+function dueCardConvite(c) {
+  return `<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;border-color:var(--gold-s);background:var(--gold-l)" data-key="du-conv:${c.id}"><div style="display:flex;gap:12px;align-items:center">${avDuelo(c.de, c.avatar, 44)}<div class="grow" style="min-width:0"><span class="t15">${esc(c.de)} te desafiou</span><span class="sub">Duelo de perguntas · ${esc(c.turma)}</span></div></div><div style="display:flex;gap:8px"><button class="btn btn-primary pxbtn" style="flex:2" data-a="du-conv:${c.id}:1">Aceitar</button><button class="btn btn-outline" style="flex:1" data-a="du-conv:${c.id}:0">Recusar</button></div></div>`;
+}
+function dueCardEnviado(e) {
+  return `<button class="card row" style="width:100%;text-align:left" data-a="du-entrar:${e.id}" data-key="du-env"><span class="tile" style="background:var(--lav);color:var(--primary)">${I.duelo(22)}</span><div class="grow"><span class="t15">Desafio enviado a ${esc(primeiroNome(e.para))}</span><span class="sub">Esperando a resposta</span></div>${I.chevR}</button>`;
+}
+function duelosTopoHtml() {
+  const D = V.duelos; if (!D) return '';
+  return (D.emJogo ? dueCardJogo(D.emJogo) : '')
+    + (D.convites || []).map(dueCardConvite).join('')
+    + (!D.emJogo && D.enviado ? dueCardEnviado(D.enviado) : '');
+}
+function duelosSecaoHtml(ts) {
+  // Sem resposta do servidor nao ha secao: assim o app nao oferece um duelo que a
+  // migration 0054 ainda nao instalou no banco.
+  if (!ts.length || !V.duelos) return '';
+  const D = V.duelos, v = D.vitorias || 0, de = D.derrotas || 0, e = D.empates || 0;
+  const retro = v + de + e ? v + 'V · ' + de + 'D' + (e ? ' · ' + e + 'E' : '') : 'Nenhum duelo ainda';
+  return `<h2 class="h2">Duelo</h2>
+    <div class="card" data-key="du-secao"><div class="row"><span class="tile" style="background:var(--lav);color:var(--primary)">${I.duelo(24)}</span><div class="grow"><span class="t15">Desafiar um colega</span><span class="sub">Rodadas alternadas, a mesma questão para os dois</span></div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-top:1px solid var(--line)"><span class="num" style="font-size:12px;color:var(--muted)">${retro}</span><button class="chipbtn" data-a="du-sheet">Escolher adversário</button></div></div>`;
+}
+function dueColegaLinha(c, tid) {
+  const retro = c.vitorias || c.derrotas ? c.vitorias + ' × ' + c.derrotas + ' contra você' : 'Nunca duelaram';
+  return `<div class="row" style="padding:9px 12px">${avDuelo(c.nome, c.avatar, 38)}
+    <div class="grow" style="min-width:0"><span class="t15" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.nome)}</span><span class="sub">${retro}</span></div>
+    <button class="chipbtn" data-a="du-desafiar:${tid}:${c.user}" ${c.aberto ? 'disabled' : ''}>${c.aberto ? 'Em duelo' : 'Desafiar'}</button></div>`;
+}
+function sheetDuelo() {
+  const ts = S.turmas || [], D = V.colegas;
+  const t = ts.find(x => x.id === (D && D.turma)) || ts[0] || null;
+  const tid = t ? t.id : '';
+  const lista = (D && D.lista) || [];
+  const opcoes = ts.map(x => '<option value="' + x.id + '" ' + (t && x.id === t.id ? 'selected' : '') + '>' + esc(x.nome) + '</option>').join('');
+  const seletor = ts.length > 1 ? '<select class="inp" style="height:40px" data-a="du-turma" aria-label="Turma">' + opcoes + '</select>' : '';
+  const corpo = !D || !D.lista ? '<div class="row"><span class="sub">Carregando…</span></div>'
+    : D.erro ? '<div class="row"><span class="sub">' + esc(D.erro) + '</span></div>'
+    : !lista.length ? '<div class="row"><span class="sub">Você é o único aluno desta turma por aqui.</span></div>'
+    : lista.map(c => dueColegaLinha(c, tid)).join('');
+  return `<div class="sheet-bg" data-key="bg:duelo" data-a="sheet:"></div><section class="sheet" data-key="sh:duelo" role="dialog" aria-modal="true" aria-labelledby="duo-t"><span class="grab" aria-hidden="true"></span>
+    <div style="display:flex;align-items:center;gap:12px">${mascot(60, '', '', 'feliz3')}<div class="grow"><span class="px" style="font-size:9px;color:var(--primary)">DUELO</span><h1 id="duo-t" style="margin:0;font-family:var(--f-display);font-size:20px;font-weight:700">Desafiar um colega</h1><span class="sub">Quem acertar mais ganha</span></div></div>
+    ${seletor}
+    <div class="card" style="max-height:44vh;overflow:auto">${corpo}</div>
+    <button class="btn-ghost" data-a="sheet:">Fechar</button></section>`;
 }
 
 /* ---------- Mapa do ENEM: arquipélago com uma ilha por área de conhecimento ---------- */
@@ -2427,7 +2830,7 @@ function screenPerfil() {
 /* =====================================================================
    Render e ações
    ===================================================================== */
-const SCREENS = {jornada: screenJornada, materias: screenMaterias, secoes: screenSecoes, licao: screenLicao, fim: screenFim, ofensiva: screenOfensiva, missoes: screenMissoes, ligas: screenLigas, loja: screenLoja, praticar: screenPraticar, turma: screenTurma, perfil: screenPerfil, mapa: screenMapa, dinamica: screenDinamica, dominio: screenDominio};
+const SCREENS = {jornada: screenJornada, materias: screenMaterias, secoes: screenSecoes, licao: screenLicao, fim: screenFim, ofensiva: screenOfensiva, missoes: screenMissoes, ligas: screenLigas, loja: screenLoja, praticar: screenPraticar, turma: screenTurma, perfil: screenPerfil, mapa: screenMapa, dinamica: screenDinamica, duelo: screenDuelo, dominio: screenDominio};
 let lastScreen = null;
 const TABS = new Set(['jornada', 'praticar', 'turma', 'missoes', 'ligas', 'perfil']);
 /* ---------- histórico ----------
@@ -2467,6 +2870,7 @@ function render(reset) {
   aplicarFundo((PK && materiaAtual() || {}).id || 'geral');
   if (V.screen === 'licao' && !L) V.screen = 'jornada';
   if (V.screen === 'dinamica' && !DIN) V.screen = 'turma';
+  if (V.screen === 'duelo' && !DUE) V.screen = 'turma';
   const html = SCREENS[V.screen]() + (V.sheet === 'bau' ? sheetBau() : '') + (V.toast ? `<div class="toast" data-key="toast">${esc(V.toast)}</div>` : '');
   if (reset) {
     const dir = lastScreen === V.screen ? 'push' : TABS.has(V.screen) ? (!lastScreen || TABS.has(lastScreen) ? 'tab' : 'pop') : 'push';
@@ -2480,7 +2884,7 @@ function render(reset) {
   }
   const sc2 = document.getElementById('sc');
   if (V.screen === 'jornada' && V.scrollTo) { V.scrollTo = false; const n = document.getElementById('cur-node'); if (n && sc2) sc2.scrollTop = Math.max(0, n.offsetTop - sc2.clientHeight / 2 + 40); }
-  if (V.screen === 'turma' && reset) { carregarRankingTurma(); carregarDinamicaAtiva(); }
+  if (V.screen === 'turma' && reset) { carregarRankingTurma(); carregarDinamicaAtiva(); carregarDuelos(); }
   if (V.screen === 'praticar' && reset) carregarRecomendacoes();
   if (V.screen === 'mapa' && reset) celebrarIlhas();
   if (V.screen === 'ligas' && reset) { const m = document.getElementById('me-row'), s = app.querySelector('.scroll'); if (m && s) s.scrollTop = Math.max(0, m.offsetTop - s.offsetTop - s.clientHeight / 2); }
@@ -2579,20 +2983,33 @@ async function act(a) {
     case 'din-entrar': return entrarDinamica(x);
     case 'din-sair': DIN = null; go('turma'); return carregarDinamicaAtiva();
     case 'din-responder': return responderDin();
-    case 'dq-mc': if (!dinTravado()) { SND.tap(); DIN.ans.pick = +x; } return render(false);
-    case 'dq-tf': if (!dinTravado()) { SND.tap(); DIN.ans.pick = x === 'true'; } return render(false);
-    case 'dq-word': { if (dinTravado()) return; SND.tap(); const e = DIN.e, w = e.words[+x], s = DIN.ans.slots, i = s[0] === null ? 0 : s[1] === null ? 1 : -1; if (i >= 0) s[i] = w; return render(false); }
-    case 'dq-slot': if (!dinTravado()) { SND.tap(); DIN.ans.slots[+x] = null; } return render(false);
-    case 'dq-order': { if (dinTravado()) return; SND.tap(); DIN.ans.order.push(DIN.e.items[+x]); return render(false); }
-    case 'dq-unorder': if (!dinTravado()) { SND.tap(); DIN.ans.order.splice(+x, 1); } return render(false);
+    case 'dq-mc': if (!dinTravado()) { SND.tap(); QZ().ans.pick = +x; } return render(false);
+    case 'dq-tf': if (!dinTravado()) { SND.tap(); QZ().ans.pick = x === 'true'; } return render(false);
+    case 'dq-word': { if (dinTravado()) return; SND.tap(); const Q = QZ(), e = Q.e, w = e.words[+x], s = Q.ans.slots, i = s[0] === null ? 0 : s[1] === null ? 1 : -1; if (i >= 0) s[i] = w; return render(false); }
+    case 'dq-slot': if (!dinTravado()) { SND.tap(); QZ().ans.slots[+x] = null; } return render(false);
+    case 'dq-order': { if (dinTravado()) return; SND.tap(); const Q = QZ(); Q.ans.order.push(Q.e.items[+x]); return render(false); }
+    case 'dq-unorder': if (!dinTravado()) { SND.tap(); QZ().ans.order.splice(+x, 1); } return render(false);
     case 'dq-match': {
       if (dinTravado()) return;
-      const e = DIN.e, side = x, t = (side === 'L' ? e.left : e.right)[+y], an = DIN.ans;
+      const Q = QZ(), e = Q.e, side = x, t = (side === 'L' ? e.left : e.right)[+y], an = Q.ans;
       const j = an.pairs.findIndex(p => p[side === 'L' ? 0 : 1] === t);
       if (j >= 0) { SND.tap(); an.pairs.splice(j, 1); an.sel = null; return render(false); }
       if (!an.sel || an.sel.side === side) { SND.tap(); an.sel = {side, t}; return render(false); }
       an.pairs.push([side === 'L' ? t : an.sel.t, side === 'R' ? t : an.sel.t]); an.sel = null; SND.match(); return render(false);
     }
+    /* duelo entre colegas */
+    case 'du-sheet': V.sheet = 'duelo'; V.colegas = null; render(); return carregarColegas();
+    case 'du-turma': V.colegas = {turma: x, lista: null}; render(); return carregarColegas();
+    case 'du-desafiar': return desafiarColega(x, y);
+    case 'du-conv': return responderConviteDuelo(x, y === '1');
+    case 'du-entrar': return entrarDuelo(x);
+    case 'du-girar': return girarRoleta();
+    case 'du-responder': return responderDuelo();
+    case 'du-desistir': V.sheet = 'dudesiste'; return render();
+    case 'du-desistir-ok': return desistirDuelo();
+    case 'du-sair': DUE = null; carregarDuelos(); return go('turma');
+    case 'du-denovo': DUE = null; carregarDuelos(); go('turma'); V.sheet = 'duelo'; V.colegas = null; render(); return carregarColegas();
+
     /* lição */
     case 'quit': V.sheet = 'quit'; return render();
     case 'stay': return fecharSheet();
@@ -2626,7 +3043,7 @@ async function act(a) {
     case 'next': return next();
   }
 }
-app.addEventListener('change', ev => { const el = ev.target; if (el.tagName === 'SELECT' && el.dataset.a === 'rank-turma') act('rank-turma:' + el.value).catch(e => console.error(e)); });
+app.addEventListener('change', ev => { const el = ev.target; if (el.tagName === 'SELECT' && (el.dataset.a === 'rank-turma' || el.dataset.a === 'du-turma')) act(el.dataset.a + ':' + el.value).catch(e => console.error(e)); });
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && V.sheet) { ev.preventDefault(); fecharSheet(); } });
 app.addEventListener('click', ev => {
   const el = ev.target.closest('[data-a]');
@@ -2659,6 +3076,11 @@ setInterval(() => {
     const dt = document.getElementById('din-t'), r = dinResta();
     if (dt && r !== null) dt.textContent = String(Math.max(0, Math.ceil(r / 1000)));
     if (r !== null && r <= 0 && !DIN.enviado && !DIN.travou) { DIN.travou = true; render(false); }
+  }
+  if (V.screen === 'duelo' && DUE && DUE.data) {
+    const dt = document.getElementById('due-t'), r = dueResta();
+    if (dt && r !== null) dt.textContent = String(Math.max(0, Math.ceil(r / 1000)));
+    if (r !== null && r <= 0 && !DUE.travou) { DUE.travou = true; render(false); }   // trava a questão na hora
   }
   const ht = document.getElementById('heart-t'); if (ht) ht.textContent = 'PRÓXIMO CORAÇÃO EM ' + hms(nextHeartMs());
   const mt = document.getElementById('mid-t'); if (mt) mt.textContent = 'renovam em ' + hms(renovaMissoesEm() - Date.now());
