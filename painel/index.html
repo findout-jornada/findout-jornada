@@ -8,6 +8,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co; connect-src https://*.supabase.co wss://*.supabase.co; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Painel · Findout Jornada</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232563EB'/%3E%3Ctext x='16' y='21' font-family='system-ui,sans-serif' font-size='13' font-weight='700' fill='%23fff' text-anchor='middle'%3EFJ%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Press+Start+2P&display=swap">
 <style>
 :root{
@@ -55,7 +56,7 @@ button{cursor:pointer;background:none;border:0;padding:0}
 button:disabled{cursor:default;opacity:.55}
 a{color:var(--primary)}
 code{font-size:12px;background:var(--surface2);padding:2px 5px;border-radius:5px}
-:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+:focus-visible{outline:3px solid var(--teal-d);outline-offset:2px}
 h1,h2,h3{font-family:var(--f-display);margin:0}
 h1{font-size:24px;font-weight:700}
 h2{font-size:17px;font-weight:700}
@@ -70,22 +71,40 @@ h3{font-size:14px;font-weight:600}
 .login .brand{color:var(--fg);padding:0 0 4px}
 .login .brand small{color:var(--muted)}
 .login h1{font-size:22px}
-aside{background:linear-gradient(180deg,#070C22 0%,var(--side) 40%,#1A1F4B 100%);color:var(--side-fg);padding:20px 14px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh;border-right:1px solid rgba(255,255,255,.05);overflow-y:auto;scrollbar-width:none}
-aside::-webkit-scrollbar{display:none}
-.brand{display:flex;align-items:center;gap:10px;padding:4px 10px 18px;color:#fff}
+/* Barra lateral em três faixas: topo e rodapé fixos, só a navegação rola */
+aside{background:linear-gradient(180deg,#070C22 0%,var(--side) 40%,#1A1F4B 100%);color:var(--side-fg);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;height:100dvh;border-right:1px solid rgba(255,255,255,.05);overflow:hidden}
+.sidehead{display:flex;align-items:center;gap:8px;padding:18px 16px 12px;flex-shrink:0}
+.sidenav{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:3px;padding:0 10px 10px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent}
+.sidenav::-webkit-scrollbar{width:6px}
+.sidenav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border:0;border-radius:6px}
+.sidenav::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.32)}
+.brand{display:flex;align-items:center;gap:10px;color:#fff;min-width:0}
+.brand>div{min-width:0}
 .brand b{font-family:var(--f-display);font-size:18px;font-weight:700}
 .brand small{display:block;font-size:11px;color:var(--side-fg)}
-.navbtn{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:var(--side-fg);width:100%;text-align:left;font-weight:500;transition:background-color .15s,color .15s,transform .12s,box-shadow .18s}
+.navbtn{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:var(--side-fg);width:100%;text-align:left;font-weight:500;font-size:13.5px;flex-shrink:0;transition:background-color .15s,color .15s,transform .12s,box-shadow .18s}
+.navbtn svg{flex-shrink:0}
 .navbtn:hover{background:rgba(255,255,255,.07);color:#fff;transform:translateX(2px)}
 .navbtn[aria-current="page"]{background:linear-gradient(135deg,#4A7FF0,var(--side-active));color:#fff;font-weight:600;box-shadow:0 4px 14px rgba(37,99,235,.45),inset 0 1px 0 rgba(255,255,255,.14)}
 .navbtn .cnt{margin-left:auto;font-size:11px;background:rgba(255,255,255,.12);padding:2px 7px;border-radius:10px}
-.sidefoot{margin-top:auto;font-size:12px;color:var(--side-fg);padding:10px 12px;border-top:1px solid rgba(255,255,255,.1);display:flex;flex-direction:column;gap:6px}
-.sidefoot button{color:var(--side-fg);text-align:left;text-decoration:underline}
-.navsec{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(197,201,227,.5);padding:14px 12px 4px}
-.who{display:flex;gap:9px;align-items:center;min-width:0}
+.sidefoot{flex-shrink:0;font-size:12px;color:var(--side-fg);padding:12px 12px calc(12px + env(safe-area-inset-bottom));border-top:1px solid rgba(255,255,255,.1);background:rgba(3,8,26,.42);display:flex;flex-direction:column;gap:9px}
+.sidestat{display:flex;flex-direction:column;gap:5px;font-size:11px;padding:0 3px}
+.sidestat>span{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.sidestat b{color:#fff}
+.sideacts{display:flex;gap:6px}
+.sideact{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 6px;border-radius:10px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.07);color:var(--side-fg);font-weight:600;font-size:12px;transition:background-color .15s,color .15s,border-color .15s}
+.sideact:hover{background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.2)}
+.sideact svg{width:15px;height:15px}
+.navsec{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(197,201,227,.55);padding:12px 12px 6px;margin:6px 2px 0;border-top:1px solid rgba(255,255,255,.08);flex-shrink:0}
+.who{display:flex;gap:9px;align-items:center;min-width:0;padding:8px 9px;border-radius:10px;background:rgba(255,255,255,.06)}
+/* Celular: cabeçalho fixo com o botão do menu e a lateral virando gaveta */
+.mobbar{display:none;align-items:center;gap:10px;position:fixed;top:0;left:0;right:0;height:calc(58px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 12px 0;background:linear-gradient(135deg,#070C22,var(--side));color:#fff;border-bottom:1px solid rgba(255,255,255,.08);z-index:16}
+.mobico{width:38px;height:38px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#fff;transition:background-color .15s}
+.mobico:hover{background:rgba(255,255,255,.18)}
+.sideclose,.sideback{display:none}
 .who-av{width:30px;height:30px;border-radius:50%;background:linear-gradient(180deg,var(--teal),#2E9B99);color:var(--navy);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-family:var(--f-display);flex-shrink:0}
 .who-info{min-width:0;display:flex;flex-direction:column;line-height:1.3}
-.who-info b{color:#fff;font-size:12px}
+.who-info b{color:#fff;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .who-info span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
 .abas{display:flex;gap:6px;flex-wrap:wrap}
 .aba{height:32px;padding:0 14px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);font-weight:600;font-size:13px;color:var(--fg2);display:inline-flex;align-items:center;gap:6px;transition:background-color .15s,border-color .15s,color .15s,box-shadow .18s,transform .12s}
@@ -124,7 +143,7 @@ main.view-anim .topbar{animation:fjView .22s ease both}
 main.view-anim .content{animation:fjView .3s ease both}
 @keyframes fjBarra{from{width:0}}
 .bar i{animation:fjBarra .7s cubic-bezier(.2,.7,.3,1)}
-.topbar h1{background:linear-gradient(100deg,var(--fg) 55%,var(--primary));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.topbar h1{color:var(--fg)}
 .tbl-wrap tbody tr:nth-child(even) td{background:rgba(127,127,190,.05)}
 /* Acentos coloridos dos cartões do dashboard */
 .tile.tcor::before{content:"";position:absolute;left:0;top:0;right:0;height:3px;background:var(--cor-t,var(--primary));opacity:.9}
@@ -139,7 +158,7 @@ main.view-anim .content{animation:fjView .3s ease both}
 .secdash::after{content:"";flex:1;height:1px;background:var(--line)}
 /* Modo telão: sem menu, tela cheia e letras grandes para projetar no quadro */
 #shell.telao{grid-template-columns:1fr}
-#shell.telao aside{display:none}
+#shell.telao aside,#shell.telao .mobbar,#shell.telao .sideback{display:none}
 #shell.telao main>.topbar{display:none}
 #shell.telao .content{padding:30px clamp(28px,3vw,72px);width:100%}
 #shell.telao .dinenun{font-size:38px;line-height:1.35}
@@ -172,9 +191,10 @@ main.view-anim .content{animation:fjView .3s ease both}
 .dinrank.top .av{background:linear-gradient(135deg,#FFD36A,#E8A33D);color:#5A3F03}
 .dinrank .nm{display:flex;flex-direction:column;gap:4px;min-width:0}
 .dinrank .nm b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dinrank .bar{height:8px}
 .dinrank .pts{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-display);font-weight:700;font-size:16px;color:var(--fg)}
 .dinrank .pts svg{color:var(--green-d)}
-.podio{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:end;padding:10px 6px 0}
+.podio{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:end;padding:10px 6px 0;max-width:760px;margin-inline:auto}
 .podio .col{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;min-width:0}
 .podio .col b{font-family:var(--f-display);font-size:15px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .podio .bloco{width:100%;border-radius:12px 12px 4px 4px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:10px;color:#fff;font-family:var(--f-display);font-weight:700;font-size:22px;box-shadow:inset 0 -6px 0 rgba(0,0,0,.15)}
@@ -185,6 +205,7 @@ main.view-anim .content{animation:fjView .3s ease both}
 @keyframes podio-sobe{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
 .podio .col{animation:podio-sobe .5s cubic-bezier(.2,.8,.2,1) both}.podio .p2{animation-delay:.1s}.podio .p1{animation-delay:.25s}.podio .p3{animation-delay:.4s}
 .telao .dinrank{grid-template-columns:56px 52px 1fr auto;padding:10px 12px}
+.telao .dinrank .bar{height:14px}
 .telao .dinrank .nm b{font-size:22px}.telao .dinrank .pts{font-size:24px}.telao .dinrank .av{width:52px;height:52px;font-size:18px}
 .telao .podio .col b{font-size:20px}.telao .podio .bloco{font-size:30px}.telao .podio .p1 .bloco{height:160px}.telao .podio .p2 .bloco{height:120px}.telao .podio .p3 .bloco{height:90px}
 .telao .lousa .tit{font-size:36px}.telao .lousa .sub{font-size:18px}
@@ -240,6 +261,8 @@ th{text-align:left;font-weight:600;color:var(--muted);font-size:12px;padding:10p
 td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
 tr:last-child td{border-bottom:0}
 tr.rowbtn{cursor:pointer}
+.cellbtn{font:inherit;font-weight:700;color:inherit;text-align:left;border-radius:6px}
+.cellbtn:hover{color:var(--primary);text-decoration:underline}
 tr.rowbtn td{transition:background-color .12s}
 tr.rowbtn:hover td{background:var(--surface2)}
 .tbl-wrap{overflow-x:auto}
@@ -352,8 +375,8 @@ input[type=color].inp{padding:2px 4px;width:48px}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--navy);color:#fff;border:1px solid rgba(255,255,255,.14);padding:12px 18px;border-radius:12px;font-size:14px;z-index:60;box-shadow:4px 4px 0 var(--teal);max-width:calc(100% - 32px);animation:fjToast .2s ease}
 .bars{display:flex;flex-direction:column;gap:8px}
 .barrow{display:grid;grid-template-columns:150px 1fr 40px;gap:10px;align-items:center;font-size:13px}
-.barrow .bar{height:12px;background:var(--surface2);border-radius:6px;overflow:hidden}
-.barrow .bar i{display:block;height:100%;background:var(--primary);border-radius:6px}
+.bar{display:block;height:12px;background:var(--surface2);border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--primary);border-radius:6px;transition:width .3s ease}
 .kv{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:13px}
 .kv b{font-family:var(--f-display)}
 pre.json{margin:0;background:var(--navy);color:#C5C9E3;padding:14px;border-radius:10px;font-size:11.5px;line-height:1.45;overflow:auto;max-height:420px}
@@ -391,25 +414,36 @@ pre.json{margin:0;background:var(--navy);color:#C5C9E3;padding:14px;border-radiu
   .dinwrap{grid-template-columns:minmax(0,3fr) minmax(320px,1fr)}
 }
 @media (max-width:1024px){
-  #shell{grid-template-columns:204px 1fr}
+  #shell{grid-template-columns:210px 1fr}
+  .sidehead{padding:14px 12px 10px}
+  .sidenav{padding:0 8px 8px}
+  .navbtn{padding:9px 10px;gap:9px;font-size:12.5px}
+  .navsec{padding:10px 10px 5px}
+  .sidefoot{padding:10px 10px calc(10px + env(safe-area-inset-bottom))}
   .dinwrap{grid-template-columns:1fr}
   .topbar{padding:14px 20px}
   .content{padding:20px 20px 44px;gap:16px}
   .grid3{grid-template-columns:220px 1fr}
 }
 @media (max-width:760px){
-  #shell{grid-template-columns:1fr;grid-template-rows:auto 1fr;align-content:start}
+  #shell{grid-template-columns:1fr}
   .drawer .list>div.item{flex-wrap:wrap}
   .drawer .list>div.item .mv{margin-left:auto}
   .tbl-wide table{min-width:560px}
-  aside{position:sticky;top:0;z-index:15;height:auto;flex-direction:row;align-items:center;flex-wrap:nowrap;overflow-x:auto;padding:10px 12px;gap:4px;scrollbar-width:none}
-  aside::-webkit-scrollbar{display:none}
-  .brand{width:auto;padding:0 10px 0 2px;flex-shrink:0}
-  .brand small{display:none}
-  .brand b{font-size:16px}
-  .navbtn{width:auto;padding:8px 10px;font-size:13px;flex-shrink:0;white-space:nowrap}.navbtn .cnt{display:none}
-  .navsec{display:none}
-  .sidefoot{display:none}
+  .mobbar{display:flex}
+  #shell>main{padding-top:calc(58px + env(safe-area-inset-top))}
+  #shell.telao>main{padding-top:0}
+  .mobbar .brand{flex:1}
+  .mobbar .brand b{font-size:16px}
+  .mobbar .brand small{display:none}
+  aside{position:fixed;top:0;left:0;bottom:0;width:min(292px,86vw);height:100dvh;z-index:26;transform:translateX(-102%);visibility:hidden;border-right:0;box-shadow:6px 0 30px rgba(1,15,46,.45)}
+  #shell.menu aside{transform:none;visibility:visible}
+  .sideback{display:block;position:fixed;inset:0;z-index:25;background:rgba(1,15,46,.5);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);touch-action:none;overscroll-behavior:contain}
+  .sideclose{display:inline-flex;margin-left:auto}
+  .sidehead{padding:calc(14px + env(safe-area-inset-top)) 12px 12px}
+  .navbtn{padding:11px 12px;gap:11px;font-size:14px}
+  .sidenav{padding:0 10px 12px}
+  .sidefoot{padding:12px 12px calc(14px + env(safe-area-inset-bottom))}
   .topbar{position:static;padding:14px 16px;gap:10px}
   h1{font-size:20px}
   .topbar .sub{font-size:12px}
@@ -632,6 +666,8 @@ const I = {
   trash: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>',
   edit: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
   close: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  menu: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  sair: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 17l5-5-5-5M20 12H9"/><path d="M12 19H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg>',
   check: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
   warn: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20z"/><path d="M12 9v5M12 17h.01"/></svg>',
   eye: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
@@ -647,7 +683,7 @@ const I = {
    Estado
    ===================================================================== */
 let sessao = null, admin = false, papel = 'aluno', D = null, T = null, mostrando = '';
-let V = {view: 'inicio', qf: {materia: '', unidade: '', tipo: '', status: '', busca: '', assunto: '', segmento: '', nivel: ''}, materia: null, rascunho: null, licaoAtribuir: null, alunoGerenciar: null, confirmar: null, modal: null, alunos: {busca: '', lista: null, carregando: false, erro: null, sel: {}}, metricas: null, metricasErro: null, salvando: 0, notaPub: '', jsonVersao: null, jsonTexto: '',
+let V = {view: 'inicio', menu: false, qf: {materia: '', unidade: '', tipo: '', status: '', busca: '', assunto: '', segmento: '', nivel: ''}, materia: null, rascunho: null, licaoAtribuir: null, alunoGerenciar: null, confirmar: null, modal: null, alunos: {busca: '', lista: null, carregando: false, erro: null, sel: {}}, metricas: null, metricasErro: null, salvando: 0, notaPub: '', jsonVersao: null, jsonTexto: '',
   turma: null, turmaAlunos: null, ativ: null, ativBusca: {texto: '', materia: '', unidade: '', assunto: '', segmento: '', nivel: ''}, ativFiltroTurma: '', resultados: null, modalPrev: null,
   escola: null, escolaAba: 'segmentos', escolaAlunos: null, escolaAberto: {},
   din: null, dinamicas: null, dash: {data: null, erro: null, carregando: false},
@@ -897,6 +933,26 @@ function montarPacote() {
     loja: D.loja.filter(i => i.ativo).map(i => ({codigo: i.codigo, nome: i.nome, tipo: i.tipo, preco: i.preco, rotulo: i.rotulo_preco || null}))
   };
 }
+function licoesDoPacote(pkg) {
+  const ids = new Set();
+  (pkg.materias || []).forEach(m => (m.secoes || []).forEach(sec => (sec.unidades || []).forEach(u => (u.licoes || []).forEach(l => ids.add(l.id)))));
+  return ids;
+}
+/* Resumo do que esta publicacao muda para o aluno, comparando o pacote novo com o ultimo publicado */
+function resumoPublicacao() {
+  const novo = montarPacote(), velho = D.ultimoPacote;
+  const alunos = V.metricas && typeof V.metricas.alunos === 'number' ? V.metricas.alunos + (V.metricas.alunos === 1 ? ' aluno' : ' alunos') : 'todos os alunos';
+  if (!velho) return novo.questoes.length + ' questões e ' + licoesDoPacote(novo).size + ' lições vão para o app. É a primeira publicação.';
+  const dif = (a, b) => { let mais = 0, menos = 0; a.forEach(x => { if (!b.has(x)) mais++; }); b.forEach(x => { if (!a.has(x)) menos++; }); return [mais, menos]; };
+  const ids = (arr, k) => new Set((arr || []).map(x => k ? x[k] : x.id));
+  const partes = [];
+  const linha = ([mais, menos], um, muitos) => { if (mais) partes.push('+' + mais + ' ' + (mais === 1 ? um : muitos)); if (menos) partes.push('−' + menos + ' ' + (menos === 1 ? um : muitos)); };
+  linha(dif(ids(novo.materias), ids(velho.materias)), 'matéria', 'matérias');
+  linha(dif(licoesDoPacote(novo), licoesDoPacote(velho)), 'lição', 'lições');
+  linha(dif(ids(novo.questoes), ids(velho.questoes)), 'questão', 'questões');
+  const o = partes.length ? partes.join(' · ') : 'Nada entrou nem saiu: mudou o conteúdo de itens que já estavam no ar';
+  return o + '. Vai para ' + alunos + ' na próxima abertura do app.';
+}
 function alteracoesPendentes() {
   if (!D) return false;
   if (!D.ultimoPacote) return D.materias.length > 0;
@@ -1012,10 +1068,19 @@ const navItens = () => admin ? NAV_ADMIN : gestor() ? NAV_GESTOR : NAV_PROF;
 function sidebar() {
   const counts = {questoes: D.questoes.length, habilidades: D.habilidades ? D.habilidades.length : null, missoes: D.missoes.filter(m => m.ativa).length, trilhas: D.materias.filter(m => m.ativa).length, turmas: T ? T.turmas.length : null, atividades: T ? T.atividades.filter(a => statusReal(a) === 'aberta').length : null};
   const ult = D.publicacoes[0];
-  return `<aside><div class="brand"><span class="abbr" style="background:var(--primary);width:36px;height:36px;font-size:9px">FJ</span><div><b>Findout</b><small>Painel da Jornada</small></div></div>
-    ${navItens().map(([sec, itens]) => (sec ? `<div class="navsec">${sec}</div>` : '') + itens.map(([id, l, ic]) => `<button class="navbtn" data-a="view:${id}" ${V.view === id || (id === 'turmas' && V.view === 'turma') || (id === 'atividades' && V.view === 'resultados') || (id === 'escolas' && V.view === 'escola') ? 'aria-current="page"' : ''}>${ic}${l}${counts[id] != null ? `<span class="cnt num">${counts[id]}</span>` : ''}</button>`).join('')).join('')}
-    <button class="navbtn" data-a="tema" aria-pressed="${temaAtual() === 'dark'}">${temaAtual() === 'dark' ? I.sun + 'Modo claro' : I.moon + 'Modo escuro'}</button>
-    <div class="sidefoot"><div class="who"><span class="who-av">${esc((sessao.user.email || '?').charAt(0).toUpperCase())}</span><span class="who-info"><b>${admin ? 'Super usuário' : PAPEIS[papel] || papel}${!admin && disciplina ? ' · ' + esc(discNome(disciplina)) : ''}</b><span>${esc(sessao.user.email)}</span></span></div>${admin ? `<span>Versão publicada: <b class="num" id="versao-pub">${ult ? 'v' + ult.versao : 'nenhuma'}</b></span><span id="status">${statusHtml()}</span>` : ''}<button data-a="sair">Sair</button></div></aside>`;
+  const escuro = temaAtual() === 'dark';
+  const marca = `<div class="brand"><span class="abbr" style="background:var(--primary);width:36px;height:36px;font-size:9px">FJ</span><div><b>Findout</b><small>Painel da Jornada</small></div></div>`;
+  const atual = id => V.view === id || (id === 'turmas' && V.view === 'turma') || (id === 'atividades' && V.view === 'resultados') || (id === 'escolas' && V.view === 'escola');
+  return `<header class="mobbar"><button class="mobico" data-a="menu" aria-label="${V.menu ? 'Fechar o menu' : 'Abrir o menu'}" aria-expanded="${!!V.menu}" aria-controls="menu-lateral">${I.menu}</button>${marca}<button class="mobico" data-a="tema" aria-label="${escuro ? 'Usar o modo claro' : 'Usar o modo escuro'}">${escuro ? I.sun : I.moon}</button></header>
+    <aside id="menu-lateral">
+      <div class="sidehead">${marca}<button class="mobico sideclose" data-a="menu" aria-label="Fechar o menu">${I.close}</button></div>
+      <nav class="sidenav" aria-label="Seções do painel">${navItens().map(([sec, itens]) => (sec ? `<div class="navsec">${sec}</div>` : '') + itens.map(([id, l, ic]) => `<button class="navbtn" data-a="view:${id}" ${atual(id) ? 'aria-current="page"' : ''}>${ic}${l}${counts[id] != null ? `<span class="cnt num">${counts[id]}</span>` : ''}</button>`).join('')).join('')}</nav>
+      <div class="sidefoot">
+        <div class="who"><span class="who-av">${esc((sessao.user.email || '?').charAt(0).toUpperCase())}</span><span class="who-info"><b>${admin ? 'Super usuário' : PAPEIS[papel] || papel}${!admin && disciplina ? ' · ' + esc(discNome(disciplina)) : ''}</b><span>${esc(sessao.user.email)}</span></span></div>
+        ${admin ? `<div class="sidestat"><span>Versão publicada <b class="num" id="versao-pub">${ult ? 'v' + ult.versao : 'nenhuma'}</b></span><span id="status">${statusHtml()}</span></div>` : ''}
+        <div class="sideacts"><button class="sideact" data-a="tema" aria-pressed="${escuro}">${escuro ? I.sun : I.moon}<span>${escuro ? 'Claro' : 'Escuro'}</span></button><button class="sideact" data-a="sair">${I.sair}<span>Sair</span></button></div>
+      </div>
+    </aside>${V.menu ? '<div class="sideback" data-a="menu" aria-hidden="true"></div>' : ''}`;
 }
 function topbar(titulo, sub, acoes = '') { return `<div class="topbar"><div><h1>${titulo}</h1>${sub ? `<div class="sub">${sub}</div>` : ''}</div><div class="actions">${acoes}</div></div>`; }
 const toggle = (on, a, label) => `<button class="toggle" role="switch" aria-checked="${!!on}" aria-label="${esc(label || 'Ativar')}" data-a="${a}"></button>`;
@@ -1194,7 +1259,7 @@ function viewDashboard() {
     </div>
     <div class="secdash">Cenário por escola</div>
     <div class="card tbl-wrap tbl-wide"><table><thead><tr><th>Escola</th><th>Alunos</th><th>Prof.</th><th>Gestão</th><th>Turmas</th><th>Abertas</th><th>Entregas 30d</th><th>Média 30d</th><th>Ativos 7d</th><th>Dinâmicas 30d</th></tr></thead><tbody>
-      ${d.escolas.map(e => `<tr class="rowbtn" data-a="abrir-escola:${e.id}"><td><b>${esc(e.nome)}</b></td><td class="num">${e.alunos}</td><td class="num">${e.professores}</td><td class="num">${e.gestores}</td><td class="num">${e.turmas}</td><td class="num">${e.abertas}</td><td class="num">${e.entregas30}</td><td class="num" style="font-weight:700;color:${e.media30 == null ? 'var(--muted)' : e.media30 >= 6 ? 'var(--green-d)' : 'var(--red-d)'}">${fmtN(e.media30)}</td><td class="num">${e.ativos7}</td><td class="num">${e.dinamicas30}</td></tr>`).join('')}
+      ${d.escolas.map(e => `<tr class="rowbtn" data-a="abrir-escola:${e.id}"><td><button class="cellbtn" data-a="abrir-escola:${e.id}">${esc(e.nome)}</button></td><td class="num">${e.alunos}</td><td class="num">${e.professores}</td><td class="num">${e.gestores}</td><td class="num">${e.turmas}</td><td class="num">${e.abertas}</td><td class="num">${e.entregas30}</td><td class="num" style="font-weight:700;color:${e.media30 == null ? 'var(--muted)' : e.media30 >= 6 ? 'var(--green-d)' : 'var(--red-d)'}">${fmtN(e.media30)}</td><td class="num">${e.ativos7}</td><td class="num">${e.dinamicas30}</td></tr>`).join('')}
       ${d.semEscola.turmas ? `<tr><td><i style="color:var(--muted)">Sem escola</i></td><td class="num">${d.semEscola.alunos}</td><td class="num">—</td><td class="num">—</td><td class="num">${d.semEscola.turmas}</td><td colspan="5" style="color:var(--muted);font-size:12px">turmas avulsas de professores</td></tr>` : ''}
       ${d.escolas.length || d.semEscola.turmas ? '' : '<tr><td colspan="10" class="empty">Nenhuma escola ainda.</td></tr>'}
     </tbody></table></div>
@@ -1587,10 +1652,10 @@ function viewPublicar() {
   const ativas = D.missoes.filter(m => m.ativa).length; if (ativas < D.param.missoes.porDia) problemas.push(`Só ${ativas} missões diárias ativas para um sorteio de ${D.param.missoes.porDia}.`);
   const vazias = pkg.materias.flatMap(m => m.secoes.flatMap(s => s.unidades.flatMap(u => u.licoes.filter(l => !l.questoes.length).map(l => `${m.nome} · ${l.titulo}`))));
   if (vazias.length) problemas.push(`${vazias.length} lições sem questão publicada: ${vazias.slice(0, 3).join(', ')}${vazias.length > 3 ? '…' : ''}.`);
-  const semUnidade = pkg.questoes.filter(q => !q.unidade).length; if (semUnidade) problemas.push(`${semUnidade} questões publicadas sem unidade (não aparecem em nenhuma lição).`);
+  const semUnidade = pkg.questoes.filter(q => !q.unidade).length; if (semUnidade) problemas.push(`${semUnidade} ${semUnidade === 1 ? 'questão publicada' : 'questões publicadas'} sem unidade (não ${semUnidade === 1 ? 'aparece' : 'aparecem'} em nenhuma lição).`);
   const nLicoes = pkg.materias.reduce((n, m) => n + m.secoes.reduce((k, s) => k + s.unidades.reduce((j, u) => j + u.licoes.length, 0), 0), 0);
   const prox = D.publicacoes[0] ? D.publicacoes[0].versao + 1 : 1;
-  return topbar('Publicar', 'Gera o pacote de conteúdo que o app lê. Só o que está publicado aqui chega ao aluno.', `<button class="btn btn-primary" data-a="publicar" ${sujo ? '' : 'disabled'}>${I.up}Publicar versão ${prox}</button>`) + `<div class="content">
+  return topbar('Publicar', 'Gera o pacote de conteúdo que o app lê. Só o que está publicado aqui chega ao aluno.', `<button class="btn btn-outline" data-a="publicar" ${sujo ? '' : 'disabled'}>${I.up}Publicar versão ${prox}</button>`) + `<div class="content">
     <div class="card"><div class="card-b" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:240px"><h2>Publicação automática</h2><p style="margin:6px 0 0;color:var(--fg2);font-size:13px">${autoPub ? 'Ligada: cada alteração no painel vira uma nova versão alguns segundos depois, e o app passa a ler sozinho.' : 'Desligada: o app só recebe o que você publicar clicando no botão.'}</p></div>${toggle(autoPub, 'toggle-autopub', 'Publicação automática')}</div></div>
     ${sujo ? '' : `<div class="warnbox okbox">${I.check}<span>Não há alterações desde a última publicação.</span></div>`}
     ${problemas.map(p => `<div class="warnbox">${I.warn}<span>${esc(p)} Você ainda pode publicar.</span></div>`).join('')}
@@ -1602,8 +1667,8 @@ function viewPublicar() {
     </div>
     <div class="card"><div class="card-b" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap"><div class="field" style="flex:1;min-width:240px"><label for="nota">Nota desta versão (o que mudou)</label><input id="nota" class="inp" value="${esc(V.notaPub)}" data-f="notaPub" placeholder="Ex.: 20 questões novas de porcentagem"></div><button class="btn btn-primary" data-a="publicar" ${sujo ? '' : 'disabled'}>${I.up}Publicar versão ${prox}</button></div></div>
     <div class="grid2">
-      <div class="card"><div class="card-h"><h2>Histórico</h2></div><div class="list">${D.publicacoes.map((p, i) => `<div class="item"><span class="pill ${i === 0 ? 'pub' : 'off'}">v${p.versao}</span><span style="flex:1"><b>${esc(p.nota || 'Sem nota')}</b><br><span style="font-size:12px;color:var(--muted)">${fmtData(p.criada_em)}</span></span><button class="btn btn-ghost btn-sm" data-a="ver-json:${p.versao}">Ver</button>${i === 0 || autoPub ? '' : `<button class="btn btn-outline btn-sm" data-a="restaurar:${p.versao}">Voltar a esta</button>`}</div>`).join('') || '<div class="empty">Nada publicado ainda.</div>'}</div>
-        <div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">${autoPub ? 'Com a publicação automática ligada, o app sempre lê a versão mais nova. Para voltar a uma versão antiga, desligue o automático.' : '"Voltar a esta" cria uma nova versão igual à escolhida. O app passa a ler esse conteúdo; o que você edita no painel continua como está.'}</div></div>
+      <div class="card"><div class="card-h"><h2>Histórico</h2></div><div class="list">${D.publicacoes.map((p, i) => `<div class="item"><span class="pill ${i === 0 ? 'pub' : 'off'}">v${p.versao}</span><span style="flex:1"><b>${esc(p.nota || 'Sem nota')}</b><br><span style="font-size:12px;color:var(--muted)">${fmtData(p.criada_em)}</span></span><button class="btn btn-ghost btn-sm" data-a="ver-json:${p.versao}">Ver</button>${i === 0 ? '' : `<button class="btn btn-outline btn-sm" data-a="restaurar:${p.versao}">Voltar a esta</button>`}</div>`).join('') || '<div class="empty">Nada publicado ainda.</div>'}</div>
+        <div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">${autoPub ? '"Voltar a esta" cria uma nova versão igual à escolhida e desliga a publicação automática, para o conteúdo do painel não voltar por cima.' : '"Voltar a esta" cria uma nova versão igual à escolhida. O app passa a ler esse conteúdo; o que você edita no painel continua como está.'}</div></div>
       <div class="card"><div class="card-h"><h2>${V.jsonVersao ? 'Pacote da v' + V.jsonVersao : 'Pacote que será publicado'}</h2><span class="right">${V.jsonVersao ? `<button class="btn btn-ghost btn-sm" data-a="ver-json:atual">Ver o atual</button>` : ''}<button class="btn btn-outline btn-sm" data-a="copiar-json">${I.copy}Copiar</button></span></div><div class="card-b"><pre class="json" id="jsonout">${esc(V.jsonVersao ? V.jsonTexto : json)}</pre></div></div>
     </div></div>`;
 }
@@ -1639,7 +1704,7 @@ function resumoEscola(e) {
   return `<div class="card-b" style="border-top:1px solid var(--line)"><div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px"><h3 style="margin:0;font-size:14px">Visão da escola</h3><span style="font-size:12px;color:var(--muted)">${totAl} aluno${totAl === 1 ? '' : 's'} · ${totAt} atividade${totAt === 1 ? '' : 's'} · média geral <b class="num" style="color:${mediaGeral == null ? 'var(--muted)' : mediaGeral >= 6 ? 'var(--green-d)' : 'var(--red-d)'}">${fmt(mediaGeral)}</b>${totPar ? ` · <b style="color:var(--red-d)">${totPar} aluno${totPar === 1 ? '' : 's'} sem nenhuma entrega</b>` : ''}</span></div>
     ${matHtml ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 2px;font-size:12px"><span style="color:var(--muted)">Média por disciplina:</span>${matHtml}</div>` : ''}
     <div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th>Turma</th><th>Alunos</th><th>Atividades</th><th>Entregas</th><th>Média</th><th>Sem entrega</th></tr></thead><tbody>
-      ${linhas.map(l => `<tr class="rowbtn" data-a="abrir-turma:${l.t.id}"><td><b>${esc(l.t.nome)}</b></td><td class="num">${l.alunos}</td><td class="num">${l.ativs}</td><td class="num">${l.taxa == null ? '—' : l.taxa + '%'}</td><td class="num" style="font-weight:700;color:${l.media == null ? 'var(--muted)' : l.media >= 6 ? 'var(--green-d)' : 'var(--red-d)'}">${fmt(l.media)}</td><td class="num" style="color:${l.parados ? 'var(--red-d)' : 'var(--muted)'}">${l.ativs ? l.parados : '—'}</td></tr>`).join('')}
+      ${linhas.map(l => `<tr class="rowbtn" data-a="abrir-turma:${l.t.id}"><td><button class="cellbtn" data-a="abrir-turma:${l.t.id}">${esc(l.t.nome)}</button></td><td class="num">${l.alunos}</td><td class="num">${l.ativs}</td><td class="num">${l.taxa == null ? '—' : l.taxa + '%'}</td><td class="num" style="font-weight:700;color:${l.media == null ? 'var(--muted)' : l.media >= 6 ? 'var(--green-d)' : 'var(--red-d)'}">${fmt(l.media)}</td><td class="num" style="color:${l.parados ? 'var(--red-d)' : 'var(--muted)'}">${l.ativs ? l.parados : '—'}</td></tr>`).join('')}
     </tbody></table></div></div>`;
 }
 /* Relatório de um aluno dentro da turma: notas por atividade, média, acertos e evolução */
@@ -2127,7 +2192,7 @@ function relAgrupa(linhas, chave) {
 }
 function relTabelaGrupo(titulo, col, grupos, acao) {
   return `<div class="card"><div class="card-h"><h2>${titulo}</h2></div><div class="tbl-wrap"><table><thead><tr><th>${col}</th><th style="text-align:right">Turmas</th><th style="text-align:right">Alunos</th><th style="text-align:right">Ativos · 7d</th><th style="text-align:right">XP · 7d</th><th style="text-align:right">Minutos · 7d</th><th style="text-align:right">Abertas</th><th style="text-align:right">Entregas · 30d</th><th style="text-align:right">Média · 30d</th></tr></thead><tbody>
-    ${grupos.map(g => { const m = relMedia(g.ns, g.nn); return `<tr class="rowbtn" data-a="${acao}:${g.id}"><td><b>${esc(g.nome)}</b></td><td class="num" style="text-align:right">${g.turmas}</td><td class="num" style="text-align:right">${g.alunos}</td><td class="num" style="text-align:right">${g.ativos7}</td><td class="num" style="text-align:right">${g.xp7}</td><td class="num" style="text-align:right">${g.minutos7}</td><td class="num" style="text-align:right">${g.abertas}</td><td class="num" style="text-align:right">${g.entregas30}</td><td class="num" style="text-align:right;font-weight:700;color:${relCorNota(m)}">${relNota(m)}</td></tr>`; }).join('')}
+    ${grupos.map(g => { const m = relMedia(g.ns, g.nn); return `<tr class="rowbtn" data-a="${acao}:${g.id}"><td><button class="cellbtn" data-a="${acao}:${g.id}">${esc(g.nome)}</button></td><td class="num" style="text-align:right">${g.turmas}</td><td class="num" style="text-align:right">${g.alunos}</td><td class="num" style="text-align:right">${g.ativos7}</td><td class="num" style="text-align:right">${g.xp7}</td><td class="num" style="text-align:right">${g.minutos7}</td><td class="num" style="text-align:right">${g.abertas}</td><td class="num" style="text-align:right">${g.entregas30}</td><td class="num" style="text-align:right;font-weight:700;color:${relCorNota(m)}">${relNota(m)}</td></tr>`; }).join('')}
   </tbody></table></div></div>`;
 }
 function viewRelatorios() {
@@ -2169,7 +2234,7 @@ function relVisaoHtml() {
   ${!f.escola && escolas.length > 1 ? relTabelaGrupo('Por escola', 'Escola', relAgrupa(linhas, t => [t.escola_id || 'sem', t.escola || 'Sem escola']), 'rel-escolha:escola') : ''}
   ${!f.seg && segs.length > 1 ? relTabelaGrupo('Por segmento', 'Segmento', relAgrupa(linhas, t => [t.segmento_id || 'sem', t.segmento || 'Sem segmento']), 'rel-escolha:seg') : ''}
   <div class="card"><div class="card-h"><h2>Turmas</h2><span class="pill type">${linhas.length}</span></div><div class="tbl-wrap tbl-wide"><table><thead><tr><th>Turma</th>${!f.escola && escolas.length > 1 ? '<th>Escola</th>' : ''}<th>Segmento</th><th style="text-align:right">Alunos</th><th style="text-align:right">Ativos · 7d</th><th style="text-align:right">Estudos · 7d</th><th style="text-align:right">XP · 7d</th><th style="text-align:right">Minutos · 7d</th><th style="text-align:right">Abertas</th><th style="text-align:right">Entregas · 30d</th><th style="text-align:right">Média · 30d</th></tr></thead><tbody>
-    ${linhas.map(t => { const mt = relMedia(+t.notas30_soma, t.notas30_n); return `<tr class="rowbtn" data-a="rel-turma:${t.id}"><td><b>${esc(t.nome)}</b>${t.ativa ? '' : ' <span class="pill off">inativa</span>'}</td>${!f.escola && escolas.length > 1 ? `<td style="font-size:12px">${esc(t.escola || '—')}</td>` : ''}<td style="font-size:12px">${esc(t.segmento || '—')}</td><td class="num" style="text-align:right">${t.alunos}</td><td class="num" style="text-align:right;color:${t.alunos && !t.ativos7 ? 'var(--red-d)' : 'inherit'}">${t.ativos7}</td><td class="num" style="text-align:right">${t.estudos7}</td><td class="num" style="text-align:right">${t.xp7}</td><td class="num" style="text-align:right">${t.minutos7}</td><td class="num" style="text-align:right">${t.abertas}</td><td class="num" style="text-align:right">${t.entregas30}</td><td class="num" style="text-align:right;font-weight:700;color:${relCorNota(mt)}">${relNota(mt)}</td></tr>`; }).join('') || '<tr><td colspan="11" class="empty">Nenhuma turma neste filtro.</td></tr>'}
+    ${linhas.map(t => { const mt = relMedia(+t.notas30_soma, t.notas30_n); return `<tr class="rowbtn" data-a="rel-turma:${t.id}"><td><button class="cellbtn" data-a="rel-turma:${t.id}">${esc(t.nome)}</button>${t.ativa ? '' : ' <span class="pill off">inativa</span>'}</td>${!f.escola && escolas.length > 1 ? `<td style="font-size:12px">${esc(t.escola || '—')}</td>` : ''}<td style="font-size:12px">${esc(t.segmento || '—')}</td><td class="num" style="text-align:right">${t.alunos}</td><td class="num" style="text-align:right;color:${t.alunos && !t.ativos7 ? 'var(--red-d)' : 'inherit'}">${t.ativos7}</td><td class="num" style="text-align:right">${t.estudos7}</td><td class="num" style="text-align:right">${t.xp7}</td><td class="num" style="text-align:right">${t.minutos7}</td><td class="num" style="text-align:right">${t.abertas}</td><td class="num" style="text-align:right">${t.entregas30}</td><td class="num" style="text-align:right;font-weight:700;color:${relCorNota(mt)}">${relNota(mt)}</td></tr>`; }).join('') || '<tr><td colspan="11" class="empty">Nenhuma turma neste filtro.</td></tr>'}
   </tbody></table></div><div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">Clique numa linha para abrir a turma aluno por aluno. "Ativos" conta quem estudou no app nos últimos 7 dias; a média é das notas das atividades entregues nos últimos 30 dias.</div></div>`;
 }
 function relTurmaHtml(id) {
@@ -2191,7 +2256,7 @@ function relTurmaHtml(id) {
   </div>
   <div class="card"><div class="card-h"><h2>${esc(t.nome || 'Turma')}</h2>${t.escola ? `<span class="pill type">${esc(t.escola)}</span>` : ''}${t.segmento ? `<span class="pill draft">${esc(t.segmento)}</span>` : ''}<span class="right"><button class="btn btn-ghost btn-sm" data-a="rel-voltar">Ver todas as turmas</button></span></div>
   <div class="tbl-wrap tbl-wide"><table><thead><tr><th>Aluno</th><th style="text-align:right">XP</th><th style="text-align:right">XP · 7d</th><th style="text-align:right">Lições</th><th style="text-align:right">Minutos · 7d</th><th style="text-align:right">Ofensiva</th><th>Último estudo</th><th style="text-align:right">Entregas</th><th style="text-align:right">Pendentes</th><th style="text-align:right">Média</th><th style="text-align:right">Acertos · 30d</th></tr></thead><tbody>
-    ${L.map(a => { const p2 = pct(a); return `<tr class="rowbtn" data-a="rel-aluno:${a.user_id}"><td><b>${esc(a.nome)}</b><br><span style="font-size:12px;color:var(--muted)">${esc(a.email || '')}</span></td><td class="num" style="text-align:right">${a.xp}</td><td class="num" style="text-align:right;color:${a.xp7 ? 'inherit' : 'var(--muted)'}">${a.xp7}</td><td class="num" style="text-align:right">${a.licoes}</td><td class="num" style="text-align:right">${a.minutos7}</td><td class="num" style="text-align:right">${a.ofensiva}</td><td style="font-size:12px;white-space:nowrap;color:${a.ultimo ? 'inherit' : 'var(--red-d)'}">${a.ultimo ? fmtDia(a.ultimo) : 'nunca estudou'}</td><td class="num" style="text-align:right">${a.entregues}</td><td class="num" style="text-align:right;color:${a.pendentes ? 'var(--red-d)' : 'var(--muted)'}">${a.pendentes}</td><td class="num" style="text-align:right;font-weight:700;color:${relCorNota(a.media)}">${relNota(a.media)}</td><td class="num" style="text-align:right">${p2 == null ? '—' : p2 + '%'}</td></tr>`; }).join('') || '<tr><td colspan="11" class="empty">A turma ainda não tem alunos.</td></tr>'}
+    ${L.map(a => { const p2 = pct(a); return `<tr class="rowbtn" data-a="rel-aluno:${a.user_id}"><td><button class="cellbtn" data-a="rel-aluno:${a.user_id}">${esc(a.nome)}</button><br><span style="font-size:12px;color:var(--muted)">${esc(a.email || '')}</span></td><td class="num" style="text-align:right">${a.xp}</td><td class="num" style="text-align:right;color:${a.xp7 ? 'inherit' : 'var(--muted)'}">${a.xp7}</td><td class="num" style="text-align:right">${a.licoes}</td><td class="num" style="text-align:right">${a.minutos7}</td><td class="num" style="text-align:right">${a.ofensiva}</td><td style="font-size:12px;white-space:nowrap;color:${a.ultimo ? 'inherit' : 'var(--red-d)'}">${a.ultimo ? fmtDia(a.ultimo) : 'nunca estudou'}</td><td class="num" style="text-align:right">${a.entregues}</td><td class="num" style="text-align:right;color:${a.pendentes ? 'var(--red-d)' : 'var(--muted)'}">${a.pendentes}</td><td class="num" style="text-align:right;font-weight:700;color:${relCorNota(a.media)}">${relNota(a.media)}</td><td class="num" style="text-align:right">${p2 == null ? '—' : p2 + '%'}</td></tr>`; }).join('') || '<tr><td colspan="11" class="empty">A turma ainda não tem alunos.</td></tr>'}
   </tbody></table></div><div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">Clique num aluno para ver o raio-x: evolução de 14 dias, progresso por matéria e todas as atividades. Entregas, pendências e média valem para esta turma; XP, lições, ofensiva e acertos valem para tudo que o aluno faz no app.</div></div>`;
 }
 /* Raio-x de um aluno (relatorio_aluno): série de 14 dias, matérias e atividades */
@@ -2400,7 +2465,7 @@ function modalHtml() {
 }
 function confirmHtml() {
   const C = V.confirmar;
-  return `<div class="drawer-bg"></div><div class="card modal" role="dialog" aria-modal="true"><h2>${esc(C.titulo)}</h2><p style="margin:0;color:var(--fg2)">${esc(C.corpo)}</p><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" data-a="confirmar-nao">Cancelar</button><button class="btn btn-primary" style="background:var(--red-d)" data-a="confirmar-sim">${esc(C.sim || 'Excluir')}</button></div></div>`;
+  return `<div class="drawer-bg"></div><div class="card modal" role="dialog" aria-modal="true"><h2>${esc(C.titulo)}</h2><p style="margin:0;color:var(--fg2)">${esc(C.corpo)}</p><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" id="confirmar-nao" data-a="confirmar-nao">Cancelar</button><button class="btn btn-primary"${C.tom === 'primary' ? '' : ' style="background:var(--red-d)"'} data-a="confirmar-sim">${esc(C.sim || 'Excluir')}</button></div></div>`;
 }
 
 /* =====================================================================
@@ -2414,11 +2479,12 @@ function render() {
   const focado = document.activeElement, fkey = focado && focado.dataset ? focado.dataset.f : null, sel = focado && focado.selectionStart;
   const scroll = window.scrollY;
   const trocouView = V.view !== ultimaViewRender; ultimaViewRender = V.view;
-  shell.className = V.view === 'dinamica' && V.din && V.din.telao ? 'telao' : '';
+  shell.className = ((V.view === 'dinamica' && V.din && V.din.telao ? 'telao ' : '') + (V.menu ? 'menu' : '')).trim();
   shell.innerHTML = sidebar() + `<main${trocouView ? ' class="view-anim"' : ''}>${VIEWS[V.view]()}</main>` + (V.ativ ? drawerAtividade() : '') + (V.rascunho ? drawerQuestao() : '') + (V.licaoAtribuir ? drawerAtribuir() : '') + (V.modalPrev ? modalPrevHtml() : '') + (V.relatorio ? modalRelatorioHtml() : '') + (V.rel.det ? modalRelAlunoHtml() : '') + (V.respostas ? modalRespostasHtml() : '') + (V.modal ? modalHtml() : '') + (V.confirmar ? confirmHtml() : '');
   window.scrollTo(0, scroll);
   if (fkey) { const el = shell.querySelector(`[data-f="${fkey}"]`); if (el && el.tagName !== 'SELECT' && el.type !== 'radio' && el.type !== 'color') { el.focus(); try { el.setSelectionRange(sel, sel); } catch (e) {} } }
   if (V.modal) { const first = shell.querySelector('#f-modal input'); if (first) first.focus(); }
+  if (V.confirmar) { const c = shell.querySelector('#confirmar-nao'); if (c) c.focus(); }
 }
 
 /* =====================================================================
@@ -2566,7 +2632,7 @@ async function moverItem(tabela, id, dir) {
   const mudados = irmaos.filter(x => antes.get(x.id) !== x.ordem);
   await Promise.all(mudados.map(x => db(sb.from(nome).update({ordem: x.ordem}).eq('id', x.id))));
 }
-function confirmar(titulo, corpo, fn, sim) { V.confirmar = {titulo, corpo, fn, sim}; render(); }
+function confirmar(titulo, corpo, fn, sim, tom) { V.confirmar = {titulo, corpo, fn, sim, tom}; render(); }
 async function carregarAlunosEscola(eid) {
   V.escolaAlunos = {lista: [], erro: null, carregando: true};
   const {data, error} = await sb.rpc('alunos_da_escola', {p_escola: eid});
@@ -2587,13 +2653,13 @@ async function carregarResultados(aid) {
   render();
 }
 /* Toda ação do painel é registrada; estas já têm um registro mais descritivo em seu próprio código */
-const ACOES_COM_REGISTRO_PROPRIO = new Set(['view', 'sair', 'abrir-turma', 'resultados', 'copiar-notas', 'copiar-json', 'buscar-alunos', 'bloq', 'novo-aluno', 'dar', 'dar-lote', 'ver-respostas', 'relatorio', 'csv-notas', 'csv-turma', 'csv-alunos', 'csv-aud', 'csv-erradas', 'nota-manual', 'nota-restaurar', 'recorrigir', 'seg-coord', 'excluir-conta', 'abrir-escola', 'escola-aba', 'esc-abrir', 'csv-esc-alunos', 'rel-turma', 'rel-aluno', 'csv-rel-turmas', 'csv-rel-alunos', 'nova-din', 'din-abrir', 'din-voltar', 'din-cmd', 'din-sortn', 'din-sortear', 'din-sortear-ui', 'din-mover', 'din-salvar-grupos', 'din-ponto', 'csv-din', 'din-criar-com-questoes', 'din-telao', 'din-telao-sair', 'editar-conta']);
+const ACOES_COM_REGISTRO_PROPRIO = new Set(['view', 'menu', 'sair', 'abrir-turma', 'resultados', 'copiar-notas', 'copiar-json', 'buscar-alunos', 'bloq', 'novo-aluno', 'dar', 'dar-lote', 'ver-respostas', 'relatorio', 'csv-notas', 'csv-turma', 'csv-alunos', 'csv-aud', 'csv-erradas', 'nota-manual', 'nota-restaurar', 'recorrigir', 'seg-coord', 'excluir-conta', 'abrir-escola', 'escola-aba', 'esc-abrir', 'csv-esc-alunos', 'rel-turma', 'rel-aluno', 'csv-rel-turmas', 'csv-rel-alunos', 'nova-din', 'din-abrir', 'din-voltar', 'din-cmd', 'din-sortn', 'din-sortear', 'din-sortear-ui', 'din-mover', 'din-salvar-grupos', 'din-ponto', 'csv-din', 'din-criar-com-questoes', 'din-telao', 'din-telao-sair', 'editar-conta']);
 async function act(a, el) {
   const [k, x, y, z] = a.split(':');
   if (!ACOES_COM_REGISTRO_PROPRIO.has(k)) auditar('clique', 'painel', a, 'Ação no painel: ' + k + (x ? ' · ' + [x, y, z].filter(v => v != null).join(':') : ''), {tela: V.view});
   const M = materiaPorId(V.materia);
   switch (k) {
-    case 'view': V.view = x; V.rascunho = null; V.licaoAtribuir = null; V.jsonVersao = null; V.ativ = null; V.modalPrev = null; V.respostas = null; V.din = null; if (x !== 'turma') V.turma = null; window.scrollTo(0, 0); render(); if (x === 'alunos' && !V.alunos.lista) buscarAlunos(); if (x === 'inicio' && admin) carregarMetricas(); if (x === 'dashboard' && !V.dash.data) carregarDashboard(); if (x === 'auditoria' && !V.aud.lista) carregarAuditoria(false); if (x === 'relatorios') { if (!V.rel.turmas && !V.rel.tcarregando) carregarRelTurmas(); if (admin && V.rel.aba === 'uso' && !V.rel.data) carregarRelatorio(); } auditar('tela', 'painel', x, 'Abriu a tela ' + x); return;
+    case 'view': V.view = x; V.menu = false; V.rascunho = null; V.licaoAtribuir = null; V.jsonVersao = null; V.ativ = null; V.modalPrev = null; V.respostas = null; V.din = null; if (x !== 'turma') V.turma = null; window.scrollTo(0, 0); render(); if (x === 'alunos' && !V.alunos.lista) buscarAlunos(); if (x === 'inicio' && admin) carregarMetricas(); if (x === 'dashboard' && !V.dash.data) carregarDashboard(); if (x === 'auditoria' && !V.aud.lista) carregarAuditoria(false); if (x === 'relatorios') { if (!V.rel.turmas && !V.rel.tcarregando) carregarRelTurmas(); if (admin && V.rel.aba === 'uso' && !V.rel.data) carregarRelatorio(); } auditar('tela', 'painel', x, 'Abriu a tela ' + x); return;
     case 'rel-recarregar': { const R2 = V.rel; if (R2.aba === 'uso') { R2.data = null; return carregarRelatorio(); } R2.turmas = null; R2.alunosPor = {}; carregarRelTurmas(); if (R2.f.turma) carregarRelAlunos(R2.f.turma, true); return; }
     case 'rel-aba': V.rel.aba = x; if (x === 'uso' && !V.rel.data) carregarRelatorio(); if (x === 'visao' && !V.rel.turmas) carregarRelTurmas(); return render();
     case 'rel-escolha': { const f2 = V.rel.f; if (x === 'escola') { f2.escola = y; f2.seg = ''; } else f2.seg = y; f2.turma = ''; return render(); }
@@ -2846,6 +2912,7 @@ async function act(a, el) {
     case 'resultados': { const a = T.atividades.find(a => a.id === x); V.resultados = {id: x, data: null, erro: null}; V.respostas = null; V.view = 'resultados'; V.ativ = null; window.scrollTo(0, 0); render(); auditar('resultados', 'resultados', x, 'Viu os resultados de ' + (a ? a.titulo : x)); return carregarResultados(x); }
     case 'copiar-notas': { const d = V.resultados && V.resultados.data; if (!d) return; auditar('copia', 'resultados', V.resultados.id, 'Copiou as notas da atividade', {alunos: d.alunos.length}); const txt = d.alunos.map(a => `${a.nome}\t${a.email || ''}\t${a.entregueEm ? String(a.nota).replace('.', ',') : ''}\t${a.entregueEm ? a.acertos + '/' + a.total : 'não entregou'}`).join('\n'); (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText('Aluno\tE-mail\tNota\tAcertos\n' + txt) : Promise.reject()).then(() => toast('Notas copiadas. Cole numa planilha.')).catch(() => toast('Não deu para copiar neste navegador.')); return; }
 
+    case 'menu': V.menu = !V.menu; return render();
     case 'sair': auditar('sair', 'painel', null, 'Saiu do painel'); return sb.auth.signOut();
     case 'tema': aplicarTema(temaAtual() === 'dark' ? 'light' : 'dark'); return render();
     case 'importar-seed': return importarSeed();
@@ -3002,17 +3069,18 @@ async function act(a, el) {
     }
 
     /* publicar */
-    case 'publicar': return publicar(V.notaPub.trim());
+    case 'publicar': return confirmar('Publicar esta versão?', resumoPublicacao(), () => publicar(V.notaPub.trim()), 'Publicar agora', 'primary');
     case 'toggle-autopub': autoPub = !autoPub; try { localStorage.setItem('fj-autopub', autoPub ? '1' : '0'); } catch (e) {} if (autoPub) agendarPublicacao(); return render();
     case 'ver-json': {
       if (x === 'atual') { V.jsonVersao = null; V.jsonTexto = ''; return render(); }
       const row = await db(sb.from('publicacoes').select('pacote').eq('versao', +x).single());
       V.jsonVersao = +x; V.jsonTexto = JSON.stringify(row.pacote, null, 2); return render();
     }
-    case 'restaurar': return confirmar(`Voltar à versão ${x}?`, `Uma nova versão igual à v${x} será publicada e o app passa a ler esse conteúdo.`, async () => {
+    case 'restaurar': return confirmar(`Voltar à versão ${x}?`, `Uma nova versão igual à v${x} será publicada e o app passa a ler esse conteúdo.` + (autoPub ? ' A publicação automática será desligada para o conteúdo do painel não voltar por cima.' : ''), async () => {
       const row = await db(sb.from('publicacoes').select('pacote').eq('versao', +x).single());
       const pacote = {...row.pacote, geradoEm: agora()};
       const nova = await db(sb.from('publicacoes').insert({pacote, nota: `Restaurada da v${x}`, criada_por: sessao.user.id}).select('versao, nota, criada_em').single());
+      if (autoPub) { autoPub = false; try { localStorage.setItem('fj-autopub', '0'); } catch (e) {} }
       D.publicacoes.unshift(nova); D.ultimoPacote = pacote; V.jsonVersao = null; toast(`Versão ${nova.versao} publicada (igual à v${x}).`);
     }, 'Voltar');
     case 'copiar-json': { auditar('copia', 'publicacoes', V.jsonVersao ? String(V.jsonVersao) : 'atual', 'Copiou o JSON do pacote'); const t = document.getElementById('jsonout').textContent; (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('JSON copiado.')).catch(() => { const r = document.createRange(); r.selectNodeContents(document.getElementById('jsonout')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast('Selecionado: use Ctrl+C para copiar.'); }); return; }
@@ -3038,6 +3106,7 @@ document.addEventListener('keydown', ev => {
   if (V.modal || V.confirmar || V.modalPrev || V.respostas) { V.modal = null; V.confirmar = null; V.modalPrev = null; V.respostas = null; return render(); }
   if (V.rascunho || V.licaoAtribuir) { V.rascunho = null; V.licaoAtribuir = null; return render(); }
   if (V.ativ) { V.ativ = null; return render(); }
+  if (V.menu) { V.menu = false; return render(); }
 });
 
 /* =====================================================================
