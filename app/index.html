@@ -322,9 +322,6 @@ button.card:active{transform:scale(.985)}
 /* Login: só a Rapozinha, sem disco atrás (uma sombra suave no chão para ela não ficar solta) */
 .hero-mascot{display:flex;align-items:flex-end;justify-content:center;filter:drop-shadow(0 14px 18px rgba(45,79,214,.22))}
 .hero-mascot .mascot{width:132px!important}
-.mascot{display:block;flex-shrink:0}
-.mascot canvas,.mascot img{width:100%;height:auto;display:block}
-.mascot .fb{display:block}
 /* Mascote solta nas telas de fundo azul: sem disco atrás; um brilho branco suave em volta separa a Rapozinha (azul) do fundo */
 .mascot-livre{display:flex;justify-content:center;filter:drop-shadow(0 0 16px rgba(255,255,255,.6)) drop-shadow(0 10px 14px rgba(0,0,0,.25))}
 /* Rapozinha em sprite (pensando, feliz3): quadros lado a lado; duração e número de quadros vêm do inline style gerado por mascot() */
@@ -490,7 +487,6 @@ const sb = supabase.createClient(FJ_CONFIG.supabaseUrl, FJ_CONFIG.supabaseAnonKe
 const app = document.getElementById('app');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-const VIDEO = {feliz: 'rapozinha-feliz.mp4', feliz2: 'rapozinha-feliz2.mp4', triste: 'rapozinha-triste.mp4'};
 const SEM_MOV = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 // A tela de carregamento fica pelo menos este tempo na tela, só para a troca não piscar.
 // Eram 3 s (um ciclo e meio da animação da Rapozinha): num 3G isso somava três segundos
@@ -614,116 +610,21 @@ function fundoCss(id) {
 }
 let fundoAtual = null;
 function aplicarFundo(id) { const css = fundoCss(id); if (css === fundoAtual) return; fundoAtual = css; app.style.setProperty('--fundo', css); }
-const SPRITES ={pensando: {src: 'rapozinha-pensando.png', fw: 216, fh: 240, n: 20, dur: 2}, feliz3: {src: 'rapozinha-feliz3.png', fw: 240, fh: 267, n: 30, dur: 2.4}};
+/* Mascote: cada humor é uma folha de sprites WebP, com os quadros lado a lado, animada por
+   CSS steps() — com "reduzir movimento" o CSS para no primeiro quadro, sem custo nenhum.
+   'feliz', 'feliz2' e 'triste' foram assadas dos MP4 da era roxa: o chroma key e a recoloração
+   que rodavam no navegador a 60 fps já vêm prontos dentro do arquivo, com alfa de verdade.
+   fw/fh = um quadro, n = quantos quadros, dur = segundos de um ciclo (12 quadros por segundo). */
+const SPRITES = {
+  pensando: {src: 'rapozinha-pensando.webp', fw: 216, fh: 240, n: 20, dur: 2},
+  feliz: {src: 'rapozinha-feliz.webp', fw: 240, fh: 266, n: 30, dur: 2.5},
+  feliz2: {src: 'rapozinha-feliz2.webp', fw: 240, fh: 282, n: 33, dur: 2.75},
+  feliz3: {src: 'rapozinha-feliz3.webp', fw: 240, fh: 267, n: 30, dur: 2.4},
+  triste: {src: 'rapozinha-triste.webp', fw: 240, fh: 427, n: 29, dur: 2.42}
+};
 const spriteHtml = (sp, w, cls, alt) => `<span class="mascot-pensa ${cls}" role="img" aria-label="${esc(alt)}" style="width:${w}px;height:${Math.round(w * sp.fh / sp.fw)}px"><img src="${sp.src}" alt="" style="animation-duration:${sp.dur}s;animation-timing-function:steps(${sp.n})"></span>`;
-// Regra: a Rapozinha nunca aparece parada. Nos humores em vídeo, a reserva (enquanto o vídeo carrega,
-// se ele falhar ou com "reduzir movimento") é um sprite animado, não uma imagem estática — e nunca
-// um sprite alegre num humor triste, senão o app sorri na hora errada.
-const RESERVA = {triste: 'pensando'};
-const mascot = (w, cls = '', alt = '', humor = 'feliz') => { const sp = SPRITES[humor]; return sp
-  ? spriteHtml(sp, w, cls, alt)
-  : `<span class="mascot ${cls}" data-humor="${VIDEO[humor] ? humor : 'feliz'}" style="width:${w}px"><canvas style="display:none" aria-hidden="true"></canvas><span class="fb">${spriteHtml(SPRITES[RESERVA[humor]] || SPRITES.feliz3, w, '', alt)}</span></span>`; };
-// Identidade azul/branco/laranja: os vídeos da mascote ainda são da era roxa, então
-// cada quadro novo passa pelo MESMO remapeamento usado para recolorir os sprites e os ícones:
-// azuis/roxos médios (matiz 200–300) viram azul royal (matiz 227, mais saturado; os escuros viram a sombra),
-// lavanda/cinza claro e rosa viram quase branco, bege/laranja (fones) vira o laranja da marca
-// e teal/ciano (matiz 140–205) vira laranja (matiz 27). Cache por cor: a arte é chapada,
-// tem poucas cores distintas, então o custo por quadro é quase só o do chroma key que já existia.
-const RECOR = new Map();
-function hsl2rgb(h, s, l) {
-  h = ((h % 360) + 360) % 360 / 360;
-  const q = l < .5 ? l * (1 + s) : l + s - l * s, p2 = 2 * l - q;
-  const f = t => { if (t < 0) t += 1; if (t > 1) t -= 1; return t < 1 / 6 ? p2 + (q - p2) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p2 + (q - p2) * (2 / 3 - t) * 6 : p2; };
-  return [Math.round(f(h + 1 / 3) * 255), Math.round(f(h) * 255), Math.round(f(h - 1 / 3) * 255)];
-}
-function recor(r, g, b) {
-  const k = (r << 16) | (g << 8) | b;
-  let v = RECOR.get(k);
-  if (v !== undefined) return v;
-  const r1 = r / 255, g1 = g / 255, b1 = b / 255;
-  const max = Math.max(r1, g1, b1), min = Math.min(r1, g1, b1), d = max - min, l = (max + min) / 2;
-  let h = 0, s = 0;
-  if (d) {
-    s = l > .5 ? d / (2 - max - min) : d / (max + min);
-    h = (max === r1 ? (g1 - b1) / d + (g1 < b1 ? 6 : 0) : max === g1 ? (b1 - r1) / d + 2 : (r1 - g1) / d + 4) * 60;
-  }
-  let novo = null;
-  if (h >= 200 && h <= 300 && s > .25 && l >= .15 && l < .65) novo = l < .36 ? hsl2rgb(227, .66, Math.min(.42, l * 1.22)) : hsl2rgb(227, .68, Math.max(.48, Math.min(.56, l * 1.2)));
-  else if (l > .65 && (s < .35 || (h >= 290 && h <= 350) || (h >= 200 && h <= 290 && s < .6))) { if (l < .97) novo = hsl2rgb(227, .5, .95); }
-  else if (h >= 10 && h <= 45 && s > .3 && l >= .3 && l <= .75) novo = hsl2rgb(31, .93, .54);
-  else if (h >= 140 && h <= 205 && s > .08 && l > .3) novo = hsl2rgb(27, s, l);
-  RECOR.set(k, novo);
-  return novo;
-}
-const MASC = (() => {
-  const videos = {}, telas = new Set(); let loop = false;
-  const reduz = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function video(h) {
-    if (videos[h]) return videos[h];
-    const v = document.createElement('video'); v.muted = true; v.loop = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('muted', ''); v.preload = 'auto'; v.src = VIDEO[h];
-    v.style.cssText = 'position:fixed;left:-20px;top:-20px;width:4px;height:4px;opacity:0.01;pointer-events:none';
-    v.onerror = () => { v._erro = true; };
-    document.body.appendChild(v); v.play().catch(() => {}); videos[h] = v; return v;
-  }
-  function ligar() {
-    if (reduz) return;
-    document.querySelectorAll('.mascot[data-humor]').forEach(el => {
-      if (el._ok) return; el._ok = true;
-      const cv = el.querySelector('canvas'), im = el.querySelector('.fb'); if (!cv || !im) return;
-      const h = el.dataset.humor, v = video(h);
-      // Mascote nova na tela: o vídeo volta ao começo, para a animação aparecer inteira (a menos que outra mascote do mesmo humor já esteja visível)
-      if (![...telas].some(t => t.el.dataset.humor === h && t.el.isConnected)) { try { v.currentTime = 0; } catch (e) {} }
-      telas.add({el, v, cv, im, g: cv.getContext('2d'), t0: Date.now()});
-    });
-    if (!loop && telas.size) { loop = true; requestAnimationFrame(quadro); }
-  }
-  // O chroma key (pixel a pixel) roda UMA vez por humor e por quadro novo do vídeo, num canvas
-  // compartilhado; cada mascote na tela só copia o resultado (barato). Antes, cada mascote
-  // processava os ~100 mil pixels sozinha a 60 fps — caro em CPU e bateria nos celulares fracos.
-  const procs = {};
-  function processa(h) {
-    const v = videos[h];
-    if (!v || v._erro || v.readyState < 2) return null;
-    if (v.paused) v.play().catch(() => {});
-    let pr = procs[h];
-    if (!pr) { const cv = document.createElement('canvas'); pr = procs[h] = {cv, g: cv.getContext('2d', {willReadFrequently: true}), bg: null, ok: false, t: -1}; }
-    if (pr.ok && pr.t === v.currentTime) return pr;           // o vídeo não avançou: reusa o quadro pronto
-    const w = Math.min(320, v.videoWidth || 320), hh = Math.round((v.videoHeight || 320) * w / (v.videoWidth || 320));
-    if (pr.cv.width !== w || pr.cv.height !== hh) { pr.cv.width = w; pr.cv.height = hh; }
-    let d;
-    try { pr.g.drawImage(v, 0, 0, w, hh); d = pr.g.getImageData(0, 0, w, hh); }
-    catch (e) { v._erro = true; return null; }
-    const p = d.data;
-    if (!pr.bg) pr.bg = [p[0], p[1], p[2]];
-    const r0 = pr.bg[0], g0 = pr.bg[1], b0 = pr.bg[2];
-    for (let i = 0; i < p.length; i += 4) {
-      const dist = Math.abs(p[i] - r0) + Math.abs(p[i + 1] - g0) + Math.abs(p[i + 2] - b0);
-      if (dist < 30) { p[i + 3] = 0; continue; } else if (dist < 60) p[i + 3] = Math.round((dist - 30) / 30 * 255);
-      const nc = recor(p[i], p[i + 1], p[i + 2]);
-      if (nc) { p[i] = nc[0]; p[i + 1] = nc[1]; p[i + 2] = nc[2]; }
-    }
-    pr.g.putImageData(d, 0, 0);
-    pr.ok = true; pr.t = v.currentTime;
-    return pr;
-  }
-  function quadro() {
-    for (const t of telas) {
-      if (!t.el.isConnected) { telas.delete(t); continue; }
-      const v = t.v;
-      if (v._erro || (Date.now() - t.t0 > 5000 && v.readyState < 2)) { t.cv.style.display = 'none'; t.im.style.display = 'block'; telas.delete(t); continue; }
-      const pr = processa(t.el.dataset.humor);
-      if (!pr || !pr.ok) continue;
-      if (t.cv.width !== pr.cv.width || t.cv.height !== pr.cv.height) { t.cv.width = pr.cv.width; t.cv.height = pr.cv.height; }
-      t.g.clearRect(0, 0, t.cv.width, t.cv.height);
-      t.g.drawImage(pr.cv, 0, 0);
-      if (t.im.style.display !== 'none') { t.im.style.display = 'none'; t.cv.style.display = 'block'; }
-    }
-    if (telas.size) requestAnimationFrame(quadro); else loop = false;
-  }
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) Object.values(videos).forEach(v => v.play().catch(() => {})); });
-  ['touchend', 'click'].forEach(ev => document.addEventListener(ev, () => Object.values(videos).forEach(v => { if (v.paused) v.play().catch(() => {}); }), {passive: true}));
-  return {ligar};
-})();
+// Regra: a Rapozinha nunca aparece parada, e nunca aparece alegre num humor triste.
+const mascot = (w, cls = '', alt = '', humor = 'feliz') => spriteHtml(SPRITES[humor] || SPRITES.feliz, w, cls, alt);
 const HOUR = 3600e3;
 const dkey = (d = new Date()) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 /* Dia e prazos vêm do servidor (horário de Brasília, migration 0022); sem eles, cai na hora do aparelho */
@@ -1014,7 +915,7 @@ async function recarregarEstado(silencioso = true) {
 /* =====================================================================
    Telas de entrada
    ===================================================================== */
-function telaAuth(html) { aplicarFundo('geral'); app.innerHTML = `<div class="auth">${html}</div>`; MASC.ligar(); }
+function telaAuth(html) { aplicarFundo('geral'); app.innerHTML = `<div class="auth">${html}</div>`; }
 function erroDaUrl() {
   const h = new URLSearchParams((location.hash || '').replace(/^#/, '')), q = new URLSearchParams(location.search);
   const d = h.get('error_description') || q.get('error_description') || h.get('error') || q.get('error');
@@ -2525,7 +2426,6 @@ function render(reset) {
   if (V.editNome) { const i = document.getElementById('nome-inp'); if (i && document.activeElement !== i) i.focus(); }
   lastScreen = V.screen;
   contadores();
-  MASC.ligar();
 }
 async function rpcEstado(fn, args, okMsg) {
   const {data, error} = await sb.rpc(fn, args);
