@@ -787,7 +787,7 @@ async function carregar() {
   if (!V.materia || !D.materias.some(x => x.id === V.materia)) V.materia = D.materias[0] ? D.materias[0].id : null;
 }
 /* Confere se as migrations estão em dia (tabela schema_versao, migration 0022) */
-const ESQUEMA_ESPERADO = 52;
+const ESQUEMA_ESPERADO = 53;
 const CURSOS = ['dev', 'log', 'dat']; // matérias-curso: fora do Mapa do ENEM, o app mostra no grupo "Cursos"
 async function verificarEsquema() {
   const r = await sb.from('schema_versao').select('versao').order('versao', {ascending: false}).limit(1).maybeSingle();
@@ -1968,7 +1968,7 @@ function dinRankingHtml(d, final) {
     ${podio}
     <div class="card-b" style="display:flex;flex-direction:column;gap:6px">
     ${r.map((x, i) => `<div class="dinrank ${i === 0 ? 'top' : ''} ${x.eu ? 'eu' : ''}"><span class="pos">${pos(i)}</span><span class="av">${esc(iniciais(x.nome))}</span><span class="nm"><b>${esc(x.nome)}</b><span class="bar"><i style="width:${Math.round(x.acertos / max * 100)}%;background:${i === 0 ? 'linear-gradient(90deg,#FFD36A,#E8A33D)' : 'linear-gradient(90deg,#5B7CFF,#2D4FD6)'}"></i></span></span><b class="pts">${I.check}${x.acertos}<span style="font-weight:500;font-size:12px;color:var(--muted)">acerto${x.acertos === 1 ? '' : 's'}</span></b></div>`).join('') || '<div class="empty">Ainda sem pontos.</div>'}
-    </div><div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px">${I.clock}Empate é decidido pelo menor tempo somado das respostas.</div></div>`;
+    </div><div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px">${I.clock}Empate em acertos é decidido pelo ${d.desempate === 'tempo_medio' ? 'menor tempo médio de resposta' : 'menor tempo somado das respostas'}.</div></div>`;
 }
 function dinCorpoQ(d) {
   const gq = (d.questoes || [])[d.questao] || {}, pub = (d.publicas || [])[d.questao] || {};
@@ -2010,20 +2010,27 @@ function dinLobby(d) {
   let grupos = '';
   if (d.modo === 'grupos') {
     const S2 = V.din.sorteio;
-    if (S2) grupos = `<div class="card"><div class="card-h"><h2>Grupos</h2><span class="right"><button class="btn btn-ghost btn-sm" data-a="din-sortear">Sortear de novo</button></span></div>
+    if (S2) { const nomeDe2 = uid => esc(((d.alunos || []).find(a => a.user_id === uid) || {}).nome || '?');
+      // cada aluno tem um seletor de grupo ("—" = fica de fora); os sem grupo ficam numa caixa à parte
+      const sel = (uid, gi) => `<select class="inp sm" style="height:22px;font-size:11px;padding:0 4px;width:auto" data-a="din-mover:${uid}" aria-label="Grupo de ${nomeDe2(uid)}"><option value="-1" ${gi < 0 ? 'selected' : ''}>—</option>${S2.grupos.map((_, k) => `<option value="${k}" ${k === gi ? 'selected' : ''}>G${k + 1}</option>`).join('')}</select>`;
+      const livres = (S2.livres || []).filter(uid => !S2.grupos.some(g => g.includes(uid)));
+      grupos = `<div class="card"><div class="card-h"><h2>Grupos</h2><span class="pill type">${S2.grupos.length}</span><span class="right"><button class="btn btn-ghost btn-sm" data-a="din-mais-grupo">${I.plus}Grupo</button><button class="btn btn-ghost btn-sm" data-a="din-sortear">Sortear de novo</button></span></div>
       <div class="card-b" style="display:flex;flex-direction:column;gap:12px">
+      ${livres.length ? `<div style="border:1.5px dashed var(--line2);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px"><b style="font-size:13px;color:var(--muted)">Sem grupo (${livres.length}) · escolha o grupo de cada um</b>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${livres.map(uid => `<span class="pill off" style="font-size:12px;display:inline-flex;align-items:center;gap:5px">${nomeDe2(uid)}${sel(uid, -1)}</span>`).join('')}</div></div>` : ''}
       ${S2.grupos.map((g, gi) => `<div style="border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px">
         <input class="inline-edit" style="font-weight:700;min-width:160px" value="${esc(S2.nomes[gi])}" data-f="dinNome.${gi}" aria-label="Nome do grupo ${gi + 1}">
-        <div style="display:flex;gap:6px;flex-wrap:wrap">${g.map(uid => `<span class="pill off" style="font-size:12px;display:inline-flex;align-items:center;gap:5px">${esc(((d.alunos || []).find(a => a.user_id === uid) || {}).nome || '?')}<select class="inp sm" style="height:22px;font-size:11px;padding:0 4px;width:auto" data-a="din-mover:${uid}" aria-label="Mover de grupo">${S2.grupos.map((_, k) => `<option value="${k}" ${k === gi ? 'selected' : ''}>G${k + 1}</option>`).join('')}</select></span>`).join('') || '<span style="font-size:12px;color:var(--muted)">vazio</span>'}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${g.map(uid => `<span class="pill off" style="font-size:12px;display:inline-flex;align-items:center;gap:5px">${nomeDe2(uid)}${sel(uid, gi)}</span>`).join('') || '<span style="font-size:12px;color:var(--muted)">vazio</span>'}</div>
       </div>`).join('')}
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn btn-primary" data-a="din-salvar-grupos">${I.check}Salvar grupos</button><span style="font-size:12px;color:var(--muted)">Depois de salvar, cada aluno vê o próprio grupo no app.</span></div></div></div>`;
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn btn-primary" data-a="din-salvar-grupos">${I.check}Salvar grupos</button><span style="font-size:12px;color:var(--muted)">Depois de salvar, cada aluno vê o próprio grupo no app. Quem ficar "sem grupo" não entra na disputa.</span></div></div></div>`; }
     else if ((d.grupos || []).length) grupos = `<div class="card"><div class="card-h"><h2>Grupos</h2><span class="pill type">${d.grupos.length}</span><span class="right"><button class="btn btn-ghost btn-sm" data-a="din-sortear-ui">${I.edit}Ajustar</button></span></div>
       <div class="card-b" style="display:flex;flex-direction:column;gap:10px">
       ${d.grupos.map(g => `<div><b>${esc(g.nome)}</b><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">${(g.membros || []).map(m => `<span class="pill ${m.online ? 'pub' : 'off'}" style="font-size:12px">${esc(m.nome)}</span>`).join('') || '<span style="font-size:12px;color:var(--muted)">vazio</span>'}</div></div>`).join('')}</div></div>`;
     else grupos = `<div class="card"><div class="card-h"><h2>Grupos</h2></div><div class="card-b" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <label style="display:flex;align-items:center;gap:6px;font-size:13px">Quantos grupos <select class="inp sm" style="width:auto" data-a="din-sortn" aria-label="Número de grupos">${[2, 3, 4, 5, 6, 7, 8].map(n => `<option value="${n}" ${n === (V.din.sorteioN || 4) ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
       <button class="btn btn-primary" data-a="din-sortear">Sortear os grupos</button>
-      <span style="font-size:12px;color:var(--muted);flex:1;min-width:200px">Sorteia todos os alunos da turma de forma aleatória; depois dá para ajustar um por um e renomear cada grupo.</span></div></div>`;
+      <button class="btn btn-outline" data-a="din-manual-grupos">Montar à mão</button>
+      <span style="font-size:12px;color:var(--muted);flex:1;min-width:200px">Sortear distribui todos os alunos ao acaso; montar à mão cria os grupos vazios e você escolhe quem vai em cada um. Nos dois casos dá para ajustar aluno por aluno e renomear os grupos.</span></div></div>`;
   }
   const pronto = d.modo !== 'grupos' || ((d.grupos || []).length >= 2 && !V.din.sorteio);
   return `<div class="grid2">${grupos || presenca}${grupos ? presenca : ''}</div>
@@ -2732,24 +2739,38 @@ async function act(a, el) {
       auditar('dinamica', 'dinamicas', null, 'Abriu o formulário de nova dinâmica', {turma: tid});
       V.modal = {titulo: 'Nova dinâmica', texto: 'Quiz ao vivo na sala: você projeta o telão, os alunos respondem pelo app e o placar atualiza sozinho. Também dá para fazer as perguntas "por fora" e só marcar os acertos de cada grupo.', ok: 'Continuar', campos: [
         {k: 'titulo', label: 'Nome da dinâmica', valor: 'Dinâmica · ' + new Date().toLocaleDateString('pt-BR'), obrigatorio: true},
-        {k: 'origem', label: 'Perguntas', tipo: 'select', opcoes: [['montar', 'Escolher agora: busco no banco ou crio as minhas'], ...(ativs.length ? [['atividade', 'Copiar de uma atividade desta turma']] : []), ['manual', 'Feitas em sala: eu marco os acertos por grupo']], valor: 'montar'},
+        {k: 'origem', label: 'Perguntas', tipo: 'select', opcoes: [['sorteio', 'Sortear do banco: por matéria e assunto (ou todas as matérias)'], ['montar', 'Escolher agora: busco no banco ou crio as minhas'], ...(ativs.length ? [['atividade', 'Copiar de uma atividade desta turma']] : []), ['manual', 'Feitas em sala: eu marco os acertos por grupo']], valor: 'sorteio'},
+        {k: 'materia', label: 'Se sortear: matéria', tipo: 'select', opcoes: [...(restrito() ? [] : [['', 'Todas as matérias']]), ...materiasPermitidas().filter(m => m.ativa).map(m => [m.id, m.nome])], valor: restrito() ? disciplina : ''},
+        {k: 'assunto', label: 'Se sortear: assunto (opcional, parte do nome da unidade ou do assunto)', placeholder: 'Ex.: frações, Revolução Francesa'},
+        {k: 'qtd', label: 'Se sortear: quantas questões', tipo: 'select', opcoes: [['5', '5'], ['8', '8'], ['10', '10'], ['15', '15'], ['20', '20'], ['30', '30']], valor: '10'},
         ...(ativs.length ? [{k: 'atividade', label: 'Se copiar de atividade: qual (vale até rascunho)', tipo: 'select', opcoes: ativs.map(a2 => [a2.id, a2.titulo + ' · ' + a2.questoes.length + ' questões'])}] : []),
         {k: 'modo', label: 'Disputa', tipo: 'select', opcoes: [['grupos', 'Em grupos (sorteados ou montados por você)'], ['individual', 'Cada aluno por si']]},
-        {k: 'tempo', label: 'Tempo por questão', tipo: 'select', opcoes: DIN_TEMPOS, valor: '60'}
+        {k: 'tempo', label: 'Tempo por questão', tipo: 'select', opcoes: DIN_TEMPOS, valor: '60'},
+        {k: 'desempate', label: 'Desempate no placar', tipo: 'checks', opcoes: [['tempo_medio', 'Empate em acertos: vence quem tem o menor tempo médio de resposta (sem marcar, vale o menor tempo somado)']], valores: []}
       ], fn: async v => {
+        const desempate = (v.desempate || []).includes('tempo_medio') ? 'tempo_medio' : 'tempo_total';
         if (v.origem === 'montar') {   // abre o seletor de questões (o mesmo da atividade) e cria no fim
-          V.ativ = {...novaAtiv(tid), titulo: v.titulo.trim(), dinamica: {modo: v.modo, tempo: +v.tempo || 0}};
+          V.ativ = {...novaAtiv(tid), titulo: v.titulo.trim(), dinamica: {modo: v.modo, tempo: +v.tempo || 0, desempate}};
           V.ativBusca = {texto: '', materia: V.ativ.materia_id || '', unidade: '', assunto: '', segmento: (turmaPorId(tid) || {}).segmento_id || '', nivel: ''};
           return;
         }
-        const r = await db(sb.rpc('criar_dinamica', {p_turma: tid, p_titulo: v.titulo.trim(), p_modo: v.origem === 'manual' ? 'grupos' : v.modo, p_origem: v.origem === 'manual' ? 'manual' : 'questoes', p_atividade: v.origem === 'atividade' ? v.atividade : null, p_tempo: +v.tempo || 0}));
+        let qs = null;
+        if (v.origem === 'sorteio') {   // sorteia do banco publicado: matéria (ou todas), assunto opcional, quantidade pedida
+          const ass = (v.assunto || '').trim().toLowerCase();
+          const pool = D.questoes.filter(q => q.status === 'publicada' && (!v.materia || q.materia_id === v.materia) && (!restrito() || q.materia_id === disciplina)
+            && (!ass || assuntosDe(q).some(a2 => a2.toLowerCase().includes(ass)) || (q.enunciado || '').toLowerCase().includes(ass)));
+          if (!pool.length) return toast('Nenhuma questão publicada com esse filtro. Tente outro assunto ou "Todas as matérias".');
+          qs = embaralha(pool).slice(0, +v.qtd || 10).map(snapshotQ);
+          if (qs.length < +v.qtd) toast(`Só ${qs.length} questões batem com o filtro; a dinâmica vai com elas.`);
+        }
+        const r = await db(sb.rpc('criar_dinamica', {p_turma: tid, p_titulo: v.titulo.trim(), p_modo: v.origem === 'manual' ? 'grupos' : v.modo, p_origem: v.origem === 'manual' ? 'manual' : 'questoes', p_atividade: v.origem === 'atividade' ? v.atividade : null, p_tempo: +v.tempo || 0, p_questoes: qs, p_desempate: desempate}));
         V.turma = tid; V.din = {id: r.id, data: null, erro: null, sorteio: null, sorteioN: 4}; V.view = 'dinamica'; window.scrollTo(0, 0); render(); return atualizarDinamica();
       }}; return render();
     }
     case 'din-criar-com-questoes': {
       const a = V.ativ; if (!a || !a.dinamica) return;
       const errs = validarAtiv(a); if (errs.length) return toast(errs[0]);
-      const r = await db(sb.rpc('criar_dinamica', {p_turma: a.turma_id, p_titulo: a.titulo.trim(), p_modo: a.dinamica.modo, p_origem: 'questoes', p_atividade: null, p_tempo: a.dinamica.tempo, p_questoes: a.questoes}));
+      const r = await db(sb.rpc('criar_dinamica', {p_turma: a.turma_id, p_titulo: a.titulo.trim(), p_modo: a.dinamica.modo, p_origem: 'questoes', p_atividade: null, p_tempo: a.dinamica.tempo, p_questoes: a.questoes, p_desempate: a.dinamica.desempate || 'tempo_total'}));
       V.ativ = null; V.rascunho = null;
       V.turma = a.turma_id; V.din = {id: r.id, data: null, erro: null, sorteio: null, sorteioN: 4}; V.view = 'dinamica'; window.scrollTo(0, 0); render(); return atualizarDinamica();
     }
@@ -2767,20 +2788,28 @@ async function act(a, el) {
     case 'din-sortn': if (V.din) V.din.sorteioN = +el.value || 4; return;
     case 'din-sortear': case 'din-sortear-ui': {
       const d2 = V.din && V.din.data; if (!d2) return;
-      if (k === 'din-sortear-ui' && (d2.grupos || []).length) { V.din.sorteio = {grupos: d2.grupos.map(g => (g.membros || []).map(m => m.user_id)), nomes: d2.grupos.map(g => g.nome)}; return render(); }
+      if (k === 'din-sortear-ui' && (d2.grupos || []).length) { const dentro = new Set(d2.grupos.flatMap(g => (g.membros || []).map(m => m.user_id))); V.din.sorteio = {grupos: d2.grupos.map(g => (g.membros || []).map(m => m.user_id)), nomes: d2.grupos.map(g => g.nome), livres: (d2.alunos || []).map(a2 => a2.user_id).filter(u2 => !dentro.has(u2))}; return render(); }
       const ids = (d2.alunos || []).map(a2 => a2.user_id);
       if (ids.length < 2) return toast('A turma precisa de pelo menos 2 alunos.');
       const n = Math.max(2, Math.min(V.din.sorteioN || 4, ids.length));
       const gs = Array.from({length: n}, () => []);
       embaralha(ids).forEach((uid, i2) => gs[i2 % n].push(uid));
-      V.din.sorteio = {grupos: gs, nomes: gs.map((_, i2) => 'Grupo ' + (i2 + 1))};
+      V.din.sorteio = {grupos: gs, nomes: gs.map((_, i2) => 'Grupo ' + (i2 + 1)), livres: []};
       return render();
     }
-    case 'din-mover': { const S2 = V.din && V.din.sorteio; if (!S2) return; const dest = Math.max(0, Math.min(+el.value || 0, S2.grupos.length - 1)); S2.grupos.forEach(g => { const i2 = g.indexOf(x); if (i2 >= 0) g.splice(i2, 1); }); S2.grupos[dest].push(x); return render(); }
+    case 'din-mover': { const S2 = V.din && V.din.sorteio; if (!S2) return; const dest = Math.min(+el.value, S2.grupos.length - 1); S2.grupos.forEach(g => { const i2 = g.indexOf(x); if (i2 >= 0) g.splice(i2, 1); }); S2.livres = (S2.livres || []).filter(u2 => u2 !== x); if (dest >= 0) S2.grupos[dest].push(x); else S2.livres.push(x); return render(); }
+    case 'din-manual-grupos': {   // grupos vazios + todos os alunos na caixa "sem grupo"
+      const d2 = V.din && V.din.data; if (!d2) return;
+      const ids = (d2.alunos || []).map(a2 => a2.user_id); if (ids.length < 2) return toast('A turma precisa de pelo menos 2 alunos.');
+      const n = Math.max(2, Math.min(V.din.sorteioN || 4, ids.length));
+      V.din.sorteio = {grupos: Array.from({length: n}, () => []), nomes: Array.from({length: n}, (_, i2) => 'Grupo ' + (i2 + 1)), livres: ids};
+      return render();
+    }
+    case 'din-mais-grupo': { const S2 = V.din && V.din.sorteio; if (!S2 || S2.grupos.length >= 12) return; S2.grupos.push([]); S2.nomes.push('Grupo ' + S2.grupos.length); return render(); }
     case 'din-salvar-grupos': {
       const S2 = V.din && V.din.sorteio; if (!S2) return;
-      const payload = S2.grupos.map((g, i2) => ({nome: (S2.nomes[i2] || '').trim() || 'Grupo ' + (i2 + 1), membros: g}));
-      if (payload.length < 2) return toast('Monte pelo menos 2 grupos.');
+      const payload = S2.grupos.map((g, i2) => ({nome: (S2.nomes[i2] || '').trim() || 'Grupo ' + (i2 + 1), membros: g})).filter(g => g.membros.length);   // grupo vazio não é salvo
+      if (payload.length < 2) return toast('Monte pelo menos 2 grupos com alunos.');
       await db(sb.rpc('definir_grupos_dinamica', {p_dinamica: V.din.id, p_grupos: payload}));
       V.din.sorteio = null; toast('Grupos salvos. Cada aluno já vê o próprio grupo no app.');
       return atualizarDinamica();
