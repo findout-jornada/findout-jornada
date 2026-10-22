@@ -385,6 +385,8 @@ button.card:active{transform:scale(.985)}
 .footer,.checkbar{box-shadow:0 -6px 18px rgba(45,79,214,.05)}
 .mapacard{box-shadow:0 8px 22px rgba(27,79,143,.38),inset 0 1px 0 rgba(255,255,255,.18)}
 .fab{box-shadow:4px 4px 0 var(--primary),0 12px 26px rgba(45,79,214,.28)}
+/* FAB com rótulo: só aparece quando há lição para retomar, então precisa dizer o que é */
+.fab-ext{width:auto;height:50px;border-radius:25px;padding:0 18px;gap:9px;font-family:var(--f-display);font-weight:700;font-size:14px;white-space:nowrap;background:var(--primary);border-color:var(--navy);color:var(--white);--sh:var(--navy);box-shadow:4px 4px 0 var(--navy),0 12px 26px rgba(1,15,46,.3)}
 .startlbl{box-shadow:0 4px 12px rgba(45,79,214,.18)}
 .sheet{box-shadow:0 -4px 0 var(--teal),0 -20px 50px rgba(1,15,46,.25)}
 /* barras de progresso: andam com suavidade e têm um reflexo que passa de vez em quando */
@@ -490,8 +492,10 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const VIDEO = {feliz: 'rapozinha-feliz.mp4', feliz2: 'rapozinha-feliz2.mp4', triste: 'rapozinha-triste.mp4'};
 const SEM_MOV = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-// A tela de carregamento fica pelo menos este tempo na tela (3 s: um ciclo e meio da animação), para a animação da Rapozinha pensando aparecer inteira
-const MIN_CARREGANDO = 3000;
+// A tela de carregamento fica pelo menos este tempo na tela, só para a troca não piscar.
+// Eram 3 s (um ciclo e meio da animação da Rapozinha): num 3G isso somava três segundos
+// de espera a toda abertura, e quem abre o app quer a trilha, não a animação.
+const MIN_CARREGANDO = 900;
 // Mascote animada: o vídeo é desenhado num canvas com o fundo removido (a cor do canto vira transparente).
 // Enquanto o vídeo carrega, ou se ele falhar, aparece a imagem estática.
 // Humores em sprite PNG ('pensando', 'feliz3'): quadros lado a lado, animados por CSS steps();
@@ -942,7 +946,7 @@ function patch(o, n) {
    Estado: sessão, estado do aluno (servidor) e pacote de conteúdo
    ===================================================================== */
 let sessao = null, S = null, PK = null, QI = {}, L = null, DIN = null, lastResult = null, mostrando = '';
-let V = {screen: 'jornada', open: null, tier: null, toast: null, sheet: null, scrollTo: true, celebrate: false, salvando: false, editNome: false, justDone: null, bau: null, dinAtiva: null};
+let V = {screen: 'jornada', open: null, tier: null, toast: null, sheet: null, scrollTo: true, celebrate: false, salvando: false, editNome: false, justDone: null, bau: null, dinAtiva: null, falhaSalvar: null};
 let toastTimer;
 function toast(msg) {
   V.toast = msg; render(); anuncia(msg); clearTimeout(toastTimer);
@@ -1096,7 +1100,9 @@ async function rota(s) {
   sessao = s; telaCarregando();
   try { await carregarEstado(); if (PK) PK._versao = S.versaoConteudo; await esperaAnimacao(); }
   catch (e) { console.error(e); return telaErro(traduz(e.message)); }
-  V = {...V, screen: 'jornada', open: null, sheet: null, scrollTo: true};
+  V = {...V, screen: 'jornada', open: null, sheet: null, scrollTo: true, falhaSalvar: null};
+  PILHA.length = 0; armado = false; armar();
+  cacheLicao = undefined;                        // trocou de conta no mesmo carregamento: relê a lição guardada
   const t = PK && trilha(materiaAtual());
   if (t && t.cur >= 0) V.open = 'L' + t.flat[t.cur].lic.id;
   render(true);
@@ -1109,6 +1115,9 @@ const materias = () => (PK && PK.materias) || [];
 const materiaAtual = () => materias().find(m => m.id === S.perfil.materia) || materias()[0] || null;
 const questoesDaUnidade = uid => (PK.questoes || []).filter(q => q.unidade === uid);
 const questoesDaMateria = mid => (PK.questoes || []).filter(q => q.materia === mid);
+// Acha uma unidade em qualquer matéria: o aluno erra em matérias que não são a atual, então
+// quem vem de "Erros que mais se repetem" pode pedir uma unidade fora da trilha aberta.
+const acharUnidade = uid => { for (const m of materias()) for (const sec of m.secoes) for (const uni of sec.unidades) if (uni.id === uid) return {m, sec, uni}; return null; };
 function trilha(m) {
   const units = [], flat = [];
   if (m) m.secoes.forEach((sec, si) => sec.unidades.filter(u => u.licoes.length).forEach(uni => {
@@ -1304,9 +1313,11 @@ function screenJornada() {
   }).join('');
   const vazio = !T.units.length;
   const np = pendentes().length, prox = pendentes()[0];
+  // o FAB só existe quando tem lição parada: antes ele era um atalho a mais para a aba Treinar
+  const retomar = !L && licaoGuardada();
   const aviso = np ? `<button class="card row" data-key="aviso-ativ" style="margin:12px 20px 0;width:auto;text-align:left;border-color:var(--primary);background:var(--lav)" data-a="tab:turma"><span class="tile" style="width:40px;height:40px;background:var(--primary);color:#fff">${I.target(20)}</span><div class="grow"><span class="t15" style="font-size:14px">${np === 1 ? '1 atividade da turma pendente' : np + ' atividades da turma pendentes'}</span><span class="sub" style="font-size:12px">${esc(prox.titulo)} · ${fmtPrazo(prox.prazo)}</span></div>${I.chevR}</button>` : '';
   return headerJornada(m) + `<div class="scroll" id="sc">${aviso}${vazio ? `<div class="pad" style="align-items:center;text-align:center;padding-top:40px">${mascot(120)}<p class="sub" style="max-width:280px">${esc(m.nome)} ainda não tem lições publicadas. Escolha outra matéria.</p><button class="chipbtn" data-a="go:materias">Trocar de matéria</button></div>` : `<div class="trail">${rows}${T.cur < 0 && T.total ? `<div class="pad" style="align-items:center;text-align:center">${mascot(90)}<p class="sub">Você concluiu tudo que foi publicado em ${esc(m.nome)}. Pratique as lições para ganhar coroas ou troque de matéria.</p></div>` : ''}</div>`}</div>
-  <button class="fab pxbtn" data-key="fab" data-a="go:praticar" aria-label="Praticar">${I.dumbbell}</button>
+  ${retomar ? `<button class="fab fab-ext pxbtn" data-key="fab" data-a="retomar" aria-label="Retomar: ${esc(retomar.L.title || 'lição')}">${I.redo}Retomar lição</button>` : ''}
   ${nav('jornada')}`;
 }
 function nav(cur) {
@@ -1381,6 +1392,48 @@ function screenSecoes() {
    Lição
    ===================================================================== */
 const MODO_SERVIDOR = {lesson: 'licao', legend: 'lendaria', jump: 'pular', review: 'revisao', errors: 'erros', unitreview: 'unidade', secreview: 'unidade', flash: 'relampago'};
+/* ---------- lição guardada ----------
+   L vivia só em memória: fechar o app na questão 4 de 5 perdia tudo, e no PWA instalado o
+   Voltar do Android fecha o app sem passar por aviso nenhum. Agora cada resposta e cada ida
+   para segundo plano gravam a lição no aparelho, e a Jornada oferece retomar. Ficam de fora
+   o relâmpago (tem relógio), a prova lendária e o teste de pular (sair no meio viraria uma
+   segunda chance) e a atividade da turma (a entrega é do professor). */
+const CHAVE_LICAO = 'fj-licao';
+const guardavel = () => !!L && !ehAtividade() && !['flash', 'legend', 'jump'].includes(L.mode);
+let cacheLicao;                                    // undefined = ainda não li; null = não há nada guardado
+function salvarLicao() {
+  if (!guardavel()) return;
+  try {
+    const txt = JSON.stringify({v: 1, em: Date.now(), aluno: sessao && sessao.user ? sessao.user.id : null,
+      versao: S ? S.versaoConteudo : null, decorrido: Date.now() - L.start,
+      L: {...L, wrongKeys: [...L.wrongKeys], erradas: [...L.erradas], acertadas: [...L.acertadas]}});
+    if (txt.length > 4e5) return;                  // lição gigante: não vale entupir o armazenamento
+    localStorage.setItem(CHAVE_LICAO, txt); cacheLicao = undefined;
+  } catch (e) {}
+}
+function limparLicao() { cacheLicao = null; try { localStorage.removeItem(CHAVE_LICAO); } catch (e) {} }
+function licaoGuardada() {
+  if (cacheLicao !== undefined) return cacheLicao;
+  cacheLicao = null;
+  try {
+    const d = JSON.parse(localStorage.getItem(CHAVE_LICAO) || 'null');
+    if (!d || d.v !== 1 || !d.L || !Array.isArray(d.L.queue) || !d.L.queue.length) return null;
+    if (d.aluno && sessao && sessao.user && d.aluno !== sessao.user.id) return null;      // outra conta no mesmo aparelho
+    if (Date.now() - d.em > 24 * 36e5) return null;                                       // passou de um dia: começa de novo
+    if (d.versao && S && S.versaoConteudo && d.versao !== S.versaoConteudo) return null;   // conteúdo republicado no meio
+    cacheLicao = d;
+  } catch (e) { limparLicao(); }
+  return cacheLicao;
+}
+function retomarLicao() {
+  const d = licaoGuardada();
+  if (!d) { limparLicao(); return render(); }
+  L = {...d.L, wrongKeys: new Set(d.L.wrongKeys || []), erradas: new Set(d.L.erradas || []), acertadas: new Set(d.L.acertadas || [])};
+  L.start = Date.now() - (+d.decorrido || 0);      // o tempo com o app fechado não entra no tempo da lição
+  L.qT = Date.now();
+  go('licao');
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') salvarLicao(); });
 function startLesson(mode, opts = {}) {
   const m = materiaAtual(); const T = trilha(m);
   let queue = [], kicker = '', title = '', lic = null, uni = null, materiaId = m ? m.id : null;
@@ -1388,15 +1441,25 @@ function startLesson(mode, opts = {}) {
     const row = T.flat.find(r => r.lic.id === opts.lic); if (!row) return;
     lic = row.lic; uni = row.u.uni; queue = variados(questoesDaLicao(lic, uni), tam());
     kicker = `${m.nome.toUpperCase()} · UNIDADE ${row.u.n} · LIÇÃO ${row.li + 1}`; title = lic.titulo;
-  } else if (mode === 'legend' || mode === 'jump' || mode === 'unitreview') {
-    const u = mode === 'unitreview' ? T.curUnit : T.units.find(x => x.uni.id === opts.uni); if (!u) return;
+  } else if (mode === 'unitreview') {
+    // A unidade atual da trilha, ou uma pedida pelo aluno — inclusive de outra matéria, vinda dos erros
+    const achado = opts.uni ? acharUnidade(opts.uni) : T.curUnit ? {m, uni: T.curUnit.uni} : null;
+    if (!achado) return;
+    uni = achado.uni; materiaId = achado.m.id;
+    let pool = questoesDaUnidade(uni.id);
+    if (pool.length < 6) pool = pool.concat(shuffle(questoesDaMateria(achado.m.id).filter(q => q.unidade !== uni.id)).slice(0, 6 - pool.length));
+    queue = variados(pool, 6);
+    kicker = `REVISAR · ${uni.titulo.toUpperCase()}`;
+    title = 'Revisão da unidade';
+  } else if (mode === 'legend' || mode === 'jump') {
+    const u = T.units.find(x => x.uni.id === opts.uni); if (!u) return;
     uni = u.uni; const n = mode === 'jump' ? +E().questoesPular || 5 : 6;
     let pool = questoesDaUnidade(uni.id);
     if (pool.length < n) pool = pool.concat(shuffle(questoesDaMateria(m.id).filter(q => q.unidade !== uni.id)).slice(0, n - pool.length));
     if (mode === 'jump' && pool.length < (+E().acertosPular || 4)) return toast('Ainda não há questões suficientes para este teste.');
     queue = variados(pool, n);
-    kicker = mode === 'legend' ? `PROVA LENDÁRIA · UNIDADE ${u.n}` : mode === 'jump' ? `TESTE · PULAR A UNIDADE ${u.n}` : `REVISAR · ${u.uni.titulo.toUpperCase()}`;
-    title = mode === 'legend' ? 'Prova da unidade ' + u.n : mode === 'jump' ? 'Teste para pular' : 'Revisão da unidade';
+    kicker = mode === 'legend' ? `PROVA LENDÁRIA · UNIDADE ${u.n}` : `TESTE · PULAR A UNIDADE ${u.n}`;
+    title = mode === 'legend' ? 'Prova da unidade ' + u.n : 'Teste para pular';
   } else if (mode === 'secreview') {
     const daSec = T.units.filter(x => x.sec.id === opts.sec);
     if (!daSec.length) return;
@@ -1426,7 +1489,7 @@ function startLesson(mode, opts = {}) {
   L = {mode, lic, uni, materiaId, queue, i: 0, total: queue.length, solved: 0, kicker, title, combo: 0, best: 0, firstTry: 0, wrongKeys: new Set(), erradas: new Set(), acertadas: new Set(), errors: 0,
     start: Date.now(), result: null, ans: blankAns(), miss: false, deadline: mode === 'flash' ? Date.now() + (+E().segundosRelampago || 120) * 1000 : 0, lostHeart: false,
     tent: [], nVez: {}, qT: Date.now()};
-  V.sheet = null; go('licao');
+  V.sheet = null; V.falhaSalvar = null; go('licao'); salvarLicao();
 }
 const blankAns = () => ({pick: null, slots: [null, null], order: [], sel: null, matched: [], pairs: []});
 const costsHearts = () => !plus() && ['lesson', 'review', 'unitreview', 'secreview', 'flash', 'legend'].includes(L.mode);
@@ -1468,7 +1531,8 @@ function screenLicao() {
         <div style="display:flex;align-items:flex-start;gap:12px"><span class="ic">${ok ? I.check(22, 3.2) : I.close}</span>
           <div class="grow"><span style="font-family:var(--f-display);font-weight:700;font-size:18px">${ok ? (L.missQ ? 'Fechou os pares' : L.combo >= (+E().comboAPartirDe || 3) ? 'Combo! Mandou bem!' : 'Mandou bem!') : dead ? 'Você ficou sem corações' : L.mode === 'legend' ? 'A prova lendária acabou' : 'Quase lá!'}</span>
           <span style="font-size:14px;line-height:1.4">${ok ? (L.missQ ? `${L.missQ} ${L.missQ === 1 ? 'par errado' : 'pares errados'} pelo caminho.` : L.combo >= (+E().comboAPartirDe || 3) ? `${L.combo} acertos seguidos.` : 'Continue assim para manter o combo.') : esc(e.why)}</span></div></div>
-        <button class="btn pxbtn" data-a="next" style="background:${ok ? 'var(--green-d)' : 'var(--red-d)'};color:#fff;--sh:${ok ? 'var(--green-dd)' : 'var(--red-dd)'}" ${V.salvando ? 'disabled' : ''}>${V.salvando ? 'Salvando…' : isLast && !(L.result === 'err' && requeues()) ? (ehAtividade() ? 'Entregar atividade' : 'Ver resultado') : 'Continuar'}</button>
+        ${V.falhaSalvar ? `<div style="background:var(--white);border:2px solid var(--red-d);border-radius:14px;padding:10px 13px;font-size:13px;line-height:1.45;color:var(--red-dd)"><b>Não consegui salvar.</b> ${esc(V.falhaSalvar)}<br>A lição está guardada neste aparelho: tente de novo agora ou volte depois.</div>` : ''}
+        <button class="btn pxbtn" data-a="next" style="background:${V.falhaSalvar ? 'var(--navy)' : ok ? 'var(--green-d)' : 'var(--red-d)'};color:#fff;--sh:${V.falhaSalvar ? 'var(--primary)' : ok ? 'var(--green-dd)' : 'var(--red-dd)'}" ${V.salvando ? 'disabled' : ''}>${V.salvando ? 'Salvando…' : V.falhaSalvar ? 'Tentar salvar de novo' : isLast && !(L.result === 'err' && requeues()) ? (ehAtividade() ? 'Entregar atividade' : 'Ver resultado') : 'Continuar'}</button>
       </div>`;
   const right = L.mode === 'flash'
     ? `<span class="num" id="flash-t" style="display:flex;align-items:center;gap:4px;font-weight:700;font-size:16px;color:var(--gold-d)">${I.clock(20)}<span>${mmss(L.deadline - Date.now())}</span></span>`
@@ -1569,6 +1633,7 @@ function grade(good) {
     if (requeues() && QI[e.id]) { const again = exercicio(QI[e.id]); L.wrongKeys.add(again.id + '#' + L.queue.length); L.queue.push(again); }
   }
   L.lostHeart = !good && costsHearts();
+  salvarLicao();
   render();
   anuncia(good ? 'Correto!' : 'Incorreto. ' + (e.why || ''));
   if (good) { SND.ok(); vib(25); if (L.combo >= (+E().comboAPartirDe || 3)) { setTimeout(() => SND.combo(), 180); floatXp('COMBO ×' + L.combo); } else floatXp('✓'); }
@@ -1579,7 +1644,7 @@ function next() {
   if (L.mode === 'legend' && L.result === 'err') return finish(false);
   if (L.mode === 'flash' && Date.now() >= L.deadline) return finish(true);
   if (L.i >= L.queue.length - 1) return finish(true);
-  L.i++; L.result = null; L.lostHeart = false; L.heartQ = false; L.ans = blankAns(); L.miss = false; L.missQ = 0; L.qT = Date.now(); render(true);
+  L.i++; L.result = null; L.lostHeart = false; L.heartQ = false; L.ans = blankAns(); L.miss = false; L.missQ = 0; L.qT = Date.now(); salvarLicao(); render(true);
 }
 async function entregar() {
   const a = L.atividade, respostas = L.respostas.slice();
@@ -1597,6 +1662,7 @@ async function entregar() {
 }
 async function finish(success) {
   if (V.salvando) return;
+  V.falhaSalvar = null;
   if (ehAtividade()) return entregar();
   const mode = L.mode;
   const payload = {p_modo: MODO_SERVIDOR[mode], p_licao: L.lic ? L.lic.id : null, p_unidade: L.uni ? L.uni.id : null, p_materia: L.materiaId,
@@ -1611,7 +1677,10 @@ async function finish(success) {
     ({data, error} = await sb.rpc('concluir_licao', payload));
   }
   V.salvando = false;
-  if (error) { console.error(error); render(); return toast('Não consegui salvar: ' + traduz(error.message) + ' Toque de novo para tentar.'); }
+  // a lição fica guardada e o banner passa a oferecer a nova tentativa: um toast de 2,8 s
+  // sumia antes de o aluno entender que a tela não tinha travado
+  if (error) { console.error(error); salvarLicao(); V.falhaSalvar = traduz(error.message); return render(); }
+  limparLicao();
   const antes = S; S = data.estado;
   const unitN = L.uni && (trilha(materiaAtual()).units.find(u => u.uni.id === L.uni.id) || {}).n;
   const nomeMat = L.materiaId ? materiaNome(L.materiaId) : 'Todas as matérias';
@@ -1805,7 +1874,7 @@ function screenLoja() {
 function screenPraticar() {
   const erros = S.erros.filter(id => QI[id]);
   const counts = {}; erros.forEach(id => { const u = QI[id].unidade; counts[u] = (counts[u] || 0) + 1; });
-  const unidadeNome = uid => { for (const m of materias()) for (const s of m.secoes) for (const u of s.unidades) if (u.id === uid) return [m.sigla, u.titulo]; return ['?', 'Sem unidade']; };
+  const unidadeNome = uid => { const a = acharUnidade(uid); return a ? [a.m.sigla, a.uni.titulo] : ['?', 'Sem unidade']; };
   const topics = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
   const m = materiaAtual(), T = m && trilha(m);
   const cards = [
@@ -1823,7 +1892,8 @@ function screenPraticar() {
     <div class="card">${rec.slice(0, 4).map(r => `<div class="row" style="padding:12px 14px;align-items:flex-start"><span class="tile" style="width:34px;height:34px;flex-shrink:0;background:${r.tipo === 'revisar' ? 'var(--teal-l)' : 'var(--lav)'};color:${r.tipo === 'revisar' ? 'var(--teal-d)' : 'var(--primary)'}">${r.tipo === 'revisar' ? I.redo : I.target(18)}</span><div class="grow" style="gap:3px"><span style="font-size:13.5px;line-height:1.45">${esc(r.motivo)}</span><span class="sub num" style="font-size:11px">${esc(r.codigo)}${materiaNome(r.materia_id) ? ' · ' + esc(materiaNome(r.materia_id)) : ''}</span></div></div>`).join('')}
       <div style="padding:10px 14px;border-top:1px solid var(--lav)"><button class="chipbtn" data-a="review" style="width:100%;justify-content:center">Revisar agora</button></div></div>` : ''}
     <h2 class="h2">Erros que mais se repetem</h2>
-    <div class="card">${topics.length ? topics.map(([u, n]) => { const [ab, t] = unidadeNome(u); return `<div class="row" style="padding:11px 14px"><span class="px" style="font-size:9px;color:var(--primary);width:28px">${esc(ab)}</span><span style="flex:1;font-size:14px">${esc(t)}</span><span class="num" style="font-size:12px;color:var(--red-d);font-weight:600">${n} erro${n > 1 ? 's' : ''}</span></div>`; }).join('') : `<div class="row"><span class="sub">Nenhum erro ainda. Quando você errar um exercício, ele aparece aqui para revisar.</span></div>`}</div>
+    ${topics.length ? '<p class="sub" style="margin:-8px 0 0">Toque numa unidade para treinar só ela.</p>' : ''}
+    <div class="card">${topics.length ? topics.map(([u, n]) => { const [ab, t] = unidadeNome(u); return `<button class="row" style="width:100%;padding:11px 14px;text-align:left" data-a="unidade:${u}" aria-label="Treinar ${esc(t)}: ${n} ${n > 1 ? 'erros' : 'erro'}"><span class="px" style="font-size:9px;color:var(--primary);width:28px">${esc(ab)}</span><span style="flex:1;font-size:14px">${esc(t)}</span><span class="num" style="font-size:12px;color:var(--red-d);font-weight:600">${n} erro${n > 1 ? 's' : ''}</span><span style="display:flex;color:var(--primary)" aria-hidden="true">${I.chevR}</span></button>`; }).join('') : `<div class="row"><span class="sub">Nenhum erro ainda. Quando você errar um exercício, ele aparece aqui para revisar.</span></div>`}</div>
   </div></div>${nav('praticar')}`;
 }
 // Sugestões de estudo com justificativa (rpc recomendacoes, migration 0049); carregadas ao abrir o Treinar
@@ -2398,7 +2468,36 @@ function screenPerfil() {
 const SCREENS = {jornada: screenJornada, materias: screenMaterias, secoes: screenSecoes, licao: screenLicao, fim: screenFim, ofensiva: screenOfensiva, missoes: screenMissoes, ligas: screenLigas, loja: screenLoja, praticar: screenPraticar, turma: screenTurma, perfil: screenPerfil, mapa: screenMapa, dinamica: screenDinamica, dominio: screenDominio};
 let lastScreen = null;
 const TABS = new Set(['jornada', 'praticar', 'turma', 'missoes', 'ligas', 'perfil']);
-function go(screen, extra = {}) { V = {...V, screen, sheet: null, editNome: false, justDone: null, ...extra}; render(true); }
+/* ---------- histórico ----------
+   O app não tem uma URL por tela, então a pilha mora aqui e o histórico do navegador guarda
+   sempre UMA entrada extra: o Voltar sempre tem o que consumir e nós decidimos o que ele
+   significa. Abas são raiz, como em app nativo — entrar numa aba zera a pilha. */
+const PILHA = [];
+const SEM_VOLTA = new Set(['licao', 'fim']);   // lição encerrada não é lugar para onde voltar
+const APP_INSTALADO = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+let armado = false, sairEm = 0;
+function armar() { if (armado) return; armado = true; try { history.pushState({fj: 1}, ''); } catch (e) {} }
+function go(screen, extra = {}) {
+  if (TABS.has(screen)) PILHA.length = 0;
+  else if (screen !== V.screen && !SEM_VOLTA.has(V.screen)) { PILHA.push(V.screen); if (PILHA.length > 20) PILHA.shift(); }
+  V = {...V, screen, sheet: null, editNome: false, justDone: null, falhaSalvar: null, ...extra};
+  armar();
+  render(true);
+}
+// Ordem do Voltar: fecha a folha aberta > pede confirmação para largar a lição > volta uma
+// tela > cai na jornada > avisa uma vez antes de deixar o app fechar.
+function aoVoltar() {
+  if (!S) return false;                                    // ainda na tela de entrar: Voltar é do navegador
+  if (V.sheet) { fecharSheet(); return true; }
+  if (V.screen === 'licao' && L) { V.sheet = 'quit'; render(); return true; }
+  const ant = PILHA.pop();
+  if (ant && SCREENS[ant]) { V = {...V, screen: ant, sheet: null, open: null}; render(true); return true; }
+  if (V.screen !== 'jornada') { V = {...V, screen: 'jornada', sheet: null}; render(true); return true; }
+  if (!APP_INSTALADO) return false;                        // no navegador, o Voltar sai do site normalmente
+  if (Date.now() - sairEm < 2600) return false;
+  sairEm = Date.now(); toast('Toque em Voltar de novo para sair do app.'); return true;
+}
+window.addEventListener('popstate', () => { armado = false; if (aoVoltar()) armar(); });
 function abrirAtual() { const m = materiaAtual(); const T = m && trilha(m); V.open = T && T.cur >= 0 ? 'L' + T.flat[T.cur].lic.id : null; }
 // reset=true: tela nova (recria tudo e anima a entrada). reset=false: mesma tela (só atualiza o que mudou).
 function render(reset) {
@@ -2452,6 +2551,8 @@ async function act(a) {
     }
     case 'mute': SND.toggle(); return render();
     case 'vibrar': VIB.toggle(); return render();
+    case 'unidade': return startLesson('unitreview', {uni: x});
+    case 'retomar': return retomarLicao();
     case 'recarregar': toast('Atualizando…'); await recarregarEstado(false); return render();
     case 'sair': L = null; return sb.auth.signOut();
     case 'lesson': return startLesson('lesson', {lic: x});
@@ -2522,7 +2623,7 @@ async function act(a) {
     /* lição */
     case 'quit': V.sheet = 'quit'; return render();
     case 'stay': return fecharSheet();
-    case 'exit': L = null; return go('jornada', {scrollTo: true});
+    case 'exit': L = null; limparLicao(); return go('jornada', {scrollTo: true});
     case 'mc': SND.tap(); L.ans.pick = +x; return render();
     case 'tf': SND.tap(); L.ans.pick = x === 'true'; return render();
     case 'word': { SND.tap(); const e = L.queue[L.i], w = e.words[+x], s = L.ans.slots, i = s[0] === null ? 0 : s[1] === null ? 1 : -1; if (i >= 0) s[i] = w; return render(); }
