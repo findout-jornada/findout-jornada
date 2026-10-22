@@ -2118,7 +2118,7 @@ function navegarBarco(paradas) {
     pernas.push(c); total += c;
   }
   if (!total) { barcoEmTransito = null; return; }
-  const dur = Math.min(2000, Math.max(650, total * 2.2));   // viagem longa demora mais, mas com teto
+  const dur = Math.min(4000, Math.max(1300, total * 4.4));  // viagem longa demora mais, mas com teto
   const t0 = performance.now();
   (function quadro(t) {
     const p = Math.min(1, (t - t0) / dur);
@@ -2549,7 +2549,7 @@ async function act(a) {
       if (!paradas) { V.ilha = x; V.sheet = 'ilha'; return render(); }
       render();
       navegarBarco(paradas);
-      zarpando = setTimeout(() => { if (V.screen !== 'mapa') return; V.ilha = x; V.sheet = 'ilha'; render(); }, 450);
+      zarpando = setTimeout(() => { if (V.screen !== 'mapa') return; V.ilha = x; V.sheet = 'ilha'; render(); }, 600);
       return;
     }
     case 'avatar': { const atual = avatarCfg(S.perfil.avatar); V.avatarEdit = {cfg: atual || avatarAleatorio(), inicialTxt: atual ? avatarTxt(atual) : '', cat: 'sk', salvando: false, hist: [], n: 0}; V.sheet = 'avatar'; V.editNome = false; return render(); }
