@@ -265,8 +265,8 @@ button.card:active{transform:scale(.985)}
 .mapa .rota{stroke-dasharray:7 8;animation:rota 1.4s linear infinite}
 @keyframes rota{to{stroke-dashoffset:-30}}
 /* dois grupos: o de fora leva o barco de uma ilha a outra, o de dentro faz o balanço.
-   Um transform só não comporta os dois — o balanço sobrescreveria o deslocamento. */
-.mapa .barcopos{transition:transform .9s cubic-bezier(.45,.05,.3,1)}
+   Um transform só não comporta os dois — o balanço sobrescreveria o deslocamento.
+   Quem move o de fora é o navegarBarco(), quadro a quadro, para o barco seguir a rota. */
 .mapa .barco{animation:balanca 3s ease-in-out infinite;transform-origin:0 0}
 @keyframes balanca{0%,100%{transform:rotate(-4deg) translateY(0)}50%{transform:rotate(4deg) translateY(-3px)}}
 .mapa .bandeira{animation:tremula .9s ease-in-out infinite alternate}
@@ -319,7 +319,7 @@ button.card:active{transform:scale(.985)}
 @media (min-width:520px){.mapalegenda{font-size:12px;gap:3px 16px;padding-top:7px}.mapatopo{padding:10px 18px}}
 .mapacard{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:linear-gradient(135deg,#2E6BB0,#1B4F8F);color:#fff;text-align:left;width:100%;box-shadow:0 6px 18px rgba(27,79,143,.35)}
 .mapacard .mini{width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-@media (prefers-reduced-motion:reduce){.mapa .ilha,.mapa .castelo,.mapa .nuvem,.mapa .onda,.mapa .rota,.mapa .barco,.mapa .bandeira,.mapa .halo,.mapa .chama,.mapa .brasa,.mapa .luz,.mapa .baleia,.mapa .jato,.mapa .barcopos,.mapa .aura,.mapa .estrela,.mapa .sol,.mapa .peixe,.mapa .palmeira,.mapa .asa,.mapa .fumaca,.mapa .brilho,.mapa .esteira,.mapa .pula,.mapa .foco{animation:none}.mapa .halo,.mapa .peixe,.mapa .fumaca,.mapa .brilho{display:none}}
+@media (prefers-reduced-motion:reduce){.mapa .ilha,.mapa .castelo,.mapa .nuvem,.mapa .onda,.mapa .rota,.mapa .barco,.mapa .bandeira,.mapa .halo,.mapa .chama,.mapa .brasa,.mapa .luz,.mapa .baleia,.mapa .jato,.mapa .aura,.mapa .estrela,.mapa .sol,.mapa .peixe,.mapa .palmeira,.mapa .asa,.mapa .fumaca,.mapa .brilho,.mapa .esteira,.mapa .pula,.mapa .foco{animation:none}.mapa .halo,.mapa .peixe,.mapa .fumaca,.mapa .brilho{display:none}}
 .zone{display:flex;align-items:center;gap:8px;padding:10px 20px;font-size:9px}
 .zone::before,.zone::after{content:"";flex:1;height:2px;background:currentColor}
 .auth{flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:calc(24px + env(safe-area-inset-top,0px)) 20px calc(24px + env(safe-area-inset-bottom,0px));overflow-y:auto;background-image:radial-gradient(420px 260px at 50% -40px,rgba(45,79,214,.35),transparent 70%)}
@@ -2102,6 +2102,50 @@ function ilhaSvg(i, idx, atual, sy, sx) {
     <g transform="translate(${x - 66} ${y + 54})"><rect x="2" y="3" width="132" height="46" rx="12" fill="rgba(8,12,34,.4)"/><rect ${atual ? 'class="foco" ' : ''}width="132" height="46" rx="12" fill="rgba(12,20,56,.86)" stroke="${atual ? '#FFD36A' : cor}" stroke-width="${atual ? 2.2 : 1.5}"/><circle cx="19" cy="23" r="12" fill="${cor}"/><circle cx="19" cy="23" r="12" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/><g transform="translate(11 15) scale(.66)" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="${i.icone}"/></g><text x="38" y="18" fill="#fff" font-weight="700" font-size="12" style="font-family:var(--f-display)">${esc(i.nome)}</text><text x="38" y="29" fill="rgba(255,255,255,.8)" font-size="8.5" font-weight="600">${esc(siglas)}</text>${i.precisaEscolher ? '' : `<rect x="38" y="35" width="58" height="5" rx="2.5" fill="rgba(255,255,255,.2)"/><rect x="38" y="35" width="${Math.round(58 * i.pct / 100)}" height="5" rx="2.5" fill="${cor}"/>`}<text x="124" y="41" text-anchor="end" fill="${i.corTxt || cor}" font-weight="700" font-size="${i.precisaEscolher ? 8 : 10.5}" class="num">${i.precisaEscolher ? 'ESCOLHA O IDIOMA' : i.pct + '%'}</text><g><circle r="7.5" fill="${cor}" stroke="#fff" stroke-width="1.6"/><text y="2.8" text-anchor="middle" font-size="8.5" font-weight="700" fill="#fff" class="num">${idx + 1}</text></g></g>
   </g>`;
 }
+/* ---------- a travessia do barco ----------
+   O barco segue a rota desenhada no mapa — a mesma polilinha que liga as ilhas na ordem —
+   parando em cada ponto do caminho, em vez de cortar em linha reta pelo mar (e por cima da
+   ilha do castelo, que fica bem no meio).
+   A posição mora aqui durante a viagem porque a folha da ilha sobe no meio dela e redesenha
+   a tela: sem isso, o redesenho jogaria o barco direto no destino. */
+let rotaPts = null, barcoEmTransito = null, remandoRaf = 0;
+function navegarBarco(paradas) {
+  cancelAnimationFrame(remandoRaf);
+  const pernas = [];
+  let total = 0;
+  for (let k = 1; k < paradas.length; k++) {
+    const c = Math.hypot(paradas[k][0] - paradas[k - 1][0], paradas[k][1] - paradas[k - 1][1]);
+    pernas.push(c); total += c;
+  }
+  if (!total) { barcoEmTransito = null; return; }
+  const dur = Math.min(2000, Math.max(650, total * 2.2));   // viagem longa demora mais, mas com teto
+  const t0 = performance.now();
+  (function quadro(t) {
+    const p = Math.min(1, (t - t0) / dur);
+    const e = p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;   // acelera ao zarpar, freia ao atracar
+    let d = e * total, k = 0;
+    while (k < pernas.length - 1 && d > pernas[k]) { d -= pernas[k]; k++; }
+    const f = pernas[k] ? d / pernas[k] : 0;
+    const x = paradas[k][0] + (paradas[k + 1][0] - paradas[k][0]) * f;
+    const y = paradas[k][1] + (paradas[k + 1][1] - paradas[k][1]) * f;
+    barcoEmTransito = [x, y];
+    const g = app.querySelector('.barcopos');
+    if (g) g.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
+    if (p < 1) remandoRaf = requestAnimationFrame(quadro);
+    else { remandoRaf = 0; barcoEmTransito = null; }
+  })(t0);
+}
+// As paradas: larga a amarração, entra na linha, segue a rota ponto a ponto e atraca na outra
+// ponta. Sem o primeiro desvio até a linha, o barco saía do ancoradouro cortando na diagonal.
+function paradasDaRota(L, de, para) {
+  if (!rotaPts || de < 0 || para < 0 || de === para) return null;
+  const passo = de < para ? 1 : -1;
+  const atracar = k => [rotaPts[k][0] + L[k].barco[0], rotaPts[k][1] + L[k].barco[1]];
+  const out = [atracar(de)];
+  for (let k = de; k !== para + passo; k += passo) out.push([rotaPts[k][0], rotaPts[k][1]]);
+  out.push(atracar(para));
+  return out;
+}
 // A ilha onde o barco está: a última em que o aluno tocou, lembrada entre sessões.
 // Na primeira vez (ou se o conteúdo mudou e a ilha sumiu), ele parte da ilha sugerida.
 function ilhaDoBarco(L) {
@@ -2121,11 +2165,14 @@ function screenMapa() {
   // em tela larga (tablet, desktop, paisagem) o mapa alarga junto e as ilhas se espalham, em vez de sobrar mar vazio nas laterais
   const W = Math.round(Math.min(640, Math.max(360, cw * H / ch))), sx = W / 360;
   const pts = L.map(i => [i.x * sx, i.y * sy + 42]); pts.push([W / 2, 282 * sy + 24]);
+  rotaPts = pts;                                   // o barco navega por estes pontos
   const upto = completa ? pts.length - 1 : Math.max(0, cur);
   const poly = p => p.map(([a, b]) => `${a} ${b.toFixed(1)}`).join(' L ');
   const feito = pts.slice(0, upto + 1), resto = pts.slice(upto);
   const kb = ilhaDoBarco(L);
-  const [bx, by] = completa ? [112 * sx, 290 * sy] : kb >= 0 ? [pts[kb][0] + L[kb].barco[0], pts[kb][1] + L[kb].barco[1]] : [W / 2, 330 * sy];
+  const [bx, by] = barcoEmTransito ? barcoEmTransito                       // no meio da travessia: fica onde está
+    : completa ? [112 * sx, 290 * sy]
+    : kb >= 0 ? [pts[kb][0] + L[kb].barco[0], pts[kb][1] + L[kb].barco[1]] : [W / 2, 330 * sy];
   // noite (18h às 6h): mar escuro, lua e estrelas
   const hora = new Date().getHours(), noite = hora >= 18 || hora < 6;
   const marA = noite ? '#17336B' : '#2E6BB0', marB = noite ? '#0B1E45' : '#1B4F8F';
@@ -2494,12 +2541,14 @@ async function act(a) {
     case 'ilha': {
       // o barco zarpa primeiro e a folha sobe meio segundo depois: ela cobre a metade de baixo
       // do mapa, que é justamente para onde o barco vai quando a ilha tocada fica lá embaixo
-      const L = ilhas(), k = ilhaDoBarco(L), jaEstaLa = k >= 0 && L[k].id === x;
+      const L = ilhas(), de = ilhaDoBarco(L), para = L.findIndex(i => i.id === x);
+      const paradas = SEM_MOV ? null : paradasDaRota(L, de, para);
       V.ilhaBarco = x; vib(8);
       try { localStorage.setItem('fj-barco', x); } catch (e) {}
       clearTimeout(zarpando);
-      if (jaEstaLa || SEM_MOV) { V.ilha = x; V.sheet = 'ilha'; return render(); }
+      if (!paradas) { V.ilha = x; V.sheet = 'ilha'; return render(); }
       render();
+      navegarBarco(paradas);
       zarpando = setTimeout(() => { if (V.screen !== 'mapa') return; V.ilha = x; V.sheet = 'ilha'; render(); }, 450);
       return;
     }
