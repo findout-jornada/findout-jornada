@@ -319,8 +319,9 @@ button.card:active{transform:scale(.985)}
 .zone::before,.zone::after{content:"";flex:1;height:2px;background:currentColor}
 .auth{flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:calc(24px + env(safe-area-inset-top,0px)) 20px calc(24px + env(safe-area-inset-bottom,0px));overflow-y:auto;background-image:radial-gradient(420px 260px at 50% -40px,rgba(45,79,214,.35),transparent 70%)}
 .auth h1{font-family:var(--f-display);font-size:clamp(24px,6.5vw,28px);margin:0;line-height:1.2}
-.hero-mascot{width:132px;height:132px;border-radius:50%;background:var(--white);box-shadow:0 14px 34px rgba(45,79,214,.22),inset 0 0 0 4px var(--teal);display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
-.hero-mascot .mascot{width:112px!important;transform:translateY(6px)}
+/* Login: só a Rapozinha, sem disco atrás (uma sombra suave no chão para ela não ficar solta) */
+.hero-mascot{display:flex;align-items:flex-end;justify-content:center;filter:drop-shadow(0 14px 18px rgba(45,79,214,.22))}
+.hero-mascot .mascot{width:132px!important}
 .mascot{display:block;flex-shrink:0}
 .mascot canvas,.mascot img{width:100%;height:auto;display:block}
 .mascot .fb{display:block}
