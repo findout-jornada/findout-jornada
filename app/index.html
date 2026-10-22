@@ -134,7 +134,11 @@ button.card:active{transform:scale(.985)}
 .bar>i{display:block;height:100%;border-radius:6px;background:var(--primary)}
 
 .jhead{justify-content:space-between}
-.subjbtn{height:40px;border:1.5px solid var(--primary);border-radius:10px;padding:0 10px;display:flex;align-items:center;gap:7px;font-family:var(--f-display);font-weight:600;font-size:13px;max-width:46%;overflow:hidden;white-space:nowrap}
+.subjbtn{height:40px;border:1.5px solid var(--primary);border-radius:10px;padding:0 10px;display:flex;align-items:center;gap:7px;font-family:var(--f-display);font-weight:600;font-size:13px;min-width:0;overflow:hidden;white-space:nowrap}
+.subjbtn span{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.subjbtn svg{flex-shrink:0}
+/* o Mapa do ENEM é a tela mais autoral do app e morava a três toques, dentro do Perfil */
+.mapbtn{width:40px;height:40px;flex-shrink:0;border:1.5px solid var(--primary);border-radius:10px;color:var(--primary);background:var(--white);display:flex;align-items:center;justify-content:center}
 .subjbtn span{overflow:hidden;text-overflow:ellipsis}
 .stat{height:36px;padding:0 9px 0 6px;border-radius:12px;background:var(--white);border:1px solid var(--line);display:flex;align-items:center;gap:4px;font-family:var(--f-display);font-weight:700;font-size:14px}
 .stat+.stat{margin-left:4px}
@@ -231,7 +235,7 @@ button.card:active{transform:scale(.985)}
 .toast{position:absolute;left:16px;right:16px;top:calc(72px + env(safe-area-inset-top,0px));background:rgba(1,15,46,.94);backdrop-filter:blur(8px);color:var(--white);border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.4;z-index:40;box-shadow:4px 4px 0 var(--teal),0 10px 30px rgba(0,0,0,.25);animation:toastin .25s ease-out}
 .toast.out{animation:toastout .2s ease-in forwards}
 .opt,.chip{box-shadow:0 1px 2px rgba(1,15,46,.04)}
-.subjbtn{background:var(--white);box-shadow:0 2px 8px rgba(45,79,214,.12)}
+.subjbtn,.mapbtn{background:var(--white);box-shadow:0 2px 8px rgba(45,79,214,.12)}
 .fab{box-shadow:4px 4px 0 var(--primary),0 10px 24px rgba(45,79,214,.25)}
 .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;text-align:center}
 .cal span{height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-size:13px}
@@ -286,7 +290,6 @@ button.card:active{transform:scale(.985)}
 .mapa .barco.navega{animation:navega 2.2s cubic-bezier(.4,0,.2,1) both,balanca 3s ease-in-out 2.2s infinite}
 @keyframes navega{from{transform:translate(var(--dx),var(--dy)) rotate(-3deg)}to{transform:translate(0,0) rotate(0)}}
 .mapa .aura{animation:aura 6s linear infinite}
-.mapa .bloq{opacity:.55;filter:saturate(.2)}
 @keyframes aura{to{stroke-dashoffset:-48}}
 .mapa .estrela{animation:estrela 2.6s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:center}
 .mapa .estrela:nth-child(2n){animation-delay:.9s}.mapa .estrela:nth-child(3n){animation-delay:1.7s}
@@ -665,6 +668,7 @@ const I = {
   dumbbell: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="9" width="3" height="6" rx="1" fill="currentColor" stroke="none"/><rect x="5" y="6.5" width="3.5" height="11" rx="1.2" fill="currentColor" stroke="none"/><rect x="15.5" y="6.5" width="3.5" height="11" rx="1.2" fill="currentColor" stroke="none"/><rect x="19.5" y="9" width="3" height="6" rx="1" fill="currentColor" stroke="none"/><path d="M8.5 12h7" stroke-width="2.6"/></svg>',
   // Raio preenchido
   vibrar: (s = 24) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2.5" width="8" height="19" rx="2"/><path d="M4.5 9v6M2 10.5v3M19.5 9v6M22 10.5v3"/></svg>`,
+  bussola: (s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.2 5-5 2.2 2.2-5z" fill="currentColor" stroke="none"/></svg>`,
   bolt: (s = 24) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3.5 13.5 11 13.5 10 22 20.5 10.5 13 10.5 13 2"/></svg>`,
   // Alvo com dardo cravado no centro
   target: (s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><path d="M12 12l7.5-7.5"/><path d="M16 4.5h3.5V8"/></svg>`,
@@ -1174,10 +1178,12 @@ function popover(r, off) {
 }
 function headerJornada(m) {
   return `<header class="topbar jhead">
-    <button class="subjbtn" data-a="go:materias" aria-label="Trocar de matéria">${I.filter}<span>${esc(m ? m.nome : 'Matérias')}</span>${I.chevD}</button>
-    <div style="display:flex;align-items:center;gap:2px">
+    <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1">
+      <button class="subjbtn" data-a="go:materias" aria-label="Trocar de matéria">${I.filter}<span>${esc(m ? m.nome : 'Matérias')}</span>${I.chevD}</button>
+      <button class="mapbtn" data-a="go:mapa" aria-label="Mapa do ENEM">${I.bussola(20)}</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:2px;flex-shrink:0">
       <button class="stat" style="color:${practicedToday() ? 'var(--orange-d)' : 'var(--muted)'}" data-a="go:ofensiva" aria-label="Ofensiva: ${streak()} dias">${practicedToday() ? I.flame() : I.flame(20, '#DCE4F5', '#9AA0BC')}${streak()}</button>
-      ${S.economia.congeladores > 0 ? `<button class="stat" style="color:var(--blue-d)" data-a="go:ofensiva" aria-label="Congeladores de ofensiva: ${S.economia.congeladores}">${I.snow(20)}${S.economia.congeladores}</button>` : ''}
       <button class="stat" style="color:var(--gold-d)" data-a="go:loja" aria-label="Moedas: ${S.economia.moedas}">${I.coin()}${S.economia.moedas}</button>
       <button class="stat" style="color:var(--red-d)" data-a="hearts" aria-label="Corações: ${heartsTxt()}">${I.heart()}${heartsTxt()}</button>
     </div></header>`;
@@ -2023,7 +2029,7 @@ const ILHAS = [
   {id: 'hum', nome: 'Humanas', mats: ['his', 'geo', 'fil'], cor: '#8FB569', cor2: '#2F5A14', x: 262, y: 96, decor: 'templo', forma: 1, barco: [-80, -8], icone: 'M3 20h18M5 9h14M7 9v10M12 9v10M17 9v10M12 3l8 5H4z'},
   {id: 'nat', nome: 'Natureza', mats: ['bio', 'qui', 'fis'], cor: '#4CC3C1', cor2: '#0B6E6C', x: 280, y: 356, decor: 'foguete', forma: 2, barco: [46, -78], icone: 'M20 4c-8 0-14 4-14 12 0 2 .5 4 1 4 6-1 13-6 13-16zM6 20c2-6 6-9 10-11'},
   {id: 'mat', nome: 'Matemática', mats: ['mat'], cor: '#A985F5', cor2: '#503C9D', x: 80, y: 352, decor: 'predios', forma: 1, barco: [80, 12], icone: 'M6 3h12v18H6zM9 7h6M9 12h2M13 12h2M9 16h2M13 16h2'},
-  {id: 'red', nome: 'Redação', mats: ['red'], cor: '#E0475B', cor2: '#8C2430', x: 126, y: 488, decor: 'vulcao', forma: 2, barco: [68, -22], icone: 'M4 20l4-1L19 8l-3-3L5 16zM14 7l3 3'},
+  {id: 'red', nome: 'Redação', mats: ['red'], cor: '#E0475B', cor2: '#8C2430', corTxt: '#E85C6E', x: 126, y: 488, decor: 'vulcao', forma: 2, barco: [68, -22], icone: 'M4 20l4-1L19 8l-3-3L5 16zM14 7l3 3'},
   {id: 'extra', nome: 'Atualidades', mats: [], cor: '#5AA9E6', cor2: '#1B3F6E', x: 272, y: 494, decor: 'neve', forma: 0, barco: [64, -26], icone: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3.5 9.5h17M3.5 14.5h17M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18'}
 ];
 // Idioma escolhido para a viagem (fica no aparelho); null = ainda não escolheu
@@ -2045,15 +2051,12 @@ function ilhas() {
   const extra = lista.find(i => i.id === 'extra'); extra.materias = ms.filter(m => !usados.has(m.id) && !FORA_DO_MAPA.includes(m.id)); extra.todasMaterias = extra.materias;
   const out = lista.filter(i => i.todasMaterias.length);
   out.forEach(i => { let d = 0, t = 0; i.materias.forEach(m => { const T = trilha(m); d += T.done; t += T.total; }); i.feitas = d; i.total = t; i.pct = t ? Math.round(d / t * 100) : 0; i.completa = t > 0 && d >= t && !i.precisaEscolher; });
-  // viagem sequencial: só a ilha atual (primeira não concluída) e as anteriores estão liberadas
+  // A ordem numerada é um roteiro sugerido, não um cadeado: toda ilha abre.
+  // Trancar as outras contradizia "Suas matérias", que sempre abriu qualquer uma, e chegava a
+  // marcar BLOQUEADA justamente a matéria que o aluno estava cursando.
   const cur = out.findIndex(i => !i.completa && (i.total > 0 || i.precisaEscolher));
-  out.forEach((i, k) => { i.bloqueada = cur >= 0 && k > cur; });
+  out.forEach((i, k) => { i.sugerida = k === cur; });
   return out;
-}
-// Na viagem, matéria de ilha bloqueada não abre pelo mapa (em "Suas matérias" tudo é livre)
-function materiaBloqueada(id) {
-  const i = ilhas().find(z => z.materias.some(m => m.id === id));
-  return !!(i && i.bloqueada);
 }
 // Contorno orgânico da ilha: 10 pontos ao redor de uma elipse com pequenas ondulações fixas por forma
 const BLOBS = [[1.04, .94, 1.08, .97, 1.03, .92, 1.06, .98, .95, 1.05], [.96, 1.07, .98, 1.04, .93, 1.06, 1.01, .94, 1.08, .97], [1.06, .95, 1.02, .9, 1.07, 1.0, .94, 1.05, .98, 1.03]];
@@ -2079,9 +2082,10 @@ function ilhaSvg(i, idx, atual, sy, sx) {
   const w = 122, {cor, cor2} = i, x = i.x * sx, y = i.y * sy;
   const verde = i.completa ? '#8FB569' : '#A9CF7E';
   const siglas = (i.precisaEscolher ? i.todasMaterias : i.materias).map(m => (m.sigla || m.nome.slice(0, 3)).toUpperCase()).join(' · ');
-  const bloq = i.bloqueada ? ' class="bloq"' : '';
-  return `<g class="ilha${atual ? ' atual' : ''}" data-a="ilha:${i.id}" role="button" tabindex="0" aria-label="Ilha de ${esc(i.nome)}: ${i.bloqueada ? 'bloqueada' : i.pct + '% concluído'}" style="--d:${(idx * .45).toFixed(2)}s;transform-origin:${x}px ${y}px">
-    <g transform="translate(${x} ${y})"${bloq}>
+  // o escalonamento da entrada era de .45s por ilha: a sexta só aparecia inteira aos 2,75s,
+  // e quem abria e fechava o mapa via um oceano pela metade
+  return `<g class="ilha${atual ? ' atual' : ''}" data-a="ilha:${i.id}" role="button" tabindex="0" aria-label="Ilha de ${esc(i.nome)}: ${i.precisaEscolher ? 'escolha o idioma' : i.pct + '% concluído'}" style="--d:${(idx * .12).toFixed(2)}s;transform-origin:${x}px ${y}px">
+    <g transform="translate(${x} ${y})">
       <path d="${blob(w / 2 + 16, 36, i.forma, 10)}" fill="rgba(255,255,255,.14)"/>
       ${i.completa ? `<path class="aura" d="${blob(w / 2 + 24, 42, i.forma, 10)}" fill="none" stroke="#FFD36A" stroke-width="2" stroke-dasharray="5 7" opacity=".85"/>` : ''}
       <path d="${blob(w / 2 + 2, 30, i.forma, 16)}" fill="#6B4320"/>
@@ -2092,8 +2096,8 @@ function ilhaSvg(i, idx, atual, sy, sx) {
       <g transform="translate(0 -2)">${DECOR_ILHA[i.decor] || ''}</g>
       ${i.completa ? `<g class="bandeira" style="transform-origin:44px -26px"><path d="M44 -26 V-56" stroke="#5A3A1E" stroke-width="2"/><path d="M45 -56 H64 L59 -50 L64 -44 H45Z" fill="#FFD36A"/></g><g fill="#FFD36A">${[[-40, -36, 0], [28, -44, .9], [-6, -54, 1.6]].map(([px, py, d]) => `<g transform="translate(${px} ${py})"><path class="brilho" style="--d:${d}s" d="M0 -5 L1.4 -1.4 5 0 1.4 1.4 0 5 -1.4 1.4 -5 0 -1.4 -1.4Z"/></g>`).join('')}</g>` : ''}
     </g>
-    <g class="pino${atual ? ' pula' : ''}">${atual ? `<circle class="halo" cx="${x}" cy="${y + 42}" r="10" fill="${cor}" style="transform-origin:${x}px ${y + 42}px"/>` : ''}<circle cx="${x}" cy="${y + 42}" r="9" fill="#fff" stroke="${i.bloqueada ? '#8A93AD' : cor}" stroke-width="3"/>${i.completa ? `<path d="M${x - 4} ${y + 42} l3 3 5 -6" stroke="${cor2}" stroke-width="2.5" fill="none" stroke-linecap="round"/>` : i.bloqueada ? `<path d="M${x - 2.5} ${y + 41} v-2 a2.5 2.5 0 0 1 5 0 v2" stroke="#5A6386" stroke-width="1.6" fill="none"/><rect x="${x - 4}" y="${y + 41}" width="8" height="5.5" rx="1.2" fill="#5A6386"/>` : `<circle cx="${x}" cy="${y + 42}" r="3.5" fill="${cor}"/>`}</g>
-    <g transform="translate(${x - 66} ${y + 54})"${bloq}><rect x="2" y="3" width="132" height="46" rx="12" fill="rgba(8,12,34,.4)"/><rect ${atual ? 'class="foco" ' : ''}width="132" height="46" rx="12" fill="rgba(12,20,56,.86)" stroke="${atual ? '#FFD36A' : cor}" stroke-width="${atual ? 2.2 : 1.5}"/><circle cx="19" cy="23" r="12" fill="${cor}"/><circle cx="19" cy="23" r="12" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/><g transform="translate(11 15) scale(.66)" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="${i.icone}"/></g><text x="38" y="18" fill="#fff" font-weight="700" font-size="12" style="font-family:var(--f-display)">${esc(i.nome)}</text><text x="38" y="29" fill="rgba(255,255,255,.8)" font-size="8.5" font-weight="600">${esc(siglas)}</text>${i.precisaEscolher ? '' : `<rect x="38" y="35" width="58" height="5" rx="2.5" fill="rgba(255,255,255,.2)"/><rect x="38" y="35" width="${Math.round(58 * i.pct / 100)}" height="5" rx="2.5" fill="${cor}"/>`}<text x="124" y="41" text-anchor="end" fill="${cor}" font-weight="700" font-size="${i.bloqueada || i.precisaEscolher ? 8 : 10.5}" class="num">${i.bloqueada ? 'BLOQUEADA' : i.precisaEscolher ? 'ESCOLHA O IDIOMA' : i.pct + '%'}</text><g><circle r="7.5" fill="${i.bloqueada ? '#5A6386' : cor}" stroke="#fff" stroke-width="1.6"/><text y="2.8" text-anchor="middle" font-size="8.5" font-weight="700" fill="#fff" class="num">${idx + 1}</text></g></g>
+    <g class="pino${atual ? ' pula' : ''}">${atual ? `<circle class="halo" cx="${x}" cy="${y + 42}" r="10" fill="${cor}" style="transform-origin:${x}px ${y + 42}px"/>` : ''}<circle cx="${x}" cy="${y + 42}" r="9" fill="#fff" stroke="${cor}" stroke-width="3"/>${i.completa ? `<path d="M${x - 4} ${y + 42} l3 3 5 -6" stroke="${cor2}" stroke-width="2.5" fill="none" stroke-linecap="round"/>` : `<circle cx="${x}" cy="${y + 42}" r="3.5" fill="${cor}"/>`}</g>
+    <g transform="translate(${x - 66} ${y + 54})"><rect x="2" y="3" width="132" height="46" rx="12" fill="rgba(8,12,34,.4)"/><rect ${atual ? 'class="foco" ' : ''}width="132" height="46" rx="12" fill="rgba(12,20,56,.86)" stroke="${atual ? '#FFD36A' : cor}" stroke-width="${atual ? 2.2 : 1.5}"/><circle cx="19" cy="23" r="12" fill="${cor}"/><circle cx="19" cy="23" r="12" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/><g transform="translate(11 15) scale(.66)" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="${i.icone}"/></g><text x="38" y="18" fill="#fff" font-weight="700" font-size="12" style="font-family:var(--f-display)">${esc(i.nome)}</text><text x="38" y="29" fill="rgba(255,255,255,.8)" font-size="8.5" font-weight="600">${esc(siglas)}</text>${i.precisaEscolher ? '' : `<rect x="38" y="35" width="58" height="5" rx="2.5" fill="rgba(255,255,255,.2)"/><rect x="38" y="35" width="${Math.round(58 * i.pct / 100)}" height="5" rx="2.5" fill="${cor}"/>`}<text x="124" y="41" text-anchor="end" fill="${i.corTxt || cor}" font-weight="700" font-size="${i.precisaEscolher ? 8 : 10.5}" class="num">${i.precisaEscolher ? 'ESCOLHA O IDIOMA' : i.pct + '%'}</text><g><circle r="7.5" fill="${cor}" stroke="#fff" stroke-width="1.6"/><text y="2.8" text-anchor="middle" font-size="8.5" font-weight="700" fill="#fff" class="num">${idx + 1}</text></g></g>
   </g>`;
 }
 function screenMapa() {
@@ -2149,17 +2153,16 @@ function screenMapa() {
       ${L.map((i, k) => ilhaSvg(i, k, k === cur, sy, sx)).join('')}
       ${esteira}${barco}${bussola}
     </svg>
-    <div class="mapalegenda" style="background:${marB}"><span><i class="lg-ilha"></i>ilha = área do ENEM</span><span><i class="lg-flag"></i>conquistada</span><span><i class="lg-rota"></i>rota</span><span><i class="lg-num">1</i>ordem da viagem</span><span>barco = você está aqui</span></div>
+    <div class="mapalegenda" style="background:${marB}"><span><i class="lg-ilha"></i>ilha = área do ENEM</span><span><i class="lg-flag"></i>conquistada</span><span><i class="lg-rota"></i>rota</span><span><i class="lg-num">1</i>ordem sugerida</span><span>barco = você está aqui</span></div>
   </div>${V.sheet === 'ilha' ? sheetIlha() : ''}`;
 }
 function sheetIlha() {
-  const L = ilhas(), i = L.find(z => z.id === V.ilha); if (!i) return '';
-  const atual = L.find(z => !z.completa && z.total > 0);
+  const i = ilhas().find(z => z.id === V.ilha); if (!i) return '';
   return `<div class="sheet-bg" data-key="bg:ilha" data-a="sheet:"></div><section class="sheet" data-key="sh:ilha" role="dialog" aria-modal="true" aria-labelledby="il-t"><span class="grab" aria-hidden="true"></span>
-    <div style="display:flex;align-items:center;gap:12px"><span class="tile" style="background:${i.bloqueada ? 'var(--line2)' : i.cor};color:${i.bloqueada ? 'var(--muted)' : '#fff'}">${i.completa ? I.check(24, 3) : i.bloqueada ? I.lock(22) : I.path}</span><div class="grow"><h1 id="il-t" style="margin:0;font-family:var(--f-display);font-size:20px;font-weight:700">Ilha de ${esc(i.nome)}</h1><span class="sub">${i.completa ? 'Conquistada! Bandeira içada.' : i.bloqueada ? 'Bloqueada por enquanto' : i.precisaEscolher ? 'Escolha o idioma para a ilha contar' : i.total ? `${i.feitas} de ${i.total} lições · ${i.pct}%` : 'Ainda sem lições publicadas'}</span></div></div>
-    ${i.bloqueada && atual ? `<div class="msg" style="background:var(--gold-l);color:var(--gold-d)">A viagem é em ordem: conclua a ilha de <b>${esc(atual.nome)}</b> (${atual.pct}%) para liberar esta.</div>` : ''}
+    <div style="display:flex;align-items:center;gap:12px"><span class="tile" style="background:${i.cor};color:#fff">${i.completa ? I.check(24, 3) : I.path}</span><div class="grow"><h1 id="il-t" style="margin:0;font-family:var(--f-display);font-size:20px;font-weight:700">Ilha de ${esc(i.nome)}</h1><span class="sub">${i.completa ? 'Conquistada! Bandeira içada.' : i.precisaEscolher ? 'Escolha o idioma para a ilha contar' : i.total ? `${i.feitas} de ${i.total} lições · ${i.pct}%` : 'Ainda sem lições publicadas'}</span></div></div>
+    ${i.sugerida && !i.completa ? '<div class="msg" style="background:var(--gold-l);color:var(--gold-d)">Esta é a próxima ilha do roteiro — mas você pode estudar qualquer uma, na ordem que quiser.</div>' : ''}
     ${i.opcoesIdioma.length > 1 ? `<div><span class="px" style="font-size:9px;color:var(--primary)">IDIOMA DA VIAGEM</span><p class="sub" style="margin:2px 0 8px">Como no ENEM, escolha uma língua estrangeira. Só ela conta para conquistar a ilha; a outra continua livre em Suas matérias.</p><div style="display:flex;gap:8px">${i.opcoesIdioma.map(m => `<button class="chipbtn" style="flex:1;justify-content:center;${idiomaViagem() === m.id ? 'background:var(--primary);color:#fff' : ''}" data-a="idioma:${m.id}" aria-pressed="${idiomaViagem() === m.id}">${esc(m.nome)}</button>`).join('')}</div></div>` : ''}
-    <div class="card">${i.materias.map(m => { const T = trilha(m); const p = T.total ? Math.round(T.done / T.total * 100) : 0; const trava = materiaBloqueada(m.id); return `<button class="row" style="width:100%;text-align:left${trava ? ';opacity:.5' : ''}" data-a="${trava ? 'bloq-mat:' + m.id : 'subject:' + m.id}" aria-disabled="${trava}" ${T.total ? '' : 'disabled'}><span class="px" style="font-size:9px;color:${i.cor2};width:32px">${esc((m.sigla || '').toUpperCase())}</span><div class="grow"><span class="t15">${esc(m.nome)}</span><span class="sub">${T.total ? (T.done >= T.total ? 'Concluída · ' : '') + `${T.done} de ${T.total} lições · ${p}%` : 'Sem lições publicadas'}</span>${T.total ? `<span style="display:block;height:6px;border-radius:3px;background:var(--lav);overflow:hidden;margin-top:6px"><i style="display:block;height:100%;width:${p}%;background:${i.cor};border-radius:3px"></i></span>` : ''}</div>${T.total ? I.chevR : ''}</button>`; }).join('')}</div>
+    <div class="card">${i.materias.map(m => { const T = trilha(m); const p = T.total ? Math.round(T.done / T.total * 100) : 0; return `<button class="row" style="width:100%;text-align:left" data-a="subject:${m.id}" ${T.total ? '' : 'disabled'}><span class="px" style="font-size:9px;color:${i.cor2};width:32px">${esc((m.sigla || '').toUpperCase())}</span><div class="grow"><span class="t15">${esc(m.nome)}</span><span class="sub">${T.total ? (T.done >= T.total ? 'Concluída · ' : '') + `${T.done} de ${T.total} lições · ${p}%` : 'Sem lições publicadas'}</span>${T.total ? `<span style="display:block;height:6px;border-radius:3px;background:var(--lav);overflow:hidden;margin-top:6px"><i style="display:block;height:100%;width:${p}%;background:${i.cor};border-radius:3px"></i></span>` : ''}</div>${T.total ? I.chevR : ''}</button>`; }).join('')}</div>
     <p class="sub" style="margin:0;font-size:12px">Toque numa matéria para estudar a jornada dela.</p>
     <button class="btn-ghost" data-a="sheet:">Fechar</button></section>`;
 }
@@ -2472,7 +2475,6 @@ async function act(a) {
     case 'comprar': { const d = await rpcEstado('comprar', {p_codigo: x}); if (d) { SND.coin(); toast(x === 'congelador' ? 'Congelador equipado.' : 'Corações recarregados!'); } return; }
     case 'refill': { const d = await rpcEstado('comprar', {p_codigo: 'recarga'}); if (d && L) { V.sheet = null; SND.coin(); toast('Corações recarregados. Continue a lição!'); return next(); } return; }
     case 'hearts': return plus() ? toast('Findout+ ativo: corações ilimitados.') : hearts() >= maxHearts() ? toast(`Corações cheios: ${maxHearts()} de ${maxHearts()}. Cada erro custa um.`) : toast(`${hearts()} de ${maxHearts()} corações. O próximo volta em ${hms(nextHeartMs())}.`);
-    case 'bloq-mat': { const c = ilhas().find(z => !z.completa && (z.total > 0 || z.precisaEscolher)); vib([30, 40, 30]); toast(c ? `Na viagem a ordem vale: conclua a ilha de ${c.nome} primeiro. Fora da viagem, abra qualquer matéria em Suas matérias.` : 'Ilha bloqueada por enquanto.'); return; }
     case 'idioma': { try { localStorage.setItem('fj-idioma', x); } catch (e) {} const m = materias().find(z => z.id === x); vib(8); toast(`Idioma da viagem: ${m ? m.nome : x}.`); return render(); }
     case 'subject': { S.perfil.materia = x; V.open = null; sb.from('perfis').update({materia_atual: x}).eq('user_id', sessao.user.id).then(() => {}); const T = trilha(materiaAtual()); if (T.cur >= 0) V.open = 'L' + T.flat[T.cur].lic.id; return go('jornada', {scrollTo: true}); }
     case 'tier': V.tier = +x; return render();
