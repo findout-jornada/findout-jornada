@@ -323,6 +323,7 @@ button.card:active{transform:scale(.985)}
 .hero-mascot .mascot{width:112px!important;transform:translateY(6px)}
 .mascot{display:block;flex-shrink:0}
 .mascot canvas,.mascot img{width:100%;height:auto;display:block}
+.mascot .fb{display:block}
 /* Disco branco atrás da mascote nas telas de fundo azul (a Rapozinha é azul royal e sumiria) */
 .mascot-disc{width:196px;height:196px;border-radius:50%;background:var(--white);display:flex;align-items:flex-end;justify-content:center;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,.22),inset 0 0 0 5px var(--teal)}
 /* Rapozinha em sprite (pensando, feliz3): quadros lado a lado; duração e número de quadros vêm do inline style gerado por mascot() */
@@ -476,7 +477,6 @@ if (!window.supabase || !window.FJ_CONFIG) {
 }
 const sb = supabase.createClient(FJ_CONFIG.supabaseUrl, FJ_CONFIG.supabaseAnonKey);
 const app = document.getElementById('app');
-const MASCOT = 'rapozinha.png';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const VIDEO = {feliz: 'rapozinha-feliz.mp4', feliz2: 'rapozinha-feliz2.mp4', triste: 'rapozinha-triste.mp4'};
@@ -489,11 +489,14 @@ const MIN_CARREGANDO = 3000;
 // com "reduzir movimento" o CSS para no primeiro quadro, então o ramo vale sempre.
 // n = quadros, dur = segundos de um ciclo. feliz3 veio do GIF (60 quadros a 40 ms → 30 quadros a 80 ms), já recolorido.
 const SPRITES = {pensando: {src: 'rapozinha-pensando.png', fw: 216, fh: 240, n: 20, dur: 2}, feliz3: {src: 'rapozinha-feliz3.png', fw: 240, fh: 267, n: 30, dur: 2.4}};
+const spriteHtml = (sp, w, cls, alt) => `<span class="mascot-pensa ${cls}" role="img" aria-label="${esc(alt)}" style="width:${w}px;height:${Math.round(w * sp.fh / sp.fw)}px"><img src="${sp.src}" alt="" style="animation-duration:${sp.dur}s;animation-timing-function:steps(${sp.n})"></span>`;
+// Regra: a Rapozinha nunca aparece parada. Nos humores em vídeo, a reserva (enquanto o vídeo carrega,
+// se ele falhar ou com "reduzir movimento") é o sprite animado feliz3, não uma imagem estática.
 const mascot = (w, cls = '', alt = '', humor = 'feliz') => { const sp = SPRITES[humor]; return sp
-  ? `<span class="mascot-pensa ${cls}" role="img" aria-label="${esc(alt)}" style="width:${w}px;height:${Math.round(w * sp.fh / sp.fw)}px"><img src="${sp.src}" alt="" style="animation-duration:${sp.dur}s;animation-timing-function:steps(${sp.n})"></span>`
-  : `<span class="mascot ${cls}" data-humor="${VIDEO[humor] ? humor : 'feliz'}" style="width:${w}px"><canvas style="display:none" aria-hidden="true"></canvas><img src="${MASCOT}" alt="${esc(alt)}"></span>`; };
+  ? spriteHtml(sp, w, cls, alt)
+  : `<span class="mascot ${cls}" data-humor="${VIDEO[humor] ? humor : 'feliz'}" style="width:${w}px"><canvas style="display:none" aria-hidden="true"></canvas><span class="fb">${spriteHtml(SPRITES.feliz3, w, '', alt)}</span></span>`; };
 // Identidade azul/branco/laranja: os vídeos da mascote ainda são da era roxa, então
-// cada quadro novo passa pelo MESMO remapeamento usado para recolorir o rapozinha.png:
+// cada quadro novo passa pelo MESMO remapeamento usado para recolorir os sprites e os ícones:
 // azuis/roxos médios (matiz 200–300) viram azul royal (matiz 227, mais saturado; os escuros viram a sombra),
 // lavanda/cinza claro e rosa viram quase branco, bege/laranja (fones) vira o laranja da marca
 // e teal/ciano (matiz 140–205) vira laranja (matiz 27). Cache por cor: a arte é chapada,
@@ -538,7 +541,7 @@ const MASC = (() => {
     if (reduz) return;
     document.querySelectorAll('.mascot[data-humor]').forEach(el => {
       if (el._ok) return; el._ok = true;
-      const cv = el.querySelector('canvas'), im = el.querySelector('img'); if (!cv || !im) return;
+      const cv = el.querySelector('canvas'), im = el.querySelector('.fb'); if (!cv || !im) return;
       const h = el.dataset.humor, v = video(h);
       // Mascote nova na tela: o vídeo volta ao começo, para a animação aparecer inteira (a menos que outra mascote do mesmo humor já esteja visível)
       if (![...telas].some(t => t.el.dataset.humor === h && t.el.isConnected)) { try { v.currentTime = 0; } catch (e) {} }
