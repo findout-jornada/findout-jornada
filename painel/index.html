@@ -729,8 +729,9 @@ function statusHtml() {
 function renderStatus() { const el = document.getElementById('status'); if (el) el.innerHTML = statusHtml(); const v = document.getElementById('versao-pub'); if (v && D) v.textContent = D.publicacoes[0] ? 'v' + D.publicacoes[0].versao : 'nenhuma'; }
 async function db(consulta) {
   V.salvando++; renderStatus();
-  const {data, error} = await consulta;
-  V.salvando--; renderStatus();
+  let data, error;
+  // try/finally: se a consulta rejeitar (rede caiu), o contador volta mesmo assim; senão o status ficava "Salvando…" para sempre
+  try { ({data, error} = await consulta); } catch (e) { error = e; } finally { V.salvando = Math.max(0, V.salvando - 1); renderStatus(); }
   if (error) {
     console.error(error); toast('Erro: ' + traduzErro(error.message));
     // sessão vencida: em vez de deixar o painel "morto", sai e volta para a tela de login
@@ -750,17 +751,21 @@ function agendarPublicacao() {
 }
 async function publicar(nota) {
   if (V.publicando || !alteracoesPendentes()) return;
+  // Edição ainda não gravada (debounce ou gravação em curso): publicar agora marcaria como publicado algo que o servidor ainda não tem
+  if (pendentes.size > 0 || V.salvando > 0) { if (autoPub) agendarPublicacao(); else toast('Ainda salvando suas edições. Publique de novo em instantes.'); return; }
+  const foto = montarPacote();   // snapshot ANTES do RPC: o que mudar durante a publicação continua pendente
   V.publicando = true; renderStatus();
   try {
     // o pacote é montado no servidor a partir do banco (migration 0021); ele só grava versão nova se o conteúdo mudou
     const {data: row, error} = await sb.rpc('publicar_pacote', {p_nota: nota || 'Publicado pelo painel'});
     if (error) throw error;
-    D.ultimoPacote = montarPacote();
+    D.ultimoPacote = foto;
     if (!row.semMudanca) { D.publicacoes.unshift(row); toast(`Versão ${row.versao} publicada. O app passa a ler este conteúdo.`); }
     V.notaPub = ''; V.jsonVersao = null;
   } catch (e) { console.error(e); toast('Erro ao publicar: ' + traduzErro(e.message)); }
   V.publicando = false;
   if (V.view === 'publicar' || V.view === 'inicio') render(); else renderStatus();
+  if (alteracoesPendentes()) agendarPublicacao();   // algo mudou enquanto publicava: nova rodada
 }
 const pendentes = new Map();
 function agendar(chave, fn) { clearTimeout(pendentes.get(chave)); pendentes.set(chave, setTimeout(() => { pendentes.delete(chave); fn().catch(() => {}); }, 600)); }
@@ -769,8 +774,10 @@ function canon(v) { if (Array.isArray(v)) return '[' + v.map(canon).join(',') + 
 function setIn(obj, p, value) { let o = obj; for (let i = 0; i < p.length - 1; i++) { if (o[p[i]] == null) o[p[i]] = {}; o = o[p[i]]; } const k = p[p.length - 1]; o[k] = typeof o[k] === 'number' ? +value : (typeof o[k] === 'boolean' ? value === '1' || value === true : value); }
 function slug(s) { return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
 /* Baixa um CSV (separador ; e BOM: o Excel brasileiro abre direto, em colunas) */
+const semFormula = s => /^[=+\-@\t\r]/.test(s) ? "'" + s : s;
 function baixarCsv(nome, cab, linhas) {
-  const cel = v => { const s = String(v ?? ''); return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  // Célula começando com = + - @ (ou tab/CR) vira fórmula no Excel/Sheets: prefixa ' para ficar texto (nome de aluno é escolhido pelo próprio aluno)
+  const cel = v => { const s = semFormula(String(v ?? '')); return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
   const txt = '﻿' + [cab, ...linhas].map(l => l.map(cel).join(';')).join('\r\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([txt], {type: 'text/csv;charset=utf-8'}));
@@ -1351,7 +1358,7 @@ function viewQuestoes() {
     <div class="card tbl-wrap"><table><thead><tr><th></th><th>Enunciado</th><th>Tipo</th><th>Matéria · unidade</th><th>Usada em</th><th>Status</th><th></th></tr></thead><tbody>
       ${lista.map(q => { const u = unidadeInfo(q.unidade_id); const m = materiaPorId(q.materia_id); const used = usadaEm(q.id); const x = q.dados || {};
         return `<tr class="rowbtn" data-a="${acaoQ}:${q.id}"><td style="width:52px">${q.imagem_url ? `<img class="thumb" src="${esc(q.imagem_url)}" alt="">` : ''}</td><td style="max-width:420px"><b>${esc(q.enunciado)}</b><div style="color:var(--muted);font-size:12px">${resumoQ(q)}${x.fonte ? ' · <i>' + esc(x.fonte) + '</i>' : ''}</div><div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">${nivelPill(q)}${segPills(q)}${(q.assuntos || []).map(a => `<span class="pill type" style="font-size:10px">${esc(a)}</span>`).join('')}</div></td>
-        <td><span class="pill type">${TIPOS[q.tipo] || q.tipo}</span></td><td style="font-size:12px"><b>${m ? esc(m.nome) : '<span style="color:var(--red-d)">matéria removida</span>'}</b><br><span style="color:var(--muted)">${u ? esc(u.u.titulo) : '<span style="color:var(--orange-d)">sem unidade</span>'}</span></td>
+        <td><span class="pill type">${esc(TIPOS[q.tipo] || q.tipo)}</span></td><td style="font-size:12px"><b>${m ? esc(m.nome) : '<span style="color:var(--red-d)">matéria removida</span>'}</b><br><span style="color:var(--muted)">${u ? esc(u.u.titulo) : '<span style="color:var(--orange-d)">sem unidade</span>'}</span></td>
         <td class="num">${used} ${used === 1 ? 'lição' : 'lições'}</td><td><span class="pill ${q.status === 'publicada' ? 'pub' : 'draft'}">${q.status === 'publicada' ? 'publicada' : 'rascunho'}</span></td>
         <td><button class="btn btn-ghost btn-sm" data-a="${acaoQ}:${q.id}">${admin ? I.edit + 'Editar' : 'Ver'}</button></td></tr>`; }).join('')}
       ${lista.length ? '' : '<tr><td colspan="7" class="empty">Nenhuma questão com esses filtros.</td></tr>'}
@@ -1465,7 +1472,7 @@ function drawerAtribuir() {
   const outras = D.questoes.filter(q => q.materia_id === x.m.id && q.unidade_id !== x.u.id && bate(q));
   const demais = D.questoes.filter(q => q.materia_id !== x.m.id && bate(q));
   const ondeQ = q => { const u = unidadeInfo(q.unidade_id); const m = materiaPorId(q.materia_id); return `<span style="font-size:11px;color:var(--muted);white-space:nowrap">${m ? esc(m.sigla) : ''}${u ? ' · ' + esc(u.u.titulo) : ''}</span>`; };
-  const linha = q => `<label><input type="checkbox" ${atuais.includes(q.id) ? 'checked' : ''} data-a="atribuir-toggle:${q.id}"><span class="pill type" style="font-size:10px">${TIPOS[q.tipo] || q.tipo}</span><span style="flex:1">${esc(q.enunciado)}${q.tipo === 'tf' ? ' · ' + esc((q.dados || {}).stmt) : ''}</span>${q.materia_id !== x.m.id || q.unidade_id !== x.u.id ? ondeQ(q) : ''}${q.status === 'rascunho' ? '<span class="pill draft">rascunho</span>' : ''}</label>`;
+  const linha = q => `<label><input type="checkbox" ${atuais.includes(q.id) ? 'checked' : ''} data-a="atribuir-toggle:${q.id}"><span class="pill type" style="font-size:10px">${esc(TIPOS[q.tipo] || q.tipo)}</span><span style="flex:1">${esc(q.enunciado)}${q.tipo === 'tf' ? ' · ' + esc((q.dados || {}).stmt) : ''}</span>${q.materia_id !== x.m.id || q.unidade_id !== x.u.id ? ondeQ(q) : ''}${q.status === 'rascunho' ? '<span class="pill draft">rascunho</span>' : ''}</label>`;
   return `<div class="drawer-bg" data-a="fechar"></div><div class="drawer" role="dialog" aria-modal="true" style="grid-template-columns:1fr;width:min(640px,100%)"><div class="formcol">
     <div class="drawer-h"><div><h2>Questões da lição</h2><div style="font-size:13px;color:var(--muted)">${esc(x.m.nome)} · ${esc(x.u.titulo)} · <b>${esc(x.l.titulo)}</b></div></div><span class="right"><button class="btn btn-ghost" data-a="fechar" aria-label="Fechar">${I.close}</button></span></div>
     <div class="field"><label for="f-ldesc">Descrição curta da lição (aparece no app)</label><input id="f-ldesc" class="inp sm" value="${esc(x.l.descricao || '')}" data-f="licao.${x.l.id}.descricao" placeholder="Ex.: Aprenda a somar frações com denominadores diferentes"></div>
@@ -1919,7 +1926,7 @@ function drawerAtividade() {
   const bate = q => (!B.materia || q.materia_id === B.materia) && (!B.unidade || q.unidade_id === B.unidade) && (!B.assunto || temAssunto(q, B.assunto)) && (!B.segmento || !(q.segmentos || []).length || q.segmentos.includes(B.segmento)) && (!B.nivel || +(q.dados || {}).dificuldade === +B.nivel) && (!txt || textoBusca(q).includes(txt));
   const pool = D.questoes.filter(q => q.status === 'publicada' && !ids.has(q.id) && bate(q));
   const total = a.questoes.reduce((s, q) => s + (+q.valor || 0), 0);
-  const linhaBanco = q => { const u = unidadeInfo(q.unidade_id); return `<div class="item" style="gap:8px"><span class="pill type" style="font-size:10px">${TIPOS[q.tipo] || q.tipo}</span><span class="qtxt">${esc(q.enunciado)}<br><span style="font-size:11px;color:var(--muted)">${u ? esc(u.m.sigla) + ' · ' + esc(u.u.titulo) : esc((materiaPorId(q.materia_id) || {}).sigla || '')}${(q.assuntos || []).length ? ' · ' + esc(q.assuntos.join(', ')) : ''}</span><span style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">${nivelPill(q)}${segPills(q)}</span></span><button class="btn btn-outline btn-sm" data-a="ativ-add:${q.id}">${I.plus}Usar</button></div>`; };
+  const linhaBanco = q => { const u = unidadeInfo(q.unidade_id); return `<div class="item" style="gap:8px"><span class="pill type" style="font-size:10px">${esc(TIPOS[q.tipo] || q.tipo)}</span><span class="qtxt">${esc(q.enunciado)}<br><span style="font-size:11px;color:var(--muted)">${u ? esc(u.m.sigla) + ' · ' + esc(u.u.titulo) : esc((materiaPorId(q.materia_id) || {}).sigla || '')}${(q.assuntos || []).length ? ' · ' + esc(q.assuntos.join(', ')) : ''}</span><span style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">${nivelPill(q)}${segPills(q)}</span></span><button class="btn btn-outline btn-sm" data-a="ativ-add:${q.id}">${I.plus}Usar</button></div>`; };
   const din = a.dinamica;   // seletor de questões aberto pela Nova dinâmica: cria a dinâmica no fim, sem virar atividade
   return `<div class="drawer-bg" data-a="fechar-ativ"></div><div class="drawer" role="dialog" aria-modal="true" aria-labelledby="da-t" style="grid-template-columns:1fr;width:min(860px,100%)"><div class="formcol">
     <div class="drawer-h"><h2 id="da-t">${din ? 'Nova dinâmica · questões' : a.id ? 'Editar atividade' : 'Nova atividade'}</h2>${din ? `<span class="pill type">${din.modo === 'grupos' ? 'em grupos' : 'cada um por si'}</span><span class="pill on">${din.tempo ? din.tempo + ' s por questão' : 'sem cronômetro'}</span>` : `<span class="pill ${STATUS_ATIV[a.status][1]}">${STATUS_ATIV[a.status][0]}</span>`}<span class="right"><button class="btn btn-ghost" data-a="fechar-ativ" aria-label="Fechar">${I.close}</button></span></div>
@@ -1931,7 +1938,7 @@ function drawerAtividade() {
     </div>
     ${din ? '' : `<div class="field"><label for="a-desc">Orientações para o aluno (opcional)</label><textarea id="a-desc" class="inp" data-f="ativ.descricao" placeholder="Ex.: Revise o capítulo 4 antes. Vale ponto na média.">${esc(a.descricao)}</textarea></div>`}
     <div class="card"><div class="card-h"><h2>Questões da ${din ? 'dinâmica' : 'atividade'}</h2><span class="pill type">${a.questoes.length}</span><span class="right" style="font-size:12px;color:var(--muted)">${din ? 'Cada questão vale 1 acerto no placar' : `Total: <b class="num">${String(total).replace('.', ',')}</b> ponto${total === 1 ? '' : 's'} · nota de 0 a 10 proporcional`}</span></div>
-      <div class="list">${a.questoes.map((q, i) => `<div class="item" style="gap:8px"><b class="num" style="color:var(--muted);width:20px">${i + 1}</b><span class="pill type" style="font-size:10px">${TIPOS[q.tipo] || q.tipo}</span><span class="qtxt">${esc(q.enunciado)}${q.origem === 'propria' ? ' <span class="pill draft" style="font-size:10px">própria</span>' : ''}</span>${din ? '' : `<label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)">vale <input type="number" min="0" step="0.5" class="inp sm" style="width:64px" value="${q.valor}" data-f="ativ.questoes.${i}.valor" aria-label="Valor da questão ${i + 1}"></label>`}${mover('ativq', String(i))}<button class="btn btn-ghost btn-sm" data-a="ativ-rm:${i}" aria-label="Tirar questão">${I.trash}</button></div>`).join('') || '<div class="empty">Nenhuma questão ainda. Busque no banco abaixo ou crie a sua.</div>'}</div>
+      <div class="list">${a.questoes.map((q, i) => `<div class="item" style="gap:8px"><b class="num" style="color:var(--muted);width:20px">${i + 1}</b><span class="pill type" style="font-size:10px">${esc(TIPOS[q.tipo] || q.tipo)}</span><span class="qtxt">${esc(q.enunciado)}${q.origem === 'propria' ? ' <span class="pill draft" style="font-size:10px">própria</span>' : ''}</span>${din ? '' : `<label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)">vale <input type="number" min="0" step="0.5" class="inp sm" style="width:64px" value="${esc(+q.valor || 0)}" data-f="ativ.questoes.${i}.valor" aria-label="Valor da questão ${i + 1}"></label>`}${mover('ativq', String(i))}<button class="btn btn-ghost btn-sm" data-a="ativ-rm:${i}" aria-label="Tirar questão">${I.trash}</button></div>`).join('') || '<div class="empty">Nenhuma questão ainda. Busque no banco abaixo ou crie a sua.</div>'}</div>
       <div class="card-b" style="padding-top:12px;display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line)"><button class="btn btn-outline btn-sm" data-a="ativ-propria">${I.plus}Criar questão própria</button><span style="font-size:12px;color:var(--muted);align-self:center">${din ? 'A ordem acima é a ordem das questões no telão.' : 'A ordem acima é a ordem que o aluno vê. O app embaralha só as alternativas.'}</span></div></div>
     <div class="card"><div class="card-h"><h2>Buscar no banco de questões</h2><span class="right" style="font-size:12px;color:var(--muted)">${pool.length} encontrada${pool.length === 1 ? '' : 's'}</span></div>
       <div class="card-b" style="display:flex;flex-direction:column;gap:10px">
@@ -1977,7 +1984,7 @@ function viewResultados() {
         ${d.alunos.length ? '' : '<tr><td colspan="5" class="empty">A turma ainda não tem alunos.</td></tr>'}
       </tbody></table></div></div>
       <div class="card"><div class="card-h"><h2>Questões: onde a turma mais errou</h2></div><div class="card-b bars">
-        ${d.questoes.map((q, i) => { const tot = q.acertos + q.erros; return `<div class="barrow" style="grid-template-columns:1fr"><span style="font-size:13px"><b class="num" style="color:var(--muted)">${i + 1}.</b> ${esc(q.enunciado)} <span class="pill type" style="font-size:10px">${TIPOS[q.tipo] || q.tipo}</span></span><span style="display:grid;grid-template-columns:1fr 60px;gap:8px;align-items:center"><span class="bar"><i style="width:${pct(q.erros, tot)}%;background:${pct(q.erros, tot) >= 50 ? 'var(--red)' : 'var(--orange)'}"></i></span><b class="num" style="text-align:right;font-size:12px;color:${pct(q.erros, tot) >= 50 ? 'var(--red-d)' : 'var(--fg2)'}">${tot ? pct(q.erros, tot) + '% erro' : '—'}</b></span></div>`; }).join('') || '<div class="empty">Sem questões.</div>'}
+        ${d.questoes.map((q, i) => { const tot = q.acertos + q.erros; return `<div class="barrow" style="grid-template-columns:1fr"><span style="font-size:13px"><b class="num" style="color:var(--muted)">${i + 1}.</b> ${esc(q.enunciado)} <span class="pill type" style="font-size:10px">${esc(TIPOS[q.tipo] || q.tipo)}</span></span><span style="display:grid;grid-template-columns:1fr 60px;gap:8px;align-items:center"><span class="bar"><i style="width:${pct(q.erros, tot)}%;background:${pct(q.erros, tot) >= 50 ? 'var(--red)' : 'var(--orange)'}"></i></span><b class="num" style="text-align:right;font-size:12px;color:${pct(q.erros, tot) >= 50 ? 'var(--red-d)' : 'var(--fg2)'}">${tot ? pct(q.erros, tot) + '% erro' : '—'}</b></span></div>`; }).join('') || '<div class="empty">Sem questões.</div>'}
       </div></div>
     </div>`}
   </div>`;
@@ -2462,7 +2469,7 @@ function modalRespostasHtml() {
     else if (q.tipo === 'match') { marcou = !respondeu ? null : Array.isArray(rv) ? rv.map(p => `${esc(p[0])} → ${esc(p[1])}`).join('<br>') : rv === true ? 'Ligou todos os pares sem errar' : 'Errou ao ligar os pares'; certo = Array.isArray(dd.pairs) ? dd.pairs.map(p => `${esc(p[0])} → ${esc(p[1])}`).join('<br>') : null; }
     const ok = !!(r && r.acertou);
     return `<div class="resp ${!r ? '' : ok ? 'ok' : 'erro'}">
-      <div class="enun"><b class="num" style="color:var(--muted)">${i + 1}.</b><span style="flex:1;min-width:0">${esc(q.enunciado)}</span><span class="pill type" style="font-size:10px">${TIPOS[q.tipo] || q.tipo}</span><span class="pill ${!r ? 'off' : ok ? 'pub' : ''}" style="font-size:10px;${!r || ok ? '' : 'background:var(--red-l);color:var(--red-d)'}">${!r ? 'sem resposta' : ok ? 'acertou' : 'errou'}</span></div>
+      <div class="enun"><b class="num" style="color:var(--muted)">${i + 1}.</b><span style="flex:1;min-width:0">${esc(q.enunciado)}</span><span class="pill type" style="font-size:10px">${esc(TIPOS[q.tipo] || q.tipo)}</span><span class="pill ${!r ? 'off' : ok ? 'pub' : ''}" style="font-size:10px;${!r || ok ? '' : 'background:var(--red-l);color:var(--red-d)'}">${!r ? 'sem resposta' : ok ? 'acertou' : 'errou'}</span></div>
       ${extra}
       ${linha('Marcou', !respondeu ? '<i style="color:var(--muted)">Não respondeu</i>' : marcou == null ? esc(JSON.stringify(rv)) : marcou, ok ? 'var(--green-d)' : 'var(--red-d)')}
       ${ok ? '' : linha('Resposta certa', certo)}
@@ -2478,12 +2485,14 @@ function modalRespostasHtml() {
 /* =====================================================================
    Modais
    ===================================================================== */
+/* O que foi digitado no modal fica em V.modal.vals: um render() em segundo plano (polling, carregamento) não apaga mais os campos */
+function lerModal() { const M = V.modal, f = document.getElementById('f-modal'); if (!M || !f) return; const v = {}; M.campos.forEach(c => { if (c.tipo === 'checks') v[c.k] = [...f.querySelectorAll(`input[data-md="${c.k}"]:checked`)].map(i => i.value); else { const el = document.getElementById('md-' + c.k); if (el) v[c.k] = el.value; } }); M.vals = v; }
 function modalHtml() {
   const M = V.modal;
   // texto: parágrafo simples; html: conteúdo livre (listas de ajuda); soInfo: modal só de leitura, sem botão Cancelar
   return `<div class="drawer-bg" data-a="modal-cancelar"></div><form class="card modal ${M.largo ? 'modal-lg' : ''}" id="f-modal" role="dialog" aria-modal="true"><h2>${esc(M.titulo)}</h2>${M.texto ? `<p style="margin:0;color:var(--fg2);font-size:13px">${M.texto}</p>` : ''}${M.html || ''}
-    ${M.campos.map(c => `<div class="field">${c.tipo === 'checks' ? `<span class="lab">${esc(c.label)}</span><div class="checkgroup" role="group" aria-label="${esc(c.label)}">${c.opcoes.map(([v, l]) => `<label class="chk"><input type="checkbox" data-md="${c.k}" value="${esc(v)}" ${(c.valores || []).includes(v) ? 'checked' : ''}>${esc(l)}</label>`).join('')}</div>` : `<label for="md-${c.k}">${esc(c.label)}</label>${c.tipo === 'select' ? `<select id="md-${c.k}" class="inp">${c.opcoes.map(([v, l]) => `<option value="${esc(v)}" ${String(c.valor ?? '') === String(v) ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>` : `<input id="md-${c.k}" class="inp" type="${c.tipo || 'text'}" value="${esc(c.valor ?? '')}" placeholder="${esc(c.placeholder || '')}" ${c.maxlength ? `maxlength="${c.maxlength}"` : ''} ${c.obrigatorio ? 'required' : ''}>`}`}</div>`).join('')}
-    <div style="display:flex;gap:8px;justify-content:flex-end">${M.soInfo ? '' : '<button type="button" class="btn btn-ghost" data-a="modal-cancelar">Cancelar</button>'}<button type="submit" class="btn btn-primary" data-a="modal-ok">${esc(M.ok || 'Criar')}</button></div></form>`;
+    ${M.campos.map(c => `<div class="field">${c.tipo === 'checks' ? `<span class="lab">${esc(c.label)}</span><div class="checkgroup" role="group" aria-label="${esc(c.label)}">${c.opcoes.map(([v, l]) => `<label class="chk"><input type="checkbox" data-md="${c.k}" value="${esc(v)}" ${((V.modal.vals && V.modal.vals[c.k]) || c.valores || []).includes(v) ? 'checked' : ''}>${esc(l)}</label>`).join('')}</div>` : `<label for="md-${c.k}">${esc(c.label)}</label>${c.tipo === 'select' ? `<select id="md-${c.k}" class="inp">${c.opcoes.map(([v, l]) => `<option value="${esc(v)}" ${String(V.modal.vals && c.k in V.modal.vals ? V.modal.vals[c.k] : (c.valor ?? '')) === String(v) ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>` : `<input id="md-${c.k}" class="inp" type="${c.tipo || 'text'}" value="${esc(V.modal.vals && c.k in V.modal.vals ? V.modal.vals[c.k] : (c.valor ?? ''))}" placeholder="${esc(c.placeholder || '')}" ${c.maxlength ? `maxlength="${c.maxlength}"` : ''} ${c.obrigatorio ? 'required' : ''}>`}`}</div>`).join('')}
+    <div style="display:flex;gap:8px;justify-content:flex-end">${M.soInfo ? '' : '<button type="button" class="btn btn-ghost" data-a="modal-cancelar">Cancelar</button>'}<button type="submit" class="btn btn-primary" data-a="modal-ok" ${M.enviando ? 'disabled' : ''}>${M.enviando ? 'Salvando…' : esc(M.ok || 'Criar')}</button></div></form>`;
 }
 function confirmHtml() {
   const C = V.confirmar;
@@ -2496,6 +2505,7 @@ function confirmHtml() {
 const VIEWS = {inicio: () => admin ? viewInicio() : viewInicioEducador(), dashboard: viewDashboard, trilhas: viewTrilhas, questoes: viewQuestoes, habilidades: viewHabilidades, missoes: viewMissoes, economia: viewEconomia, ligas: viewLigas, duelos: viewDuelos, alunos: viewAlunos, publicar: viewPublicar, turmas: viewTurmas, turma: viewTurma, escolas: viewEscolas, escola: viewEscola, atividades: viewAtividades, resultados: viewResultados, dinamica: viewDinamica, auditoria: viewAuditoria, relatorios: viewRelatorios};
 let ultimaViewRender = null;
 function render() {
+  if (V.modal) lerModal();
   if (!D) return;
   if (!VIEWS[V.view] || (!admin && !['inicio', 'turmas', 'turma', 'atividades', 'resultados', 'dinamica', 'questoes', 'relatorios', ...(gestor() ? ['escolas', 'escola', 'alunos'] : [])].includes(V.view))) V.view = 'inicio';
   const focado = document.activeElement, fkey = focado && focado.dataset ? focado.dataset.f : null, sel = focado && focado.selectionStart;
@@ -2505,7 +2515,7 @@ function render() {
   shell.innerHTML = sidebar() + `<main${trocouView ? ' class="view-anim"' : ''}>${VIEWS[V.view]()}</main>` + (V.ativ ? drawerAtividade() : '') + (V.rascunho ? drawerQuestao() : '') + (V.licaoAtribuir ? drawerAtribuir() : '') + (V.modalPrev ? modalPrevHtml() : '') + (V.relatorio ? modalRelatorioHtml() : '') + (V.rel.det ? modalRelAlunoHtml() : '') + (V.respostas ? modalRespostasHtml() : '') + (V.modal ? modalHtml() : '') + (V.confirmar ? confirmHtml() : '');
   window.scrollTo(0, scroll);
   if (fkey) { const el = shell.querySelector(`[data-f="${fkey}"]`); if (el && el.tagName !== 'SELECT' && el.type !== 'radio' && el.type !== 'color') { el.focus(); try { el.setSelectionRange(sel, sel); } catch (e) {} } }
-  if (V.modal) { const first = shell.querySelector('#f-modal input'); if (first) first.focus(); }
+  if (V.modal && !V.modal.focado) { V.modal.focado = true; const first = shell.querySelector('#f-modal input'); if (first) first.focus(); }
   if (V.confirmar) { const c = shell.querySelector('#confirmar-nao'); if (c) c.focus(); }
 }
 
@@ -2932,7 +2942,7 @@ async function act(a, el) {
     case 'excluir-ativ': return confirmar('Excluir atividade?', 'As entregas e notas dos alunos também são apagadas.', async () => { await db(sb.from('atividades').delete().eq('id', x)); T.atividades = T.atividades.filter(a => a.id !== x); V.ativ = null; if (V.view === 'resultados') V.view = 'atividades'; toast('Atividade excluída.'); });
     case 'status-ativ': { const a = T.atividades.find(a => a.id === x); if (!a) return; const row = await db(sb.from('atividades').update({status: y, atualizada_em: agora()}).eq('id', x).select().single()); Object.assign(a, row); toast(y === 'aberta' ? 'Atividade aberta para a turma.' : 'Atividade encerrada.'); render(); if (V.view === 'resultados') return carregarResultados(x); return; }
     case 'resultados': { const a = T.atividades.find(a => a.id === x); V.resultados = {id: x, data: null, erro: null}; V.respostas = null; V.view = 'resultados'; V.ativ = null; window.scrollTo(0, 0); render(); auditar('resultados', 'resultados', x, 'Viu os resultados de ' + (a ? a.titulo : x)); return carregarResultados(x); }
-    case 'copiar-notas': { const d = V.resultados && V.resultados.data; if (!d) return; auditar('copia', 'resultados', V.resultados.id, 'Copiou as notas da atividade', {alunos: d.alunos.length}); const txt = d.alunos.map(a => `${a.nome}\t${a.email || ''}\t${a.entregueEm ? String(a.nota).replace('.', ',') : ''}\t${a.entregueEm ? a.acertos + '/' + a.total : 'não entregou'}`).join('\n'); (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText('Aluno\tE-mail\tNota\tAcertos\n' + txt) : Promise.reject()).then(() => toast('Notas copiadas. Cole numa planilha.')).catch(() => toast('Não deu para copiar neste navegador.')); return; }
+    case 'copiar-notas': { const d = V.resultados && V.resultados.data; if (!d) return; auditar('copia', 'resultados', V.resultados.id, 'Copiou as notas da atividade', {alunos: d.alunos.length}); const txt = d.alunos.map(a => `${semFormula(a.nome || '')}\t${semFormula(a.email || '')}\t${a.entregueEm ? String(a.nota).replace('.', ',') : ''}\t${a.entregueEm ? a.acertos + '/' + a.total : 'não entregou'}`).join('\n'); (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText('Aluno\tE-mail\tNota\tAcertos\n' + txt) : Promise.reject()).then(() => toast('Notas copiadas. Cole numa planilha.')).catch(() => toast('Não deu para copiar neste navegador.')); return; }
 
     case 'menu': V.menu = !V.menu; return render();
     case 'sair': auditar('sair', 'painel', null, 'Saiu do painel'); return sb.auth.signOut();
@@ -3109,7 +3119,7 @@ async function act(a, el) {
 
     /* modais */
     case 'modal-cancelar': V.modal = null; return render();
-    case 'modal-ok': { const Mo = V.modal; if (!Mo) return; const v = {}; Mo.campos.forEach(c => { v[c.k] = c.tipo === 'checks' ? [...shell.querySelectorAll(`#f-modal input[data-md="${c.k}"]:checked`)].map(i => i.value) : document.getElementById('md-' + c.k).value; }); if (Mo.campos.some(c => c.obrigatorio && !String(v[c.k]).trim())) return toast('Preencha todos os campos.'); V.modal = null; await Mo.fn(v); return render(); }
+    case 'modal-ok': { const Mo = V.modal; if (!Mo) return; const v = {}; Mo.campos.forEach(c => { v[c.k] = c.tipo === 'checks' ? [...shell.querySelectorAll(`#f-modal input[data-md="${c.k}"]:checked`)].map(i => i.value) : document.getElementById('md-' + c.k).value; }); if (Mo.campos.some(c => c.obrigatorio && !String(v[c.k]).trim())) return toast('Preencha todos os campos.'); if (Mo.enviando) return; Mo.enviando = true; Mo.vals = v; render(); try { await Mo.fn(v); if (V.modal === Mo) V.modal = null; } catch (e) { console.error(e); } finally { Mo.enviando = false; } return render(); }
     case 'confirmar-nao': V.confirmar = null; return render();
     case 'confirmar-sim': { const C = V.confirmar; V.confirmar = null; render(); await C.fn(); return render(); }
   }
@@ -3141,7 +3151,7 @@ window.addEventListener('error', ev => { if (ev.message) toast('Erro inesperado:
 function selosConexao() { let s = document.getElementById('offline'); if (navigator.onLine) { if (s) s.remove(); } else if (!s) { s = document.createElement('div'); s.id = 'offline'; s.className = 'offline'; s.setAttribute('role', 'status'); s.textContent = 'Sem conexão: as alterações não estão sendo salvas'; document.body.appendChild(s); } }
 window.addEventListener('online', () => { selosConexao(); toast('Conexão de volta.'); });
 window.addEventListener('offline', selosConexao);
-window.addEventListener('beforeunload', ev => { if (D && (V.salvando > 0 || V.publicando || alteracoesPendentes())) { ev.preventDefault(); ev.returnValue = ''; } });
+window.addEventListener('beforeunload', ev => { if (D && (V.salvando > 0 || pendentes.size > 0 || V.publicando || (admin && alteracoesPendentes()))) { ev.preventDefault(); ev.returnValue = ''; } });
 const INATIVIDADE_MS = 8 * 3600e3; let ultimoToque = Date.now();
 ['click', 'keydown', 'pointermove', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { ultimoToque = Date.now(); }, {passive: true}));
 setInterval(() => { if (sessao && Date.now() - ultimoToque > INATIVIDADE_MS) { toast('Sessão encerrada por inatividade.'); sb.auth.signOut(); } }, 60e3);
