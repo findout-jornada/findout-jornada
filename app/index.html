@@ -1340,16 +1340,16 @@ function startLesson(mode, opts = {}) {
     const fila = [...new Set((V.revPlano || {}).questoes || [])].map(id => QI[id]).filter(Boolean).slice(0, n);
     const erros = shuffle(S.erros.map(id => QI[id]).filter(Boolean)).filter(q => !fila.includes(q)).slice(0, Math.ceil((n - fila.length) / 2));
     const resto = shuffle((PK.questoes || []).filter(q => !fila.includes(q) && !erros.includes(q)));
-    queue = fila.concat(shuffle(erros.concat(resto.slice(0, Math.max(0, n - fila.length - erros.length))))).map(exercicio);
+    queue = fila.concat(shuffle(erros.concat(resto.slice(0, Math.max(0, n - fila.length - erros.length))))).map(q => exercicio(q));
     kicker = 'REVISÃO DIÁRIA · TODAS AS MATÉRIAS'; title = 'Revisão diária'; materiaId = null;
   } else if (mode === 'errors') {
     const qs = S.erros.map(id => QI[id]).filter(Boolean).slice(0, 6);
-    queue = qs.length ? shuffle(qs).map(exercicio) : (T.curUnit ? variados(questoesDaUnidade(T.curUnit.uni.id), tam()) : []);
+    queue = qs.length ? shuffle(qs).map(q => exercicio(q)) : (T.curUnit ? variados(questoesDaUnidade(T.curUnit.uni.id), tam()) : []);
     if (!qs.length && T.curUnit) uni = T.curUnit.uni;
     kicker = 'PRATICAR ERROS · SEM PERDER CORAÇÃO'; title = 'Praticar erros';
   } else if (mode === 'flash') {
     const pool = (PK.questoes || []).filter(q => q.tipo !== 'match');
-    queue = shuffle(pool).slice(0, 40).map(exercicio);
+    queue = shuffle(pool).slice(0, 40).map(q => exercicio(q));
     kicker = 'DESAFIO RELÂMPAGO · XP ×' + (E().multiplicadorRelampago || 2); title = 'Desafio relâmpago';
   }
   if (!queue.length) return toast('Ainda não há questões publicadas aqui.');
