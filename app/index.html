@@ -446,6 +446,16 @@ button.card:active{transform:scale(.985)}
 button[data-a^="tier:"]{transition:width .2s,height .2s,transform .2s,filter .2s,opacity .2s}
 button[data-a^="tier:"][aria-pressed="true"]{filter:drop-shadow(0 8px 12px rgba(1,15,46,.22));animation:pop .35s cubic-bezier(.3,1.4,.5,1)}
 @media (hover:hover) and (pointer:fine){button[data-a^="tier:"]:not([aria-pressed="true"]):hover{transform:translateY(-3px) scale(1.08)}}
+/* Tour de boas-vindas: ícone grande do tema com a Rapozinha pensando ao lado, e pontinhos de progresso */
+.tour-arte{position:relative;display:flex;align-items:flex-end;justify-content:center;min-height:170px;animation:pop .4s cubic-bezier(.3,1.4,.5,1) both}
+.tour-ic{width:120px;height:120px;border-radius:32px;display:flex;align-items:center;justify-content:center;box-shadow:0 14px 30px rgba(45,79,214,.18)}
+.tour-ic svg{width:60px;height:60px}
+.tour-arte .tour-masc{position:absolute!important;right:-62px;bottom:-6px}
+.tour-dots{display:flex;gap:7px;justify-content:center;padding-top:6px}
+.tour-dots i{width:8px;height:8px;border-radius:50%;background:var(--line2);transition:width .25s,background-color .25s}
+.tour-dots i.ok{background:var(--lilac)}
+.tour-dots i.on{width:22px;border-radius:4px;background:var(--primary)}
+@media (prefers-reduced-motion:reduce){.tour-arte{animation:none}}
 /* Chama da ofensiva viva: o corpo tremula (escala e inclinação) e o miolo pulsa, com brilho quente em volta */
 .chama-viva{display:inline-flex;filter:drop-shadow(0 0 14px rgba(255,211,106,.65))}
 .chama-viva svg{transform-origin:50% 95%;animation:chama-corpo 1.1s ease-in-out infinite alternate}
@@ -1097,6 +1107,57 @@ const materiaNome = mid => { const m = materias().find(m => m.id === mid); retur
 /* ---------- atividades da turma ---------- */
 const atividades = () => (S && S.atividades) || [];
 const pendentes = () => atividades().filter(a => a.status === 'pendente');
+/* ---------- Avisos: nova atividade, dinâmica ao vivo e desafio de duelo ----------
+   A cada 45 s (com o app aberto) o app relê o estado, a dinâmica ativa e os duelos e compara com o que já
+   avisou (guardado no aparelho, por conta). Novidade vira aviso na tela e, se o aluno permitiu e o app está
+   em segundo plano, notificação do celular pelo service worker. Tocar na notificação abre a aba Turma.
+   Avisos com o app totalmente fechado precisam de Web Push (servidor); isso fica para uma próxima etapa. */
+const AVISOS = (() => {
+  const chave = () => 'fj-avisados-' + (sessao ? sessao.user.id : '');
+  let vistos = null, dono = null;
+  const ler = () => { if (dono !== chave()) { dono = chave(); vistos = null; try { vistos = JSON.parse(localStorage.getItem(dono) || 'null'); } catch (e) {} } return vistos; };
+  const gravar = () => { try { localStorage.setItem(dono, JSON.stringify(vistos.slice(-300))); } catch (e) {} };
+  const suporta = () => 'Notification' in window && 'serviceWorker' in navigator;
+  const permissao = () => suporta() ? Notification.permission : 'indisponivel';
+  function novidades() {
+    const L2 = pendentes().map(a => ({id: 'a:' + a.id, titulo: 'Nova atividade', texto: a.titulo + (a.turma ? ' · ' + a.turma : '') + (a.prazo ? ' · até ' + new Date(a.prazo).toLocaleDateString('pt-BR') : '')}));
+    if (V.dinAtiva) L2.push({id: 'd:' + V.dinAtiva.id, titulo: 'Dinâmica ao vivo', texto: (V.dinAtiva.titulo || 'O professor abriu uma dinâmica') + ' · toque para entrar'});
+    ((V.duelos && V.duelos.convites) || []).forEach(c => L2.push({id: 'c:' + c.id, titulo: 'Desafio de duelo', texto: c.de + ' te desafiou para um duelo'}));
+    return L2;
+  }
+  async function notificar(n) {
+    if (permissao() !== 'granted') return;
+    try { const r = await navigator.serviceWorker.ready; await r.showNotification(n.titulo, {body: n.texto, icon: 'icone-192.png', badge: 'icone-192.png', tag: n.id, data: {tab: 'turma'}}); } catch (e) {}
+  }
+  function conferir() {
+    if (!S || !sessao) return;
+    const atual = novidades(), v = ler();
+    if (!v) { vistos = atual.map(n => n.id); gravar(); return; }   // primeiro uso: o que já existe não vira aviso
+    const novos = atual.filter(n => !v.includes(n.id)); if (!novos.length) return;
+    vistos = v.concat(novos.map(n => n.id)); gravar();
+    if (document.visibilityState === 'hidden') novos.forEach(notificar);
+    else if (!L) { const n = novos[0]; toast(n.titulo + ': ' + n.texto + (novos.length > 1 ? ` (+${novos.length - 1})` : '')); SND.ok(); vib([20, 40, 20]); }
+  }
+  async function pedir() {
+    if (!suporta()) return toast('Este aparelho não oferece avisos para o app. No iPhone, instale o app na tela de início (Compartilhar → Adicionar à Tela de Início).');
+    const r = await Notification.requestPermission();
+    toast(r === 'granted' ? 'Avisos ativados: você será avisado de atividades, dinâmicas e desafios.' : 'Avisos não autorizados. Dá para liberar nas configurações do navegador.');
+  }
+  const estadoTxt = () => ({granted: 'Ativados: atividades, dinâmicas e desafios', denied: 'Bloqueados nas configurações do navegador', default: 'Receba um aviso de atividade nova, dinâmica e desafio', indisponivel: 'No iPhone, instale o app na tela de início para receber'}[permissao()]);
+  return {conferir, pedir, permissao, estadoTxt};
+})();
+// Quantos avisos da turma estão abertos (badge do menu): atividades pendentes, dinâmica ao vivo e desafios recebidos
+const avisosTurma = () => pendentes().length + (V.dinAtiva ? 1 : 0) + ((V.duelos && V.duelos.convites) || []).length;
+let ultimaChecagem = 0;
+async function checarNovidades() {
+  if (!S || !sessao || L || V.screen === 'dinamica' || V.screen === 'duelo' || V.screen === 'tour') return;
+  ultimaChecagem = Date.now();
+  await recarregarEstado(true);
+  if ((S.turmas || []).length) await Promise.all([carregarDinamicaAtiva(), carregarDuelos()]);
+  AVISOS.conferir();
+  if (TABS.has(V.screen)) render(false);
+}
+setInterval(() => { if (Date.now() - ultimaChecagem > 44e3) checarNovidades(); }, 15e3);
 const fmtPrazo = iso => { if (!iso) return 'sem prazo'; const d = new Date(iso), ms = d - Date.now(); const data = d.toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'}) + ' ' + d.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}); if (ms < 0) return 'encerrada em ' + data; if (ms < HOUR) return 'encerra em ' + Math.max(1, Math.round(ms / 60e3)) + ' min'; if (ms < 24 * HOUR) return 'encerra em ' + Math.round(ms / HOUR) + ' h'; return 'até ' + data; };
 const fmtNota = n => n == null ? '—' : String(n).replace('.', ',');
 function cardAtividade(a) {
@@ -1206,7 +1267,7 @@ function headerJornada(m) {
     </div></header>`;
 }
 function screenJornada() {
-  if (!S.perfil.materia && materias().length) return screenMaterias();
+  if (!S.perfil.materia && materias().length) return tourVisto() ? screenMaterias() : screenTour();
   const m = materiaAtual();
   if (!m) return headerJornada(null) + `<div class="scroll"><div class="pad" style="align-items:center;text-align:center;padding-top:40px">${mascot(130)}<h2 class="h2" style="font-size:20px">Conteúdo chegando</h2><p class="sub" style="max-width:280px">As trilhas ainda não foram publicadas. Assim que a equipe publicar, elas aparecem aqui.</p><button class="chipbtn" data-a="recarregar">Atualizar</button></div></div>${nav('jornada')}`;
   const T = trilha(m);
@@ -1246,11 +1307,46 @@ function screenJornada() {
 }
 function nav(cur) {
   const items = [['jornada', 'Jornada', I.path], ['praticar', 'Treinar', I.train()], ['turma', 'Turma', I.users], ['missoes', 'Missões', I.target()], ['ligas', 'Ligas', I.shield()], ['perfil', 'Perfil', I.user]];
-  const np = pendentes().length;
-  return `<nav class="nav" data-key="nav" aria-label="Navegação principal">${items.map(([id, lbl, ic]) => `<button data-a="tab:${id}" ${cur === id ? 'aria-current="page"' : ''} style="position:relative">${ic}${lbl}${id === 'turma' && np ? `<span class="navbadge num" aria-label="${np} atividades pendentes">${np}</span>` : ''}</button>`).join('')}</nav>`;
+  const np = avisosTurma();
+  return `<nav class="nav" data-key="nav" aria-label="Navegação principal">${items.map(([id, lbl, ic]) => `<button data-a="tab:${id}" ${cur === id ? 'aria-current="page"' : ''} style="position:relative">${ic}${lbl}${id === 'turma' && np ? `<span class="navbadge num" aria-label="${np} avisos na turma">${np}</span>` : ''}</button>`).join('')}</nav>`;
 }
 
 /* ---------- matérias ---------- */
+/* ---------- Boas-vindas e tour "Conheça a plataforma" ----------
+   Aparece para o aluno novo antes de escolher a primeira matéria (uma vez por conta neste aparelho)
+   e pode ser revisto em Perfil → Conheça a plataforma. */
+const tourChave = () => 'fj-tour-' + (sessao ? sessao.user.id : '');
+const tourVisto = () => { try { return localStorage.getItem(tourChave()) === '1'; } catch (e) { return true; } };
+const icMapa = s => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.5 9.5h17M3.5 14.5h17M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>`;
+function passosTour() {
+  const nome = esc(((S.perfil.nome || '').trim().split(' ')[0]) || '');
+  return [
+    {humor: 'feliz3', kicker: 'BOAS-VINDAS', titulo: `Oi${nome ? ', ' + nome : ''}! Eu sou a Rapozinha`, texto: 'Aqui você estuda para o ENEM em lições curtas, como um jogo. Em um minuto eu te mostro como tudo funciona.'},
+    {icone: I.path, cor: 'var(--primary)', fundo: 'var(--lav)', kicker: 'TRILHA', titulo: 'Uma trilha por matéria', texto: 'Cada matéria tem seções, unidades e lições em ordem. Termine uma lição para liberar a próxima. No meio do caminho tem baús com moedas e, no fim da unidade, a prova que vale um troféu.'},
+    {icone: I.heart(40), cor: 'var(--red-d)', fundo: 'var(--red-l)', kicker: 'LIÇÕES', titulo: 'Cinco tipos de exercício', texto: 'Múltipla escolha, verdadeiro ou falso, completar a frase, ordenar e associar pares. Errou, perde um coração; eles voltam com o tempo. Praticar os erros não gasta coração.'},
+    {icone: I.flame(40), cor: 'var(--orange-d)', fundo: 'var(--teal-l)', kicker: 'OFENSIVA E MISSÕES', titulo: 'Estude um pouco todo dia', texto: 'Cada dia com lição aumenta sua ofensiva. Um congelador protege a chama se você faltar um dia. As missões diárias abrem um baú de moedas.'},
+    {icone: I.shield(40), cor: 'var(--primary)', fundo: 'var(--lav)', kicker: 'LIGAS', titulo: 'Compita pela semana', texto: 'O XP da semana coloca você numa liga com outros alunos. Os melhores sobem de liga no domingo; os últimos descem.'},
+    {icone: I.duelo(40), cor: 'var(--primary)', fundo: 'var(--lav)', kicker: 'TURMA', titulo: 'Sua turma, dinâmicas e duelos', texto: 'Entre na turma com o código do professor. Lá aparecem as atividades, a dinâmica ao vivo da aula e os duelos contra os colegas. Você recebe um aviso quando chegar coisa nova.'},
+    {icone: icMapa(40), cor: '#1B4F8F', fundo: '#E3ECFA', kicker: 'MAPA DO ENEM', titulo: 'Uma volta ao mundo', texto: 'Cada área do ENEM é uma ilha. Complete as lições das matérias de uma ilha para conquistá-la e seguir viagem.'},
+    {humor: 'feliz', kicker: 'TUDO PRONTO', titulo: 'Vamos começar?', texto: S.perfil.materia ? 'Você pode rever este tour quando quiser em Perfil.' : 'Escolha a primeira matéria. Dá para trocar quando quiser, e o progresso de cada uma fica guardado.'}
+  ];
+}
+function screenTour() {
+  const P = passosTour(), i = Math.max(0, Math.min(V.tourPasso || 0, P.length - 1)), p = P[i], ultimo = i === P.length - 1;
+  const arte = p.humor ? mascot(150, i === 0 ? 'bounce' : '', 'Rapozinha', p.humor)
+    : `<span class="tour-ic" style="background:${p.fundo};color:${p.cor}">${p.icone}</span>${mascot(86, 'tour-masc', 'Rapozinha pensando', 'pensando')}`;
+  return `<div class="scroll" style="display:flex;flex-direction:column"><div class="pad" style="flex:1;align-items:center;justify-content:center;text-align:center;gap:16px;padding-top:calc(28px + env(safe-area-inset-top,0px))">
+    <div class="tour-arte" data-key="tour-arte:${i}">${arte}</div>
+    <span class="px" style="font-size:9px;color:var(--orange-d)">${p.kicker}</span>
+    <h1 style="margin:0;font-family:var(--f-display);font-size:24px;font-weight:700;line-height:1.25;text-wrap:balance">${p.titulo}</h1>
+    <p class="sub" style="margin:0;max-width:320px;font-size:15px;line-height:1.5">${p.texto}</p>
+    <div class="tour-dots" aria-label="Passo ${i + 1} de ${P.length}">${P.map((_, k) => `<i class="${k === i ? 'on' : k < i ? 'ok' : ''}"></i>`).join('')}</div>
+  </div></div>
+  <div class="footer" style="flex-direction:row">
+    ${i > 0 ? '<button class="btn btn-outline" style="flex:1" data-a="tour-voltar">Voltar</button>' : '<button class="btn-ghost" style="flex:1" data-a="tour-fim">Pular</button>'}
+    <button class="btn btn-primary pxbtn" style="flex:2" data-a="${ultimo ? 'tour-fim' : 'tour-prox'}">${ultimo ? (S.perfil.materia ? 'Fechar' : 'Escolher a matéria') : 'Próximo'}</button>
+  </div>`;
+}
 function screenMaterias() {
   const rev = PM().revisao || {};
   const escolhendo = !S.perfil.materia;
@@ -1853,7 +1949,7 @@ function screenTurma() {
   const ativs = atividades(), pend = ativs.filter(a => a.status === 'pendente'), feitas = ativs.filter(a => a.status !== 'pendente').slice(0, 12);
   const ts = S.turmas || [];
   const urgentes = pend.filter(a => a.prazo && new Date(a.prazo) - Date.now() < 24 * HOUR).length;
-  return `<header class="topbar"><h1>Turma</h1><button class="chipbtn" data-a="turmas" style="margin-right:10px">${ts.length ? 'Minhas turmas' : 'Entrar na turma'}</button></header>
+  return `<header class="topbar"><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><h1 style="flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ts.length ? esc(ts[0].nome) : 'Turma'}</h1>${ts.length && ts[0].escola ? `<span class="sub" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:4px">${I.users}${esc(ts[0].escola)}${ts[0].bloqueada ? ' · bloqueada' : ''}</span>` : ''}</div><button class="chipbtn" data-a="turmas" style="margin-right:10px">${ts.length ? 'Minha turma' : 'Entrar na turma'}</button></header>
   <div class="scroll"><div class="pad">
     ${V.dinAtiva ? `<button class="card row" style="width:100%;text-align:left;border-color:var(--primary);background:var(--lav)" data-a="din-entrar:${V.dinAtiva.id}" data-key="din-ativa"><span class="tile" style="background:var(--primary);color:#fff">${I.bolt(22)}</span><div class="grow"><span class="t15">Dinâmica ao vivo: ${esc(V.dinAtiva.titulo)}</span><span class="sub" style="color:var(--primary);font-weight:600">${esc(V.dinAtiva.turma)} · ${V.dinAtiva.status === 'lobby' ? 'esperando começar' : 'em andamento'} · toque para entrar</span></div>${I.chevR}</button>` : ''}
     ${duelosTopoHtml()}
@@ -1882,9 +1978,9 @@ function sheetAtiv() {
 function sheetTurma() {
   const ts = S.turmas || [];
   return `<div class="sheet-bg" data-key="bg:turma" data-a="sheet:"></div><section class="sheet" data-key="sh:turma" role="dialog" aria-modal="true" aria-labelledby="tu-t"><span class="grab" aria-hidden="true"></span>
-    <h1 id="tu-t" style="margin:0;font-family:var(--f-display);font-size:20px;font-weight:700">Minhas turmas</h1>
+    <h1 id="tu-t" style="margin:0;font-family:var(--f-display);font-size:20px;font-weight:700">${ts.length ? 'Minha turma' : 'Entrar numa turma'}</h1>
     ${ts.length ? `<div class="card">${ts.map(t => `<div class="row"><span class="tile" style="background:var(--lav);color:var(--primary)">${I.target(22)}</span><div class="grow"><span class="t15">${esc(t.nome)}</span><span class="sub">${t.escola ? esc(t.escola) : 'Turma do professor'}${t.bloqueada ? ' · <b style="color:var(--red-d)">escola bloqueada</b>' : ''}</span></div></div>`).join('')}</div>` : '<p class="sub" style="margin:0">Você ainda não está em nenhuma turma. Peça o código ao seu professor.</p>'}
-    <div><label for="cod-turma">Entrar numa turma com o código</label><div style="display:flex;gap:8px"><input id="cod-turma" class="inp" maxlength="8" autocapitalize="characters" autocomplete="off" placeholder="Ex.: K7M2PX" style="text-transform:uppercase;letter-spacing:.12em;font-family:var(--f-display);font-weight:700"><button class="chipbtn" style="height:50px;padding:0 16px" data-a="entrar-turma">Entrar</button></div>${V.codigoErro ? `<div class="msg err" style="margin-top:8px">${esc(V.codigoErro)}</div>` : ''}</div>
+    ${ts.length ? '<p class="sub" style="margin:0">Cada aluno participa de uma turma só. Para trocar de turma, peça ao professor da turma atual para tirar você dela; depois é só entrar com o código novo.</p>' : `<div><label for="cod-turma">Entrar numa turma com o código</label><div style="display:flex;gap:8px"><input id="cod-turma" class="inp" maxlength="8" autocapitalize="characters" autocomplete="off" placeholder="Ex.: K7M2PX" style="text-transform:uppercase;letter-spacing:.12em;font-family:var(--f-display);font-weight:700"><button class="chipbtn" style="height:50px;padding:0 16px" data-a="entrar-turma">Entrar</button></div>${V.codigoErro ? `<div class="msg err" style="margin-top:8px">${esc(V.codigoErro)}</div>` : ''}</div>`}
     <button class="btn-ghost" data-a="sheet:">Fechar</button></section>`;
 }
 /* ---------- dinâmica ao vivo (quiz de sala): o professor comanda pelo painel ---------- */
@@ -2832,7 +2928,9 @@ function screenPerfil() {
       <div class="row"><span class="tile" style="background:var(--lav);color:var(--primary)">${I.book}</span><div class="grow"><span class="t15">Conteúdo</span><span class="sub">${S.versaoConteudo ? 'Versão ' + S.versaoConteudo : 'Nenhuma versão publicada'}</span></div><button class="chipbtn" data-a="recarregar">Atualizar</button></div>
       <div class="row"><span class="tile" style="background:#E3ECFA;color:#1B4F8F"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.5 9.5h17M3.5 14.5h17M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span><div class="grow"><span class="t15">Mapa do ENEM</span><span class="sub">${(() => { const L = ilhas(); return L.filter(i => i.completa).length + ' de ' + L.length + ' ilhas conquistadas'; })()}</span></div><button class="chipbtn" data-a="go:mapa">Ver</button></div>
       <div class="row"><span class="tile" style="background:var(--green-l);color:var(--green-dd)">${I.check(22, 2.6)}</span><div class="grow"><span class="t15">Domínio por habilidade</span><span class="sub">O que você já domina e o que precisa revisar</span></div><button class="chipbtn" data-a="dominio">Ver</button></div>
-      <div class="row"><span class="tile" style="background:var(--teal-l);color:var(--teal-d)">${I.target(24)}</span><div class="grow"><span class="t15">Minhas turmas</span><span class="sub">${(S.turmas || []).length ? esc((S.turmas || []).map(t => t.nome).join(', ')) : 'Entre com o código do professor'}</span></div><button class="chipbtn" data-a="turmas">${(S.turmas || []).length ? 'Ver' : 'Entrar'}</button></div>
+      <div class="row"><span class="tile" style="background:var(--teal-l);color:var(--teal-d)">${I.target(24)}</span><div class="grow"><span class="t15">Minha turma</span><span class="sub">${(S.turmas || []).length ? esc((S.turmas || []).map(t => t.nome + (t.escola ? ' · ' + t.escola : '')).join(', ')) : 'Entre com o código do professor'}</span></div><button class="chipbtn" data-a="turmas">${(S.turmas || []).length ? 'Ver' : 'Entrar'}</button></div>
+      <div class="row"><span class="tile" style="background:var(--lav);color:var(--primary)">${I.bolt(24)}</span><div class="grow"><span class="t15">Avisos no celular</span><span class="sub">${AVISOS.estadoTxt()}</span></div>${AVISOS.permissao() === 'default' ? '<button class="chipbtn" data-a="avisos-ativar">Ativar</button>' : ''}</div>
+      <div class="row"><span class="tile" style="background:var(--gold-l);color:var(--gold-d)">${I.star}</span><div class="grow"><span class="t15">Conheça a plataforma</span><span class="sub">O tour rápido: trilha, corações, ofensiva, ligas, turma e duelos</span></div><button class="chipbtn" data-a="tour-abrir">Ver</button></div>
     </div>
     <button class="btn btn-outline" data-a="sair">Sair da conta</button>
     <p style="margin:0;font-size:11px;color:var(--muted);text-align:center"><a href="termos.html" style="text-decoration:underline">Termos de uso</a> · <a href="privacidade.html" style="text-decoration:underline">Privacidade</a></p>
@@ -2842,7 +2940,7 @@ function screenPerfil() {
 /* =====================================================================
    Render e ações
    ===================================================================== */
-const SCREENS = {jornada: screenJornada, materias: screenMaterias, secoes: screenSecoes, licao: screenLicao, fim: screenFim, ofensiva: screenOfensiva, missoes: screenMissoes, ligas: screenLigas, loja: screenLoja, praticar: screenPraticar, turma: screenTurma, perfil: screenPerfil, mapa: screenMapa, dinamica: screenDinamica, duelo: screenDuelo, dominio: screenDominio};
+const SCREENS = {tour: screenTour, jornada: screenJornada, materias: screenMaterias, secoes: screenSecoes, licao: screenLicao, fim: screenFim, ofensiva: screenOfensiva, missoes: screenMissoes, ligas: screenLigas, loja: screenLoja, praticar: screenPraticar, turma: screenTurma, perfil: screenPerfil, mapa: screenMapa, dinamica: screenDinamica, duelo: screenDuelo, dominio: screenDominio};
 let lastScreen = null;
 const TABS = new Set(['jornada', 'praticar', 'turma', 'missoes', 'ligas', 'perfil']);
 /* ---------- histórico ----------
@@ -2952,6 +3050,11 @@ async function act(a) {
     case 'idioma': { try { localStorage.setItem('fj-idioma', x); } catch (e) {} const m = materias().find(z => z.id === x); vib(8); toast(`Idioma da viagem: ${m ? m.nome : x}.`); return render(); }
     case 'subject': { S.perfil.materia = x; V.open = null; sb.from('perfis').update({materia_atual: x}).eq('user_id', sessao.user.id).then(() => {}); const T = trilha(materiaAtual()); if (T.cur >= 0) V.open = 'L' + T.flat[T.cur].lic.id; return go('jornada', {scrollTo: true}); }
     case 'tier': V.tier = +x; return render();
+    case 'tour-abrir': V.tourPasso = 0; return go('tour');
+    case 'tour-prox': V.tourPasso = (V.tourPasso || 0) + 1; SND.tap(); return render(true);
+    case 'tour-voltar': V.tourPasso = Math.max(0, (V.tourPasso || 0) - 1); return render(true);
+    case 'tour-fim': { try { localStorage.setItem(tourChave(), '1'); } catch (e) {} V.tourPasso = 0; return V.screen === 'tour' ? go('perfil') : render(true); }
+    case 'avisos-ativar': await AVISOS.pedir(); return render();
     case 'share': return compartilharOfensiva();  // imagem de story (1080×1920) gerada no aparelho; cai para texto+link se o aparelho não compartilhar arquivo
     case 'edit-nome': V.editNome = true; return render();
     case 'ilha': {
@@ -3112,6 +3215,8 @@ sb.auth.onAuthStateChange((ev, s) => {
 });
 sb.auth.getSession().then(({data}) => rota(data.session)).catch(() => rota(null));
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+// Toque numa notificação de aviso: o service worker pede para abrir a aba certa
+if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', ev => { const t = ev.data && ev.data.tab; if (t && S && !L && SCREENS[t]) go(t); });
 })();
 </script>
 </body>

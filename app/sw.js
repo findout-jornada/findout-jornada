@@ -2,7 +2,7 @@
    Rede primeiro (com limite de tempo) para o que é nosso; o supabase-js tem
    versão fixa e fica em cache (sem ele o app nem abre). Só respostas 200
    entram no cache — erro e resposta parcial (206) ficam fora. */
-const CACHE = 'fj-casca-v10'; // v10: a mascote virou sprite WebP em todos os humores; os MP4 e os PNG saíram
+const CACHE = 'fj-casca-v11'; // v11: avisos (notificationclick abre a aba Turma); v10: mascote em sprite WebP
 // Os cinco humores entram na casca: são 985 KB no total (antes só os dois PNG já davam 767 KB) e,
 // com eles aqui, offline a Rapozinha aparece com o humor certo — o triste era o que mais faltava.
 const CASCA = ['index.html', 'termos.html', 'privacidade.html', 'config.js', 'manifest.json',
@@ -51,4 +51,16 @@ self.addEventListener('fetch', ev => {
       }
     }
   })());
+});
+
+// Avisos (nova atividade, dinâmica, desafio): tocar na notificação traz o app para a frente
+// e pede para abrir a aba que veio no aviso; com o app fechado, abre o app.
+self.addEventListener('notificationclick', ev => {
+  ev.notification.close();
+  const tab = (ev.notification.data && ev.notification.data.tab) || 'turma';
+  ev.waitUntil(self.clients.matchAll({type: 'window', includeUncontrolled: true}).then(cs => {
+    const c = cs[0];
+    if (c) { c.postMessage({tab}); return c.focus(); }
+    return self.clients.openWindow('./');
+  }));
 });
