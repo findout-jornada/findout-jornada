@@ -187,3 +187,13 @@ Decisões do Artur: o **XP do perfil não tem teto** (trilha, coroas, ofensiva e
 **Corações:** `perder_coracao` (chamado pelo app a cada erro) anota em `economia_aluno.coracoes_pend` quantos já descontou; ao concluir a lição, `concluir_licao` desconta os erros que faltaram. Não chamar `perder_coracao` deixou de dar corações infinitos.
 
 **Atividades com nota:** `abrir_atividade` manda cada questão com o código `md5(atividade:questão)` no lugar do id do banco, e `entregar_atividade` traduz de volta antes de corrigir. Não dá mais para achar a resposta procurando o id no pacote publicado. A trilha continua com o gabarito no celular (resposta instantânea e estudo offline); corrigir as lições no servidor fica para depois.
+
+## Editar conta voltou a funcionar (migration 0059, 23 out 2026)
+
+`editar_usuario` (a 0034) montava a lista do que mudou com `mudancas := mudancas || 'senha'`. Para o Postgres isso é ambíguo — `||` existe como *array + elemento* e como *array + array*, e com um literal sem tipo ele escolhe a segunda leitura e tenta ler `'senha'` como array:
+
+```
+ERROR: malformed array literal: "senha"
+```
+
+Como o erro acontecia **depois** do `update`, a transação voltava atrás inteira e a senha nunca mudava. Valia também para trocar só o nome (`malformed array literal: "nome"`) ou só o e-mail. A 0059 troca os três `||` por `array_append()`, que só tem uma leitura possível; nada mais muda na função.
