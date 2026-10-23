@@ -340,7 +340,10 @@ button.card:active{transform:scale(.985)}
 .auth h1{font-family:var(--f-display);font-size:clamp(24px,6.5vw,28px);margin:0;line-height:1.2}
 /* Login: só a Rapozinha, sem disco atrás (uma sombra suave no chão para ela não ficar solta) */
 .hero-mascot{display:flex;align-items:flex-end;justify-content:center;filter:drop-shadow(0 14px 18px rgba(45,79,214,.22))}
-.hero-mascot .mascot-pensa{width:132px!important}
+/* Ao mudar a largura do sprite, a altura TEM de acompanhar: a janela recorta um quadro
+   da folha, e sobra de largura revela o quadro vizinho (a cauda aparecia duas vezes).
+   aspect-ratio mantém a proporção da folha 'feliz' (240x266) sem repetir números. */
+.hero-mascot .mascot-pensa{width:132px!important;height:auto!important;aspect-ratio:240/266}
 /* Mascote solta nas telas de fundo azul: sem disco atrás; um brilho branco suave em volta separa a Rapozinha (azul) do fundo */
 .mascot-livre{display:flex;justify-content:center;filter:drop-shadow(0 0 16px rgba(255,255,255,.6)) drop-shadow(0 10px 14px rgba(0,0,0,.25))}
 /* Rapozinha em sprite (pensando, feliz3): quadros lado a lado; duração e número de quadros vêm do inline style gerado por mascot() */
@@ -484,7 +487,7 @@ button[data-a^="tier:"][aria-pressed="true"]{filter:drop-shadow(0 8px 12px rgba(
   .btn{height:50px;font-size:15px}
 }
 @media (max-height:600px){
-  .hero-mascot{width:96px;height:96px}.hero-mascot .mascot-pensa{width:82px!important}.auth{gap:10px}
+  .hero-mascot{width:auto;height:auto}.hero-mascot .mascot-pensa{width:82px!important}.auth{gap:10px}
   .nav button{height:48px}.nav{margin-top:4px}
 }
 @media (min-width:600px) and (pointer:coarse){
