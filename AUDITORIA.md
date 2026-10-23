@@ -1,6 +1,8 @@
 # Auditoria do projeto — 23 de outubro de 2026
 
-Mapeamento completo + caça a falhas, feita sobre o estado do commit `1bfdb52` (59 migrations, app e painel). Três revisões independentes (banco/RLS, app do aluno, painel/edge functions) mais verificação direta de cada achado. Nada foi corrigido ainda: este documento é a lista de trabalho.
+Mapeamento completo + caça a falhas, feita sobre o estado do commit `1bfdb52` (59 migrations, app e painel). Três revisões independentes (banco/RLS, app do aluno, painel/edge functions) mais verificação direta de cada achado.
+
+**Andamento (23 out):** corrigidas **F3, F8, F22** (migration 0060, commit `7eb53ef`) e **F2, F6, F7, F4** (migration 0061, commit `f4f8ea1`). Falta rodar a 0061 no SQL Editor. Pendentes: F5, F9, F10, F11–F21 e a decisão de arquitetura da observação 1 (que inclui F1 e F5).
 
 Legenda: **ALTA** = explorável hoje, com dano real · **MÉDIA** = dano limitado ou exige condições · **BAIXA** = incômodo, fragilidade ou risco futuro.
 
@@ -120,9 +122,11 @@ O modal fecha sempre que a função resolve; só exceção o mantém aberto. Vá
 
 ## 4. Ordem de correção sugerida
 
-1. **F3** (XSS professor → super): duas linhas, risco mais alto do conjunto.
-2. **F2** (farm de XP) e **F8** (esquema 58 → 59): correções pontuais, efeito imediato.
-3. **F6** e **F7**: bugs que o aluno encontra sozinho na primeira semana de piloto.
-4. **F4** (id da dinâmica): mesmo molde já usado no duelo.
-5. **F9**, **F10**, **F22**: higiene de painel e repositório.
+1. ~~**F3** (XSS professor → super): duas linhas, risco mais alto do conjunto.~~ **Feito** — migration 0060 + `esc(pub.tipo)`. O whitelist de `tipo` passou a valer para as duas origens da `criar_dinamica`.
+2. ~~**F2** (farm de XP) e **F8** (esquema 58 → 59)~~ **Feito** — 0061 (F2) e `ESQUEMA_ESPERADO = 61` (F8).
+3. ~~**F6** e **F7**: bugs que o aluno encontra sozinho na primeira semana de piloto.~~ **Feito** — RPC `coracoes_agora()` na 0061 (F6) e folha de confirmação do Pular (F7).
+4. ~~**F4** (id da dinâmica): mesmo molde já usado no duelo.~~ **Feito** — `md5(dinamica:índice)` na 0061.
+5. ~~**F22**~~ **Feito** (`.gitignore`). Restam **F9** e **F10**: higiene de painel.
 6. **F1/F5** e a observação 1: exigem decisão de arquitetura — tratar junto com a estratégia de offline antes de abrir o cadastro.
+
+Além da lista: a **observação 5** (`carregar()` entrega todas as questões, com gabaritos e rascunhos, a qualquer educador) sobe de prioridade se professores de escolas diferentes forem coexistir no mesmo banco — nesse caso é RLS, não UI, e vale tratar antes do piloto. A **observação 4** (`professor_da_turma` inclui `criada_por` para sempre) tem a mesma natureza.
