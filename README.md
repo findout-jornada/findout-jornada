@@ -187,3 +187,7 @@ Decisões do Artur: o **XP do perfil não tem teto** (trilha, coroas, ofensiva e
 **Corações:** `perder_coracao` (chamado pelo app a cada erro) anota em `economia_aluno.coracoes_pend` quantos já descontou; ao concluir a lição, `concluir_licao` desconta os erros que faltaram. Não chamar `perder_coracao` deixou de dar corações infinitos.
 
 **Atividades com nota:** `abrir_atividade` manda cada questão com o código `md5(atividade:questão)` no lugar do id do banco, e `entregar_atividade` traduz de volta antes de corrigir. Não dá mais para achar a resposta procurando o id no pacote publicado. A trilha continua com o gabarito no celular (resposta instantânea e estudo offline); corrigir as lições no servidor fica para depois.
+
+## Rapozinha de reverência (23 out 2026)
+
+A Rapozinha de peruca e casaca do século XVIII, fazendo reverência, é o humor `reverencia` (`app/rapozinha-reverencia.webp`, 34 quadros, 2,7 s, 342 KB). Aparece em dois lugares: na tela de resultado quando o aluno **vence a prova lendária** da unidade (honra ao mérito), e ao lado da lição atual na trilha de **História** e de **Filosofia e Sociologia** (lista `HUMANAS_REVERENCIA`), no lugar da Rapozinha pensando. O original era um GIF de 21 MB com fundo preto opaco e a paleta roxa antiga; virou folha WebP com `ferramentas/assar-gif-fundo-preto.ps1` (tira o fundo preto a partir das bordas, recolore com as mesmas regras de `assar-sprite.js` e corta todos os quadros pela mesma caixa) e conversão com perda leve (qualidade 82) pelo `sharp` no Node.

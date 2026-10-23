@@ -2,11 +2,11 @@
    Rede primeiro (com limite de tempo) para o que é nosso; o supabase-js tem
    versão fixa e fica em cache (sem ele o app nem abre). Só respostas 200
    entram no cache — erro e resposta parcial (206) ficam fora. */
-const CACHE = 'fj-casca-v11'; // v11: avisos (notificationclick abre a aba Turma); v10: mascote em sprite WebP
+const CACHE = 'fj-casca-v12'; // v12: Rapozinha de reverência (prova lendária, trilhas de História e Filosofia); // v11: avisos (notificationclick abre a aba Turma); v10: mascote em sprite WebP
 // Os cinco humores entram na casca: são 985 KB no total (antes só os dois PNG já davam 767 KB) e,
 // com eles aqui, offline a Rapozinha aparece com o humor certo — o triste era o que mais faltava.
 const CASCA = ['index.html', 'termos.html', 'privacidade.html', 'config.js', 'manifest.json',
-  'rapozinha-pensando.webp', 'rapozinha-feliz.webp', 'rapozinha-feliz2.webp', 'rapozinha-feliz3.webp', 'rapozinha-triste.webp',
+  'rapozinha-pensando.webp', 'rapozinha-feliz.webp', 'rapozinha-feliz2.webp', 'rapozinha-feliz3.webp', 'rapozinha-triste.webp', 'rapozinha-reverencia.webp',
   'icone-192.png', 'icone-512.png'];
 const CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js';
 

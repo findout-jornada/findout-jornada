@@ -647,12 +647,15 @@ function aplicarFundo(id) { const css = fundoCss(id); if (css === fundoAtual) re
    'feliz', 'feliz2' e 'triste' foram assadas dos MP4 da era roxa: o chroma key e a recoloração
    que rodavam no navegador a 60 fps já vêm prontos dentro do arquivo, com alfa de verdade.
    fw/fh = um quadro, n = quantos quadros, dur = segundos de um ciclo (12 quadros por segundo). */
+// Matérias em que a Rapozinha de época (reverência) acompanha a lição atual na trilha
+const HUMANAS_REVERENCIA = ['his', 'fil'];
 const SPRITES = {
   pensando: {src: 'rapozinha-pensando.webp', fw: 216, fh: 240, n: 20, dur: 2},
   feliz: {src: 'rapozinha-feliz.webp', fw: 240, fh: 266, n: 30, dur: 2.5},
   feliz2: {src: 'rapozinha-feliz2.webp', fw: 240, fh: 282, n: 33, dur: 2.75},
   feliz3: {src: 'rapozinha-feliz3.webp', fw: 240, fh: 267, n: 30, dur: 2.4},
   triste: {src: 'rapozinha-triste.webp', fw: 240, fh: 427, n: 29, dur: 2.42}
+  reverencia: {src: 'rapozinha-reverencia.webp', fw: 240, fh: 227, n: 34, dur: 2.72},   // de peruca e casaca, fazendo reverência: prova lendária e trilhas de Humanas
 };
 const spriteHtml = (sp, w, cls, alt) => `<span class="mascot-pensa ${cls}" ${alt ? `role="img" aria-label="${esc(alt)}"` : 'aria-hidden="true"'} style="width:${w}px;height:${Math.round(w * sp.fh / sp.fw)}px"><img src="${sp.src}" alt="" style="animation-duration:${sp.dur}s;animation-timing-function:steps(${sp.n})"></span>`;
 // Regra: a Rapozinha nunca aparece parada, e nunca aparece alegre num humor triste.
@@ -1299,7 +1302,7 @@ function screenJornada() {
           ${icon}${provaPendente ? '<span class="prova-badge px" aria-hidden="true">!</span>' : ''}
           ${r.k === 'lesson' && r.st === 'done' ? `<span class="crown px" aria-hidden="true">${I.crownS()}${Math.min(r.crowns || 1, 5)}</span>` : ''}
         </button>
-        ${cur ? mascot(92, 'mascot-side' + (off > 20 ? ' left' : ''), 'Rapozinha pensando na próxima lição', 'pensando') : ''}
+        ${cur ? mascot(92, 'mascot-side' + (off > 20 ? ' left' : ''), HUMANAS_REVERENCIA.includes(m.id) ? 'Rapozinha de época fazendo reverência' : 'Rapozinha pensando na próxima lição', HUMANAS_REVERENCIA.includes(m.id) ? 'reverencia' : 'pensando') : ''}
       </div></div>${open ? popover(r, off) : ''}`;
   }).join('');
   const vazio = !T.units.length;
@@ -1718,7 +1721,7 @@ async function finish(success) {
   const sub = L.lic ? `Unidade ${unitN} · ${nomeMat}` : L.uni ? `Unidade ${unitN} · ${nomeMat}` : nomeMat;
   const cores = ['var(--gold)', 'var(--teal)', 'var(--lilac-l)', 'var(--green)', 'var(--red)'];
   lastResult = {xp: data.xp, coins: data.moedas, acc: data.precisao, time: Date.now() - L.start, lines: (data.linhas || []).map((l, i) => [l.rotulo, l.valor, cores[i % cores.length]]), headline, title, sub, passed: data.passou, streakUp: data.ofensivaSubiu, mode,
-    humor: Math.random() < 0.5 ? 'feliz' : 'feliz2',  // sorteado UMA vez: dentro do template, cada re-render trocaria a mascote e reiniciaria as animações da tela
+    humor: payload.p_modo === 'lendaria' && data.passou ? 'reverencia' : Math.random() < 0.5 ? 'feliz' : 'feliz2',   // troféu lendário: reverência de honra ao mérito;  // sorteado UMA vez: dentro do template, cada re-render trocaria a mascote e reiniciaria as animações da tela
     justDone: payload.p_modo === 'licao' && data.nova && L.lic ? 'L' + L.lic.id : null};
   L = null; V.open = null;
   go('fim');
