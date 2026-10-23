@@ -340,7 +340,10 @@ button.card:active{transform:scale(.985)}
 .auth h1{font-family:var(--f-display);font-size:clamp(24px,6.5vw,28px);margin:0;line-height:1.2}
 /* Login: só a Rapozinha, sem disco atrás (uma sombra suave no chão para ela não ficar solta) */
 .hero-mascot{display:flex;align-items:flex-end;justify-content:center;filter:drop-shadow(0 14px 18px rgba(45,79,214,.22))}
-.hero-mascot .mascot-pensa{width:132px!important}
+/* Ao mudar a largura do sprite, a altura TEM de acompanhar: a janela recorta um quadro
+   da folha, e sobra de largura revela o quadro vizinho (a cauda aparecia duas vezes).
+   aspect-ratio mantém a proporção da folha 'feliz' (240x266) sem repetir números. */
+.hero-mascot .mascot-pensa{width:132px!important;height:auto!important;aspect-ratio:240/266}
 /* Mascote solta nas telas de fundo azul: sem disco atrás; um brilho branco suave em volta separa a Rapozinha (azul) do fundo */
 .mascot-livre{display:flex;justify-content:center;filter:drop-shadow(0 0 16px rgba(255,255,255,.6)) drop-shadow(0 10px 14px rgba(0,0,0,.25))}
 /* Rapozinha em sprite (pensando, feliz3): quadros lado a lado; duração e número de quadros vêm do inline style gerado por mascot() */
@@ -484,7 +487,7 @@ button[data-a^="tier:"][aria-pressed="true"]{filter:drop-shadow(0 8px 12px rgba(
   .btn{height:50px;font-size:15px}
 }
 @media (max-height:600px){
-  .hero-mascot{width:96px;height:96px}.hero-mascot .mascot-pensa{width:82px!important}.auth{gap:10px}
+  .hero-mascot{width:auto;height:auto}.hero-mascot .mascot-pensa{width:82px!important}.auth{gap:10px}
   .nav button{height:48px}.nav{margin-top:4px}
 }
 @media (min-width:600px) and (pointer:coarse){
@@ -1578,7 +1581,7 @@ function screenLicao() {
     ${body}
   </div></main>
   ${footer}
-  ${V.sheet === 'nohearts' ? sheetNoHearts() : ''}${V.sheet === 'quit' ? sheetQuit() : ''}${V.sheet === 'plus' ? sheetPlus() : ''}
+  ${V.sheet === 'nohearts' ? sheetNoHearts() : ''}${V.sheet === 'quit' ? sheetQuit() : ''}${V.sheet === 'pularult' ? sheetPularUltima() : ''}${V.sheet === 'plus' ? sheetPlus() : ''}
   ${V.salvando ? '<div class="overlay"><span class="spinner spin"></span>Salvando seu progresso…</div>' : ''}`;
 }
 function sheetNoHearts() {
@@ -1611,6 +1614,13 @@ function sheetQuit() {
     <div style="display:flex;align-items:center;gap:12px">${mascot(64, '', 'Rapozinha triste', 'triste')}<div class="grow"><h1 id="q-t" style="margin:0;font-family:var(--f-display);font-size:20px;font-weight:700">Quer mesmo sair?</h1><span class="sub">${ehAtividade() ? 'As respostas desta atividade não são salvas. Você pode recomeçar depois, dentro do prazo.' : 'Você perde o progresso desta lição.'}</span></div></div>
     <button class="btn btn-primary pxbtn" data-a="stay">Continuar estudando</button><button class="btn-ghost" style="color:var(--red-d)" data-a="exit">Sair da lição</button></section>`;
 }
+function sheetPularUltima() {
+  // respostas é preenchido por índice (array esparso): conta pela fila, não por filter
+  const n = L ? L.queue.reduce((s, _, i) => s + (i === L.i || !L.respostas[i] || L.respostas[i].resposta === null ? 1 : 0), 0) : 1;
+  return `<div class="sheet-bg" data-key="bg:pularult" data-a="stay"></div><section class="sheet" data-key="sh:pularult" role="dialog" aria-modal="true" aria-labelledby="pu-t"><span class="grab" aria-hidden="true"></span>
+    <div style="display:flex;align-items:center;gap:12px">${mascot(64, '', 'Rapozinha atenta', 'triste')}<div class="grow"><h1 id="pu-t" style="margin:0;font-family:var(--f-display);font-size:20px;font-weight:700">Pular já entrega a atividade</h1><span class="sub">Esta é a última questão. Se pular, a atividade é entregue agora e ${n === 1 ? 'esta questão fica' : 'as ' + n + ' questões em branco ficam'} sem resposta. A entrega é uma só: não dá para voltar.</span></div></div>
+    <button class="btn btn-primary pxbtn" data-a="stay">Voltar e responder</button><button class="btn-ghost" style="color:var(--red-d)" data-a="pular-entregar">Pular e entregar assim</button></section>`;
+}
 function sheetPlus() {
   const item = ((PK && PK.loja) || []).find(i => i.codigo === 'plus');
   const contato = FJ_CONFIG.contatoPlus || 'aamorais.dev@gmail.com';
@@ -1634,6 +1644,28 @@ async function perderCoracao() {
   S.economia.coracoes = Math.max(0, hearts() - 1);
   const {data, error} = await sb.rpc('perder_coracao');
   if (!error && data && data.coracoes != null) { S.economia.coracoes = data.coracoes; const n = document.getElementById('hearts-n'); if (n) n.textContent = heartsTxt(); }
+}
+// Corações voltam durante a lição: recarregarEstado() desiste quando há lição em curso
+// (para não trocar S no meio dela), então aqui se pede só o que mudou.
+async function regenerarCoracoes() {
+  if (V.regenCor || (V.regenEspera && Date.now() < V.regenEspera)) return;
+  V.regenCor = true;
+  try {
+    const {data, error} = await sb.rpc('coracoes_agora');
+    if (error) throw error;
+    if (!S || !data) return;
+    if (data.plus) { S.economia.proximoCoracaoEm = null; return; }
+    const antes = hearts();
+    S.economia.coracoes = data.coracoes;
+    S.economia.proximoCoracaoEm = data.proximoCoracaoEm || null;
+    // voltou coração: se a sheet bloqueante estava aberta, o aluno pode seguir
+    if (data.coracoes > antes) { if (V.sheet === 'nohearts' && data.coracoes > 0) V.sheet = null; SND.heart(); render(false); }
+  }
+  // Migration 0061 ainda não rodou, ou a rede caiu: mantém o horário no lugar
+  // (zerá-lo era o bug F6 — o contador sumia e não voltava) e tenta de novo
+  // no próximo tique, já com um intervalo para não insistir a cada segundo.
+  catch (e) { V.regenEspera = Date.now() + 30000; }
+  finally { V.regenCor = false; }
 }
 // Registra a tentativa desta questão (vira linha em `tentativas` no servidor, via concluir_licao)
 function marcaTentativa(e, ok, pulou) {
@@ -3138,6 +3170,7 @@ async function act(a) {
     /* lição */
     case 'quit': V.sheet = 'quit'; return render();
     case 'stay': return fecharSheet();
+    case 'pular-entregar': { if (!L || !ehAtividade()) return fecharSheet(); const e = L.queue[L.i]; L.respostas[L.i] = {id: e.id, resposta: null}; V.sheet = null; SND.tap(); return next(); }
     case 'exit': L = null; limparLicao(); return go('jornada', {scrollTo: true});
     case 'mc': SND.tap(); L.ans.pick = +x; return render();
     case 'tf': SND.tap(); L.ans.pick = x === 'true'; return render();
@@ -3164,7 +3197,7 @@ async function act(a) {
       SND.bad(); vib([45, 60, 45]); return render();
     }
     case 'check': return grade(ehAtividade() ? true : isRight(L.queue[L.i], L.ans));
-    case 'skip': { const e = L.queue[L.i]; if (ehAtividade()) { L.respostas[L.i] = {id: e.id, resposta: null}; SND.tap(); return next(); } marcaTentativa(e, false, true); L.result = 'err'; L.combo = 0; L.errors++; L.lostHeart = false; L.erradas.add(e.id); L.acertadas.delete(e.id); if (requeues() && QI[e.id]) { const again = exercicio(QI[e.id]); L.wrongKeys.add(again.id + '#' + L.queue.length); L.queue.push(again); } render(); SND.bad(); return; }
+    case 'skip': { const e = L.queue[L.i]; if (ehAtividade()) { if (L.i >= L.queue.length - 1) { V.sheet = 'pularult'; return render(); } L.respostas[L.i] = {id: e.id, resposta: null}; SND.tap(); return next(); } marcaTentativa(e, false, true); L.result = 'err'; L.combo = 0; L.errors++; L.lostHeart = false; L.erradas.add(e.id); L.acertadas.delete(e.id); if (requeues() && QI[e.id]) { const again = exercicio(QI[e.id]); L.wrongKeys.add(again.id + '#' + L.queue.length); L.queue.push(again); } render(); SND.bad(); return; }
     case 'next': return next();
   }
 }
@@ -3209,7 +3242,7 @@ setInterval(() => {
   }
   const ht = document.getElementById('heart-t'); if (ht) ht.textContent = 'PRÓXIMO CORAÇÃO EM ' + hms(nextHeartMs());
   const mt = document.getElementById('mid-t'); if (mt) mt.textContent = 'renovam em ' + hms(renovaMissoesEm() - Date.now());
-  if (!plus() && S.economia.proximoCoracaoEm && nextHeartMs() <= 0 && !V.salvando) { S.economia.proximoCoracaoEm = null; recarregarEstado(); }
+  if (!plus() && S.economia.proximoCoracaoEm && nextHeartMs() <= 0 && !V.salvando && !V.regenCor) { if (L) regenerarCoracoes(); else { S.economia.proximoCoracaoEm = null; recarregarEstado(); } }
   if (S.tempo && S.tempo.renovaEm && Date.now() >= new Date(S.tempo.renovaEm).getTime()) { S.tempo.renovaEm = null; if (!L) recarregarEstado(); }
   if (dkey() !== ultimoDia) { ultimoDia = dkey(); if (!L) recarregarEstado(); }
   if (!L && !document.hidden && ++tiques % 90 === 0) recarregarEstado();

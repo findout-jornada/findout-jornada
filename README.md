@@ -191,3 +191,13 @@ Decisões do Artur: o **XP do perfil não tem teto** (trilha, coroas, ofensiva e
 ## Rapozinha de reverência (23 out 2026)
 
 A Rapozinha de peruca e casaca do século XVIII, fazendo reverência, é o humor `reverencia` (`app/rapozinha-reverencia.webp`, 34 quadros, 2,7 s, 342 KB). Aparece em dois lugares: na tela de resultado quando o aluno **vence a prova lendária** da unidade (honra ao mérito), e ao lado da lição atual na trilha de **História** e de **Filosofia e Sociologia** (lista `HUMANAS_REVERENCIA`), no lugar da Rapozinha pensando. O original era um GIF de 21 MB com fundo preto opaco e a paleta roxa antiga; virou folha WebP com `ferramentas/assar-gif-fundo-preto.ps1` (tira o fundo preto a partir das bordas, recolore com as mesmas regras de `assar-sprite.js` e corta todos os quadros pela mesma caixa) e conversão com perda leve (qualidade 82) pelo `sharp` no Node.
+
+## Editar conta voltou a funcionar (migration 0059, 23 out 2026)
+
+`editar_usuario` (a 0034) montava a lista do que mudou com `mudancas := mudancas || 'senha'`. Para o Postgres isso é ambíguo — `||` existe como *array + elemento* e como *array + array*, e com um literal sem tipo ele escolhe a segunda leitura e tenta ler `'senha'` como array:
+
+```
+ERROR: malformed array literal: "senha"
+```
+
+Como o erro acontecia **depois** do `update`, a transação voltava atrás inteira e a senha nunca mudava. Valia também para trocar só o nome (`malformed array literal: "nome"`) ou só o e-mail. A 0059 troca os três `||` por `array_append()`, que só tem uma leitura possível; nada mais muda na função.
