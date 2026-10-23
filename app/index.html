@@ -657,7 +657,7 @@ const SPRITES = {
   feliz: {src: 'rapozinha-feliz.webp', fw: 240, fh: 266, n: 30, dur: 2.5},
   feliz2: {src: 'rapozinha-feliz2.webp', fw: 240, fh: 282, n: 33, dur: 2.75},
   feliz3: {src: 'rapozinha-feliz3.webp', fw: 240, fh: 267, n: 30, dur: 2.4},
-  triste: {src: 'rapozinha-triste.webp', fw: 240, fh: 427, n: 29, dur: 2.42}
+  triste: {src: 'rapozinha-triste.webp', fw: 240, fh: 427, n: 29, dur: 2.42},
   reverencia: {src: 'rapozinha-reverencia.webp', fw: 240, fh: 227, n: 34, dur: 2.72},   // de peruca e casaca, fazendo reverência: prova lendária e trilhas de Humanas
 };
 const spriteHtml = (sp, w, cls, alt) => `<span class="mascot-pensa ${cls}" ${alt ? `role="img" aria-label="${esc(alt)}"` : 'aria-hidden="true"'} style="width:${w}px;height:${Math.round(w * sp.fh / sp.fw)}px"><img src="${sp.src}" alt="" style="animation-duration:${sp.dur}s;animation-timing-function:steps(${sp.n})"></span>`;
