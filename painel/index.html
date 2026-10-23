@@ -832,7 +832,7 @@ async function carregar() {
   if (!V.materia || !D.materias.some(x => x.id === V.materia)) V.materia = D.materias[0] ? D.materias[0].id : null;
 }
 /* Confere se as migrations estão em dia (tabela schema_versao, migration 0022) */
-const ESQUEMA_ESPERADO = 58;
+const ESQUEMA_ESPERADO = 60;
 const CURSOS = ['dev', 'log', 'dat']; // matérias-curso: fora do Mapa do ENEM, o app mostra no grupo "Cursos"
 async function verificarEsquema() {
   const r = await sb.from('schema_versao').select('versao').order('versao', {ascending: false}).limit(1).maybeSingle();
@@ -2144,7 +2144,7 @@ function dinTelao(d) {
     <div class="card"><div class="card-b" style="display:flex;flex-direction:column;gap:14px">
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <span class="pill type dinpill">${ID.lapis(14)}Questão ${d.questao + 1} de ${d.total}</span>
-        <span class="pill on dinpill">${ID.livro(14)}${TIPOS[pub.tipo] || pub.tipo || ''}</span>
+        <span class="pill on dinpill">${ID.livro(14)}${esc(TIPOS[pub.tipo] || pub.tipo || '')}</span>
         <span class="pill ${nTot && nResp >= nTot ? 'pub' : 'off'} dinpill">${I.users}${nResp} de ${nTot} ${d.modo === 'grupos' ? 'grupos' : 'alunos'} responderam</span>
         ${!rev && d.tempo ? `<span class="dintimer dinpill">${I.clock}<b id="din-timer" class="num"></b></span>` : rev ? `<span class="pill pub dinpill" style="margin-left:auto">${ID.lampada(14)}Resposta revelada</span>` : ''}
       </div>
@@ -2379,7 +2379,7 @@ function relUsoHtml() {
     </div>
     <div class="card"><div class="card-h"><h2>Questões que mais alunos erram</h2><span class="right"><button class="btn btn-ghost btn-sm" data-a="csv-erradas" ${(d.erradas || []).length ? '' : 'disabled'}>${I.baixar}Baixar CSV</button></span></div>
       <div class="tbl-wrap"><table><thead><tr><th>Questão</th><th>Matéria</th><th>Tipo</th><th style="text-align:right">Alunos errando</th></tr></thead><tbody>
-      ${(d.erradas || []).map(q => `<tr><td style="max-width:420px">${esc(q.enunciado)}</td><td style="white-space:nowrap">${esc((materiaPorId(q.materia) || {}).nome || q.materia || '')}</td><td><span class="pill type">${TIPOS[q.tipo] || esc(q.tipo)}</span></td><td class="num" style="text-align:right">${q.alunos}</td></tr>`).join('') || '<tr><td colspan="4" style="color:var(--muted)">Nenhum erro pendente — ou ninguém estudou ainda.</td></tr>'}
+      ${(d.erradas || []).map(q => `<tr><td style="max-width:420px">${esc(q.enunciado)}</td><td style="white-space:nowrap">${esc((materiaPorId(q.materia) || {}).nome || q.materia || '')}</td><td><span class="pill type">${esc(TIPOS[q.tipo] || q.tipo || '')}</span></td><td class="num" style="text-align:right">${q.alunos}</td></tr>`).join('') || '<tr><td colspan="4" style="color:var(--muted)">Nenhum erro pendente — ou ninguém estudou ainda.</td></tr>'}
       </tbody></table></div>
       <div class="card-b" style="padding-top:0;font-size:12px;color:var(--muted)">Conta os alunos que estão com a questão na lista de erros do app agora (ela sai da lista quando o aluno acerta em "Praticar erros"). Bom ponto de partida para revisar enunciados ou reforçar o conteúdo.</div></div>`}`;
 }
