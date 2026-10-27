@@ -1,18 +1,26 @@
 # Assa um GIF da Rapozinha com FUNDO PRETO OPACO (ex.: rapozinha-reverencia.gif) numa folha de
 # sprites PNG pronta para virar WebP: quadros lado a lado, fundo removido e cores da identidade nova.
 #
-#  · Fundo: preenchimento a partir das bordas sobre pixels quase pretos (canal máximo < 70);
+#  · Fundo: preenchimento a partir das bordas sobre pixels quase pretos (canal máximo < -Limiar);
 #    a borda suave ganha alfa proporcional ao brilho e a cor é "despremultiplicada" (sem halo preto).
 #    Áreas escuras DENTRO da Rapozinha (máscara, contorno) não são tocadas, porque o preenchimento
 #    só anda a partir das bordas da imagem.
+#    O limiar padrão (70) serve para arte cujo tom mais escuro é bem mais claro que o fundo.
+#    Quando a Rapozinha veste preto (o terno da eletricidade), parte da roupa cai nessa faixa,
+#    encosta na borda e o preenchimento come a roupa: aí baixe o limiar (-Limiar 24).
+#    Para saber o valor, veja quantos pixels existem entre 18 e o limiar — se forem muitos
+#    (a eletricidade tem 9%, contra 1% das outras), é roupa, não fundo.
 #  · Cores: as mesmas regras de recor() de ferramentas/assar-sprite.js (roxo → azul royal,
 #    lavanda/rosa → quase branco, bege/dourado → laranja da marca).
 #  · Corte: a caixa que contém a Rapozinha em todos os quadros, com 4% de folga.
 #
 # Uso (PowerShell):
 #   powershell -File ferramentas\assar-gif-fundo-preto.ps1 -Entrada C:\caminho\gif.gif -Saida folha.png -Largura 240 -Passo 2
-# Depois: node ferramentas\png-para-webp.js folha.png app\rapozinha-xxx.webp
-param([string]$Entrada, [string]$Saida, [int]$Largura = 240, [int]$Passo = 2)
+#   ... -Limiar 24    # quando a Rapozinha veste preto e o fundo come a roupa
+# Depois, para virar WebP (quantizando antes: a interpolação deixa mais de 100 mil cores
+# distintas numa arte chapada, e sem colapsar isso o arquivo sai várias vezes maior):
+#   node ferramentas\folha-para-webp.js folha.png app\rapozinha-xxx.webp 384
+param([string]$Entrada, [string]$Saida, [int]$Largura = 240, [int]$Passo = 2, [int]$Limiar = 70)
 Add-Type -AssemblyName System.Drawing
 Add-Type -ReferencedAssemblies System.Drawing -TypeDefinition @'
 using System; using System.Drawing; using System.Drawing.Imaging; using System.Collections.Generic; using System.Runtime.InteropServices;
@@ -37,8 +45,10 @@ public static class Assar {
     cache[k] = v; return v;
   }
   // tira o fundo preto (a partir das bordas) e recolore; trabalha in-place em ARGB 32 bits
-  public static void Processar(Bitmap bmp) {
+  public static void Processar(Bitmap bmp) { Processar(bmp, 70); }
+  public static void Processar(Bitmap bmp, int limiar) {
     int W = bmp.Width, H = bmp.Height; var rc = new Rectangle(0, 0, W, H);
+    int rampa = Math.Max(1, limiar - 18);   // 18 = preto puro; a rampa de alfa acompanha o limiar
     var data = bmp.LockBits(rc, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
     int n = data.Stride * H; var px = new byte[n]; Marshal.Copy(data.Scan0, px, 0, n);
     Func<int,int> mx = i => Math.Max(px[i], Math.Max(px[i+1], px[i+2]));
@@ -47,13 +57,13 @@ public static class Assar {
     for (int y = 0; y < H; y++) { fila.Enqueue(y*W); fila.Enqueue(y*W + W-1); }
     while (fila.Count > 0) {
       int p = fila.Dequeue(); if (fundo[p]) continue; int i = (p / W) * data.Stride + (p % W) * 4;
-      if (mx(i) >= 70) continue; fundo[p] = true; int x = p % W, y = p / W;
+      if (mx(i) >= limiar) continue; fundo[p] = true; int x = p % W, y = p / W;
       if (x > 0) fila.Enqueue(p-1); if (x < W-1) fila.Enqueue(p+1); if (y > 0) fila.Enqueue(p-W); if (y < H-1) fila.Enqueue(p+W);
     }
     for (int p = 0; p < W*H; p++) {
       int i = (p / W) * data.Stride + (p % W) * 4;
       if (fundo[p]) {
-        int m = mx(i); int a = Math.Max(0, Math.Min(255, (m - 18) * 255 / 52));
+        int m = mx(i); int a = Math.Max(0, Math.Min(255, (m - 18) * 255 / rampa));
         if (a == 0) { px[i] = px[i+1] = px[i+2] = px[i+3] = 0; continue; }
         // despremultiplica: a borda escurecida pelo preto volta à cor cheia
         px[i] = (byte)Math.Min(255, px[i] * 255 / Math.Max(1, m)); px[i+1] = (byte)Math.Min(255, px[i+1] * 255 / Math.Max(1, m)); px[i+2] = (byte)Math.Min(255, px[i+2] * 255 / Math.Max(1, m));
@@ -85,7 +95,7 @@ for ($i = 0; $i -lt $total; $i += $Passo) {
   $gif.SelectActiveFrame($fd, $i) | Out-Null
   $b = New-Object System.Drawing.Bitmap($mw, $mh, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
   $gr = [System.Drawing.Graphics]::FromImage($b); $gr.InterpolationMode = 'HighQualityBicubic'; $gr.PixelOffsetMode = 'HighQuality'; $gr.DrawImage($gif, 0, 0, $mw, $mh); $gr.Dispose()
-  [Assar]::Processar($b)
+  [Assar]::Processar($b, $Limiar)
   $c = [Assar]::Caixa($b); if (-not $c.IsEmpty) { $uniao = if ($uniao.IsEmpty) { $c } else { [System.Drawing.Rectangle]::Union($uniao, $c) } }
   [void]$quadros.Add($b)
 }

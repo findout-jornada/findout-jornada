@@ -650,31 +650,43 @@ function aplicarFundo(id) { const css = fundoCss(id); if (css === fundoAtual) re
    'feliz', 'feliz2' e 'triste' foram assadas dos MP4 da era roxa: o chroma key e a recoloração
    que rodavam no navegador a 60 fps já vêm prontos dentro do arquivo, com alfa de verdade.
    fw/fh = um quadro, n = quantos quadros, dur = segundos de um ciclo (12 quadros por segundo). */
-// Matérias em que a Rapozinha de época (reverência) acompanha a lição atual na trilha
-const HUMANAS_REVERENCIA = ['his', 'fil'];
+/* Fantasias por matéria: a Rapozinha acompanha a lição atual na trilha vestida do assunto.
+   Onde há mais de uma, elas se alternam entre as lições (ver fantasiaDaTrilha). Matéria
+   fora desta tabela segue com a Rapozinha pensando, como sempre. */
+const FANTASIAS = {
+  his: ['reverencia', 'romana'],              // da Antiguidade à República: duas épocas contam melhor que uma
+  fil: ['reverencia'],
+  fis: ['eletricidade', 'einten']             // o raio nas mãos e o Einstein de língua à mostra
+};
 const SPRITES = {
   pensando: {src: 'rapozinha-pensando.webp', fw: 216, fh: 240, n: 20, dur: 2},
   feliz: {src: 'rapozinha-feliz.webp', fw: 240, fh: 266, n: 30, dur: 2.5},
   feliz2: {src: 'rapozinha-feliz2.webp', fw: 240, fh: 282, n: 33, dur: 2.75},
   feliz3: {src: 'rapozinha-feliz3.webp', fw: 240, fh: 267, n: 30, dur: 2.4},
   triste: {src: 'rapozinha-triste.webp', fw: 240, fh: 427, n: 29, dur: 2.42},
-  reverencia: {src: 'rapozinha-reverencia.webp', fw: 240, fh: 227, n: 34, dur: 2.72},   // de peruca e casaca, fazendo reverência: prova lendária e trilhas de Humanas
-  romana: {src: 'rapozinha-romana.webp', fw: 240, fh: 236, n: 26, dur: 3.12},           // de legionária romana: alterna com a reverência na trilha de História
+  reverencia: {src: 'rapozinha-reverencia.webp', fw: 240, fh: 227, n: 34, dur: 2.72},         // de peruca e casaca, fazendo reverência: prova lendária e trilhas de História e Filosofia
+  romana: {src: 'rapozinha-romana.webp', fw: 240, fh: 236, n: 26, dur: 3.12},                 // de legionária romana: trilha de História
+  eletricidade: {src: 'rapozinha-eletricidade.webp', fw: 240, fh: 243, n: 23, dur: 2.68},     // de terno, com um raio entre as mãos: trilha de Física
+  einten: {src: 'rapozinha-einten.webp', fw: 240, fh: 245, n: 23, dur: 2.68},                 // de cabelo branco e língua de fora, como na foto: trilha de Física
 };
-/* Em História a trilha alterna entre as duas fantasias, em vez de mostrar sempre a mesma:
-   a matéria cobre da Antiguidade à República, e duas épocas contam melhor isso que uma.
-   Filosofia fica só com a reverência — não há romana para ela.
-   A escolha é presa ao id da lição, e não sorteada: a trilha redesenha ao abrir um
-   popover e ao rolar, e sortear a cada render faria a mascote piscar entre as duas.
-   Soma simples sobre o texto; não precisa espalhar bem, só não acompanhar a ordem da trilha. */
-const epocaDaTrilha = (mid, id) => {
-  if (!HUMANAS_REVERENCIA.includes(mid)) return null;
-  if (mid !== 'his') return 'reverencia';
+/* Qual fantasia a lição recebe. Com mais de uma na matéria elas se alternam, e a escolha
+   vem do id da lição em vez de sorteio: a trilha redesenha ao abrir um popover e ao rolar,
+   e sortear a cada render faria a mascote piscar. Soma simples sobre o texto — não precisa
+   espalhar bem, só não acompanhar a ordem da trilha. */
+const fantasiaDaTrilha = (mid, id) => {
+  const fs = FANTASIAS[mid];
+  if (!fs) return null;
+  if (fs.length === 1) return fs[0];
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 9973;
-  return h % 2 ? 'romana' : 'reverencia';
+  return fs[h % fs.length];
 };
-const ALT_EPOCA = {reverencia: 'Rapozinha de época fazendo reverência', romana: 'Rapozinha vestida de legionária romana'};
+const ALT_FANTASIA = {
+  reverencia: 'Rapozinha de época fazendo reverência',
+  romana: 'Rapozinha vestida de legionária romana',
+  eletricidade: 'Rapozinha de terno segurando um raio entre as mãos',
+  einten: 'Rapozinha de cabelo branco e língua de fora, como Einstein'
+};
 const spriteHtml = (sp, w, cls, alt) => `<span class="mascot-pensa ${cls}" ${alt ? `role="img" aria-label="${esc(alt)}"` : 'aria-hidden="true"'} style="width:${w}px;height:${Math.round(w * sp.fh / sp.fw)}px"><img src="${sp.src}" alt="" style="animation-duration:${sp.dur}s;animation-timing-function:steps(${sp.n})"></span>`;
 // Regra: a Rapozinha nunca aparece parada, e nunca aparece alegre num humor triste.
 const mascot = (w, cls = '', alt = '', humor = 'feliz') => spriteHtml(SPRITES[humor] || SPRITES.feliz, w, cls, alt);
@@ -1313,7 +1325,7 @@ function screenJornada() {
     const provaPendente = r.k === 'trophy' && r.avail && !r.won;  // prova liberada e ainda não feita: troféu animado e selo "!"
     const open = V.open === r.id;
     const c = corDaLinha(r);
-    const epoca = cur ? epocaDaTrilha(m.id, r.id) : null;   // null fora de Humanas: segue a Rapozinha pensando
+    const fantasia = cur ? fantasiaDaTrilha(m.id, r.id) : null;   // null nas matérias sem fantasia: segue a Rapozinha pensando
     return `<div class="nodewrap" data-key="n:${r.id}" ${cur ? 'id="cur-node"' : ''}>
       <div class="nodeinner" style="transform:translateX(${off}px)">
         ${cur ? `<span class="startlbl px" style="border-color:${c.b};color:${c.b}">COMEÇAR</span>` : ''}
@@ -1321,7 +1333,7 @@ function screenJornada() {
           ${icon}${provaPendente ? '<span class="prova-badge px" aria-hidden="true">!</span>' : ''}
           ${r.k === 'lesson' && r.st === 'done' ? `<span class="crown px" aria-hidden="true">${I.crownS()}${Math.min(r.crowns || 1, 5)}</span>` : ''}
         </button>
-        ${cur ? mascot(92, 'mascot-side' + (off > 20 ? ' left' : ''), epoca ? ALT_EPOCA[epoca] : 'Rapozinha pensando na próxima lição', epoca || 'pensando') : ''}
+        ${cur ? mascot(92, 'mascot-side' + (off > 20 ? ' left' : ''), fantasia ? ALT_FANTASIA[fantasia] : 'Rapozinha pensando na próxima lição', fantasia || 'pensando') : ''}
       </div></div>${open ? popover(r, off) : ''}`;
   }).join('');
   const vazio = !T.units.length;
