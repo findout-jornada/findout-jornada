@@ -669,17 +669,33 @@ const SPRITES = {
   eletricidade: {src: 'rapozinha-eletricidade.webp', fw: 240, fh: 243, n: 23, dur: 2.68},     // de terno, com um raio entre as mãos: trilha de Física
   einten: {src: 'rapozinha-einten.webp', fw: 240, fh: 245, n: 23, dur: 2.68},                 // de cabelo branco e língua de fora, como na foto: trilha de Física
 };
-/* Qual fantasia a lição recebe. Com mais de uma na matéria elas se alternam, e a escolha
-   vem do id da lição em vez de sorteio: a trilha redesenha ao abrir um popover e ao rolar,
-   e sortear a cada render faria a mascote piscar. Soma simples sobre o texto — não precisa
-   espalhar bem, só não acompanhar a ordem da trilha. */
+/* Qual fantasia a lição recebe. Com mais de uma na matéria elas se alternam entre as lições
+   e também de um dia para o outro: presa só à lição, quem está parado na mesma lição veria
+   sempre a mesma roupa e só conheceria a outra ao avançar.
+   A conta mistura o dia com o id da lição, e não é um sorteio: dentro do mesmo dia a mesma
+   lição dá sempre a mesma resposta. Isso importa porque a trilha redesenha ao abrir um
+   popover e ao rolar, e sortear a cada render faria a mascote piscar.
+   O dia entra como número de dias corridos, somado ao embaralhado da lição: assim a
+   fantasia anda um passo por dia, em vez de ser sorteada de novo a cada dia. Sorteando,
+   uma moeda justa repete a mesma cara vários dias seguidos (em 60 dias, umas seis vezes
+   seguidas é o normal), e quem fica parado numa lição passaria uma semana sem ver a outra
+   roupa. Andando, o rodízio é garantido: com duas fantasias, troca todo dia.
+   O embaralhado da lição só decide por onde o rodízio começa, para que as lições vizinhas
+   da trilha não apareçam todas iguais no mesmo dia.
+   O dia vem do servidor (horário de Brasília), como o resto do app; antes de o estado
+   carregar cai na hora do aparelho, e a trilha só desenha depois disso. */
 const fantasiaDaTrilha = (mid, id) => {
   const fs = FANTASIAS[mid];
   if (!fs) return null;
   if (fs.length === 1) return fs[0];
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 9973;
-  return fs[h % fs.length];
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) {
+    h = (h ^ id.charCodeAt(i)) >>> 0;
+    h = Math.imul(h, 16777619) >>> 0;
+    h = (h ^ (h >>> 13)) >>> 0;
+  }
+  const dia = Math.floor(hojeServidor().getTime() / 864e5);   // dias corridos desde 1970
+  return fs[(h + dia) % fs.length];
 };
 const ALT_FANTASIA = {
   reverencia: 'Rapozinha de época fazendo reverência',
