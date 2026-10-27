@@ -5,3 +5,6 @@ Thumbs.db
 node_modules
 .claude/
 .impeccable/
+
+# GIFs originais da mascote: o app usa o sprite .webp assado por ferramentas/assar-gif-fundo-preto.ps1
+app/*.gif
